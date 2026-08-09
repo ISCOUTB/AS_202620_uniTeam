@@ -1,22 +1,16 @@
-# Aspecto declarado
+# Aspectos Declarados
 
-## Control de acceso y autorización por roles (RBAC)
+## Gestión colaborativa de tareas
 
-UniTeam implementará un mecanismo de autorización basado en roles, para restringir el acceso a las funcionalidades
-y recursos según el tipo de usuario.
+UniTeam implementará un sistema de gestión colaborativa de tareas para facilitar la organización del trabajo dentro de equipos universitarios.
 
-### Roles
+El sistema permitirá:
 
-- Estudiante
-- Profesor
-- Administrador
+* Crear tareas.
+* Asignar tareas a integrantes del equipo.
+* Establecer prioridades.
+* Definir estados de las tareas.
+* Establecer fechas límite.
+* Consultar el progreso de las actividades.
 
-### Objetivo
-
-Garantizar que cada usuario solamente pueda ejecutar las operaciones
-correspondientes a sus permisos.
-
-### Evidencia en el prototipo
-
-El backend implementará autenticación y autorización mediante roles,
-aplicando restricciones sobre los endpoints según el usuario autenticado.
+El aspecto será evidenciado en el prototipo mediante la creación, asignación, actualización y consulta de tareas dentro de un proyecto.
