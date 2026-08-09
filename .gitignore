@@ -1,6 +1,0 @@
-backend/venv/
-backend/__pycache__/
-.venv/
-__pycache__/
-*.pyc
-.env
