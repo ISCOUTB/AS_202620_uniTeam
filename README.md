@@ -3,7 +3,7 @@
 ### Integrantes del equipo
 
 * Julio César Emiliani
-* Ian Novoa
+* Ian Novoa Carrillo
 * Juan Jose Bustamante
 * Daniel Isaac Manjarres
 
