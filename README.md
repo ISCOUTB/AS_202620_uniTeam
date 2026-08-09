@@ -5,6 +5,7 @@
 * Julio César Emiliani
 * Ian Novoa
 * Juan Jose Bustamante
+* Daniel Isaac Manjarres
 
 ### Idea original y aporte del prototipo
 
