@@ -21,3 +21,30 @@ El prototipo busca solucionar el problema de tener la información del trabajo g
 * **Equipos de trabajo universitarios:** se beneficiarán de una herramienta centralizada para coordinar responsabilidades y mejorar la organización del trabajo colaborativo.
 * **Profesores:** podrán beneficiarse del sistema como herramienta de seguimiento de los proyectos y actividades realizadas por los equipos.
 * **Universidad:** podrá beneficiarse indirectamente de una herramienta que facilite la organización y colaboración durante el desarrollo de proyectos académicos.
+
+El mapa completo de interesados, con lo que le importa a cada uno y los conflictos entre sus intereses, está en [`docs/calidad/interesados.md`](docs/calidad/interesados.md).
+
+### Documentación
+
+| Documento | Contenido |
+|-----------|-----------|
+| [Ficha del problema](docs/ficha.md) | Problema, propuesta, usuarios y alcance del prototipo. |
+| [Aspectos declarados](docs/aspectos.md) | Capacidades comprometidas, cada una enlazada con su escenario de calidad. |
+| [Arquitectura (arc42)](docs/arc42/arc42-uniteam.md) | Objetivos, restricciones, contexto y requisitos de calidad. |
+| [Mapa de interesados](docs/calidad/interesados.md) | Interesados, atributos derivados y conflictos entre ellos. |
+| [Escenarios de calidad](docs/calidad/escenarios-calidad.md) | Cinco escenarios de seis partes con medidas verificables. |
+| [Árbol de utilidad](docs/calidad/arbol-utilidad.md) | Priorización por impacto en el negocio y riesgo técnico. |
+| [C4 nivel 1 — Contexto](docs/c4/nivel1-contexto.md) | Diagrama de contexto del sistema. |
+| [Decisiones de arquitectura](docs/adr/) | Registro de decisiones (ADR). |
+| [Uso de IA y decisiones del equipo](docs/ia.md) | Bitácora de uso de IA generativa y registro de decisiones. |
+
+### Entrega S2 — Interesados y escenarios de calidad
+
+| Lo pedido | Dónde está |
+|-----------|-----------|
+| arc42 secciones 1–3 | [arc42 §1](docs/arc42/arc42-uniteam.md#1-introducción-y-objetivos) · [§2](docs/arc42/arc42-uniteam.md#2-restricciones-de-la-arquitectura) · [§3](docs/arc42/arc42-uniteam.md#3-contexto-y-alcance) |
+| Árbol de utilidad | [docs/calidad/arbol-utilidad.md](docs/calidad/arbol-utilidad.md) — también en [arc42 §10.1](docs/arc42/arc42-uniteam.md#101-árbol-de-calidad) |
+| 3–5 escenarios de calidad con medida | [docs/calidad/escenarios-calidad.md](docs/calidad/escenarios-calidad.md) (5 escenarios) — resumen en [arc42 §10.2](docs/arc42/arc42-uniteam.md#102-escenarios-de-calidad) |
+| Restricciones justificadas | [arc42 §2](docs/arc42/arc42-uniteam.md#2-restricciones-de-la-arquitectura): técnicas, organizativas y legales |
+| C4 de contexto (nivel 1) | [docs/c4/nivel1-contexto.md](docs/c4/nivel1-contexto.md) |
+| Resumen del proceso (1 página) | [docs/entregas/S2-resumen.md](docs/entregas/S2-resumen.md) — el PDF se entrega aparte, fuera del repositorio |

@@ -1,0 +1,3 @@
+# Los resúmenes de entrega se generan en PDF a partir del Markdown y se envían
+# aparte al profesor; no se versionan.
+docs/entregas/*.pdf
