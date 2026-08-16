@@ -40,7 +40,7 @@ El mapa completo de interesados, con lo que le importa a cada uno y los conflict
 
 ### Entrega S2 — Interesados y escenarios de calidad
 
-| Lo pedido | Dónde está |
+| Solicitud | Dónde encontrarlo |
 |-----------|-----------|
 | arc42 secciones 1–3 | [arc42 §1](docs/arc42/arc42-uniteam.md#1-introducción-y-objetivos) · [§2](docs/arc42/arc42-uniteam.md#2-restricciones-de-la-arquitectura) · [§3](docs/arc42/arc42-uniteam.md#3-contexto-y-alcance) |
 | Árbol de utilidad | [docs/calidad/arbol-utilidad.md](docs/calidad/arbol-utilidad.md) — también en [arc42 §10.1](docs/arc42/arc42-uniteam.md#101-árbol-de-calidad) |
