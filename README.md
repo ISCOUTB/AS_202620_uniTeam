@@ -51,6 +51,7 @@ El mapa completo de interesados, con lo que le importa a cada uno y los conflict
 
 ## Estructura del repositorio
 
+```powershell
 AS_202620_uniTeam/
 ├── app/
 │   ├── __init__.py
@@ -67,6 +68,7 @@ AS_202620_uniTeam/
 ├── CLAUDE.md
 ├── .gitignore
 └── README.md
+```
 
 ## Tecnologias utilizadas
 
