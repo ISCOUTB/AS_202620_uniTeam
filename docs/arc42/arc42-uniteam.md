@@ -144,7 +144,50 @@ auditoría exigido por [ESC-03](../calidad/escenarios-calidad.md#esc-03) se escr
 
 # 4. Estrategia de solución
 
-*Pendiente.* Se redacta cuando se resuelva ADR-001 y se defina la descomposición inicial.
+## 4.1 Estilo arquitectónico
+
+Se compararon tres estilos arquitectónicos para UniTeam:
+
+- Arquitectura en capas.
+- Arquitectura hexagonal.
+- Arquitectura orientada a eventos (Event-Driven Architecture).
+
+Se selecciona **Event-Driven Architecture** como estilo principal debido a su aporte a la **modificabilidad**, el desacoplamiento y el procesamiento de tareas secundarias.
+
+## 4.2 Organización de la solución
+
+El sistema utilizará:
+
+- **Frontend:** Next.js.
+- **Backend:** FastAPI.
+- **Persistencia:** base de datos relacional.
+- **Comunicación:** API HTTP y eventos para funcionalidades desacopladas.
+
+Las operaciones principales permanecerán sincrónicas. Los eventos se utilizarán para funcionalidades como auditoría, notificaciones y actualización de estadísticas.
+
+## 4.3 Tácticas arquitectónicas
+
+Las principales tácticas serán:
+
+| Escenario | Tácticas |
+|---|---|
+| ESC-03 Seguridad | Autorización por proyecto y auditoría |
+| ESC-01 Rendimiento | Paginación, índices y procesamiento asíncrono |
+| ESC-02 Usabilidad | Respuestas rápidas y tareas secundarias desacopladas |
+| ESC-04 Disponibilidad | Reintentos y recuperación de consumidores |
+| ESC-05 Modificabilidad | Eventos de dominio y consumidores independientes |
+
+## 4.4 Restricciones
+
+La solución debe respetar:
+
+- FastAPI y Next.js como tecnologías seleccionadas.
+- Infraestructura gratuita o académica.
+- Equipo pequeño con dedicación parcial.
+- Desarrollo incremental.
+- Requisitos de seguridad y protección de datos.
+
+La implementación de eventos será **pragmática**, evitando infraestructura innecesariamente compleja para el prototipo.
 
 # 5. Vista de bloques de construcción
 
