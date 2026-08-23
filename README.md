@@ -48,3 +48,70 @@ El mapa completo de interesados, con lo que le importa a cada uno y los conflict
 | Restricciones justificadas | [arc42 §2](docs/arc42/arc42-uniteam.md#2-restricciones-de-la-arquitectura): técnicas, organizativas y legales |
 | C4 de contexto (nivel 1) | [docs/c4/nivel1-contexto.md](docs/c4/nivel1-contexto.md) |
 | Resumen del proceso (1 página) | [docs/entregas/S2-resumen.md](docs/entregas/S2-resumen.md) — el PDF se entrega aparte, fuera del repositorio |
+
+## Estructura del repositorio
+
+AS_202620_uniTeam/
+├── app/
+│   ├── __init__.py
+│   ├── main.py                 # Punto de entrada
+│   ├── api/                    # Capa de presentación (endpoints HTTP)
+│   ├── domain/                 # Reglas de negocio (vacío - para Semana 4)
+│   ├── application/            # Casos de uso (vacío - para Semana 4)
+│   ├── events/                 # Eventos y consumidores (vacío - para Semana 4)
+│   └── infrastructure/         # DB, mensajería (vacío - para Semana 4)
+├── tests/
+│   ├── __init__.py
+│   └── test_health.py          # Prueba en verde
+├── requirements.txt
+├── CLAUDE.md
+├── .gitignore
+└── README.md
+
+## Tecnologias utilizadas
+
+| Tecnología | Versión | Propósito |
+|------------|---------|-----------|
+| **FastAPI** | 0.112.4 | Framework web para el backend |
+| **Uvicorn** | 0.30.6 | Servidor para ejecutar FastAPI |
+| **Next.js** | *Por definir* | Framework frontend (React) |
+| **PostgreSQL** | *Por definir* | Base de datos relacional |
+| **Pytest** | 8.3.4 | Framework de pruebas automatizadas |
+| **HTTPX** | 0.27.2 | Cliente HTTP para pruebas |
+
+## ¿Cómo ejecutar el esqueleto del proyecto?
+
+### 1. Clonar el repositorio
+
+```powershell
+git clone <url-del-repositorio>
+cd AS_202620_uniTeam
+```
+### 2. Crear y activar el entorno virtual
+
+```powershell
+python -m venv venv
+venv\Scripts\activate
+```
+
+### 3. Instalar Dependecias
+```powershell
+pip install -r requirements.txt
+```
+
+### 4. Ejecutar la prueba verde
+
+```powershell
+pytest -v
+```
+
+**resultado esperado** 
+
+```powershell
+================= test session starts =================
+collected 1 item
+
+tests/test_health.py::test_health PASSED       [100%]
+
+================= 1 passed in 0.50s ==================
+```
