@@ -101,7 +101,12 @@ venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 4. Ejecutar la prueba verde
+### 4. Arrancar la aplicacion
+```powershell
+uvicorn app.main:app --reload
+```
+
+### 5. Ejecutar la prueba verde
 
 ```powershell
 pytest -v
