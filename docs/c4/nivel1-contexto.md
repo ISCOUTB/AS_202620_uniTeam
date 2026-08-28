@@ -9,29 +9,40 @@ El nivel 1 responde a *qué hace el sistema y para quién*, no a *cómo está co
 
 ```mermaid
 flowchart TB
-    est["<b>Estudiante integrante</b><br/><i>[Persona]</i><br/>Miembro de un equipo. Registra y actualiza sus tareas."]
-    lid["<b>Líder de equipo</b><br/><i>[Persona]</i><br/>Coordina el proyecto y reparte responsabilidades."]
-    pro["<b>Profesor</b><br/><i>[Persona]</i><br/>Supervisa el avance de los equipos que acompaña."]
+ subgraph sys["UniTeam [Sistema de software]"]
+    direction TB
+        web["<b>Aplicación Web</b><br><i>[Contenedor: Next.js]</i><br>Interfaz donde los usuarios crean, asignan y consultan tareas."]
+        api["<b>API</b><br><i>[Contenedor: FastAPI]</i><br>Expone la lógica de negocio: tareas, proyectos, prioridades y estados."]
+        db["<b>Base de datos</b><br><i>[Contenedor: MySQL]</i><br>Almacena usuarios, proyectos, tareas y su historial."]
+  end
+    est["<b>Estudiante integrante</b><br><i>[Persona]</i>"] -- Usa (HTTPS) --> web
+    lid["<b>Líder de equipo</b><br><i>[Persona]</i>"] -- Usa (HTTPS) --> web
+    pro["<b>Profesor</b><br><i>[Persona]</i>"] -- Usa (HTTPS) --> web
+    web -- Llama (REST/JSON) --> api
+    api -- Lee y escribe (SQL) --> db
+    api -- Delega autenticación --> idp["<b>Proveedor de identidad</b><br><i>[Externo — previsto]</i>"]
+    api -- Envía invitaciones y avisos --> mail["<b>Servicio de correo</b><br><i>[Externo — previsto]</i>"]
 
-    sys["<b>UniTeam</b><br/><i>[Sistema de software]</i><br/>Centraliza las tareas de un proyecto universitario: qué hay que hacer, quién responde, qué prioridad tiene y en qué estado está."]
-
-    idp["<b>Proveedor de identidad</b><br/><i>[Externo — previsto]</i><br/>Autentica al usuario con su cuenta institucional o de Google."]
-    mail["<b>Servicio de correo</b><br/><i>[Externo — previsto]</i><br/>Entrega invitaciones y avisos a los integrantes."]
-
-    est -->|"Crea tareas, actualiza su estado y consulta lo asignado"| sys
-    lid -->|"Crea el proyecto, invita integrantes, asigna tareas y consulta el avance"| sys
-    pro -->|"Consulta el avance de los equipos que supervisa"| sys
-
-    sys -->|"Delega la autenticación del usuario"| idp
-    sys -->|"Envía invitaciones y avisos de fecha límite"| mail
-
+    est@{ shape: rect}
+    lid@{ shape: rect}
+    pro@{ shape: rect}
+     web:::contenedor
+     api:::contenedor
+     db:::contenedor
+     est:::persona
+     lid:::persona
+     pro:::persona
+     idp:::externo
+     mail:::externo
     classDef persona fill:#08427b,stroke:#052e56,color:#ffffff
-    classDef sistema fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef contenedor fill:#1168bd,stroke:#0b4884,color:#ffffff
     classDef externo fill:#6b6b6b,stroke:#4d4d4d,color:#ffffff
+    classDef limite fill:none,stroke:#1168bd,stroke-dasharray: 4 3,color:#1168bd
 
     class est,lid,pro persona
-    class sys sistema
+    class web,api,db contenedor
     class idp,mail externo
+    class sys limite
 ```
 
 ## Leyenda
