@@ -77,7 +77,7 @@ AS_202620_uniTeam/
 | **FastAPI** | 0.112.4 | Framework web para el backend |
 | **Uvicorn** | 0.30.6 | Servidor para ejecutar FastAPI |
 | **Next.js** | *Por definir* | Framework frontend (React) |
-| **PostgreSQL** | *Por definir* | Base de datos relacional |
+| **MySQL** | *Por definir* | Base de datos relacional |
 | **Pytest** | 8.3.4 | Framework de pruebas automatizadas |
 | **HTTPX** | 0.27.2 | Cliente HTTP para pruebas |
 
