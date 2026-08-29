@@ -1,0 +1,37 @@
+# Arranque completo de UniTeam con un solo comando:
+#
+#     docker compose up
+#
+# Levanta MySQL (ADR 0004) y la API, y espera a que la base de datos responda
+# antes de arrancar la aplicacion.
+services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_ROOT_PASSWORD: uniteam
+      MYSQL_DATABASE: uniteam
+      MYSQL_USER: uniteam
+      MYSQL_PASSWORD: uniteam
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uuniteam", "-puniteam"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    volumes:
+      - datos_mysql:/var/lib/mysql
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: mysql+pymysql://uniteam:uniteam@db:3306/uniteam
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  datos_mysql:

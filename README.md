@@ -35,6 +35,7 @@ El mapa completo de interesados, con lo que le importa a cada uno y los conflict
 | [Escenarios de calidad](docs/calidad/escenarios-calidad.md) | Cinco escenarios de seis partes con medidas verificables. |
 | [Árbol de utilidad](docs/calidad/arbol-utilidad.md) | Priorización por impacto en el negocio y riesgo técnico. |
 | [C4 nivel 1 — Contexto](docs/c4/nivel1-contexto.md) | Diagrama de contexto del sistema. |
+| [C4 nivel 2 — Contenedores](docs/c4/nivel2-contenedores.md) | Contenedores y su correspondencia con el código. |
 | [Decisiones de arquitectura](docs/adr/) | Registro de decisiones (ADR). |
 | [Uso de IA y decisiones del equipo](docs/ia.md) | Bitácora de uso de IA generativa y registro de decisiones. |
 
@@ -49,71 +50,120 @@ El mapa completo de interesados, con lo que le importa a cada uno y los conflict
 | C4 de contexto (nivel 1) | [docs/c4/nivel1-contexto.md](docs/c4/nivel1-contexto.md) |
 | Resumen del proceso (1 página) | [docs/entregas/S2-resumen.md](docs/entregas/S2-resumen.md) — el PDF se entrega aparte, fuera del repositorio |
 
-## Estructura del repositorio
+## Cómo se arranca
 
-```powershell
-AS_202620_uniTeam/
-├── app/
-│   ├── __init__.py
-│   ├── main.py                 # Punto de entrada
-│   ├── api/                    # Capa de presentación (endpoints HTTP)
-│   ├── domain/                 # Reglas de negocio (vacío - para Semana 4)
-│   ├── application/            # Casos de uso (vacío - para Semana 4)
-│   ├── events/                 # Eventos y consumidores (vacío - para Semana 4)
-│   └── infrastructure/         # DB, mensajería (vacío - para Semana 4)
-├── tests/
-│   ├── __init__.py
-│   └── test_health.py          # Prueba en verde
-├── requirements.txt
-├── CLAUDE.md
-├── .gitignore
-└── README.md
+**Requisitos previos:** Docker con el complemento Compose (`docker compose version`). Nada más:
+ni Python ni MySQL instalados en la máquina.
+
+```bash
+docker compose up
 ```
 
-## Tecnologias utilizadas
+Ese único comando construye la API, levanta MySQL, espera a que responda y arranca el sistema en
+<http://localhost:8000>. La documentación interactiva de la API queda en
+<http://localhost:8000/docs>, y `GET /activo` responde `{"status": "ok"}` cuando todo está en pie.
 
-| Tecnología | Versión | Propósito |
-|------------|---------|-----------|
-| **FastAPI** | 0.112.4 | Framework web para el backend |
-| **Uvicorn** | 0.30.6 | Servidor para ejecutar FastAPI |
-| **Next.js** | *Por definir* | Framework frontend (React) |
-| **PostgreSQL** | *Por definir* | Base de datos relacional |
-| **Pytest** | 8.3.4 | Framework de pruebas automatizadas |
-| **HTTPX** | 0.27.2 | Cliente HTTP para pruebas |
+Para detenerlo, `Ctrl+C`; para borrar también los datos, `docker compose down -v`.
 
-## ¿Cómo ejecutar el esqueleto del proyecto?
+### Recorrido de ejemplo
 
-### 1. Clonar el repositorio
+```bash
+# 1. Crear un proyecto (quien lo crea queda como líder)
+curl -X POST localhost:8000/proyectos \
+  -H "Content-Type: application/json" -H "X-Usuario: ana" \
+  -d '{"nombre":"Proyecto de Arquitectura","miembros":["bruno"]}'
 
-```powershell
-git clone <url-del-repositorio>
-cd AS_202620_uniTeam
+# 2. Crear una tarea dentro de él (usa el id devuelto arriba)
+curl -X POST localhost:8000/proyectos/<ID>/tareas \
+  -H "Content-Type: application/json" -H "X-Usuario: ana" \
+  -d '{"titulo":"Redactar la sección 5","prioridad":"alta","responsable":"bruno"}'
+
+# 3. Consultar el tablero
+curl localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: bruno"
+
+# 4. Un usuario ajeno al proyecto recibe 403 y queda registrado en auditoría (ESC-03)
+curl -i localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: intruso"
 ```
-### 2. Crear y activar el entorno virtual
 
-```powershell
-python -m venv venv
-venv\Scripts\activate
-```
+> **Identidad provisional.** La cabecera `X-Usuario` sustituye al proveedor de identidad
+> mientras no se integra OIDC (ver [C4 nivel 2](docs/c4/nivel2-contenedores.md)). No es
+> autenticación y no debe exponerse fuera de un entorno de desarrollo. La **autorización** sí es
+> real: cada operación comprueba la pertenencia al proyecto contra la base de datos.
 
-### 3. Instalar Dependecias
-```powershell
+### Alternativa sin Docker
+
+Si prefieres no usar contenedores, hace falta Python 3.11 o superior y, para la persistencia
+real, un MySQL accesible:
+
+```bash
+python -m venv .venv && . .venv/bin/activate    # en Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+uvicorn app.main:app --reload
 ```
 
-### 4. Ejecutar la prueba verde
+Sin `DATABASE_URL` definida arranca sobre un SQLite local, útil para probar la API pero **no**
+es el entorno soportado (ver [ADR 0004](docs/adr/0004-usar-mysql-como-base-de-datos.md)).
 
-```powershell
+## Cómo se prueba
+
+En integración continua las pruebas se ejecutan **contra MySQL** en cada `push`
+(ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
+En local, sin levantar servicios:
+
+```bash
+python -m venv .venv && . .venv/bin/activate    # en Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 pytest -v
 ```
 
-**resultado esperado** 
+Sin `DATABASE_URL` definida, las pruebas usan un SQLite temporal. Para ejecutarlas contra el
+MySQL de Docker:
 
-```powershell
-================= test session starts =================
-collected 1 item
-
-tests/test_health.py::test_health PASSED       [100%]
-
-================= 1 passed in 0.50s ==================
+```bash
+docker compose up -d db
+DATABASE_URL="mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam" pytest -v
 ```
+
+## Corte vertical
+
+El recorrido que atraviesa las tres capas, para seguirlo en el código:
+
+| Tramo | Ruta |
+|-------|------|
+| Interfaz | [`app/api/rutas_tareas.py`](app/api/rutas_tareas.py) — endpoints HTTP |
+| Lógica | [`app/application/servicio_tareas.py`](app/application/servicio_tareas.py) — casos de uso y autorización |
+| Dominio | [`app/domain/modelos.py`](app/domain/modelos.py) — entidades y flujo de estados |
+| Eventos | [`app/application/bus.py`](app/application/bus.py) · [`app/events/consumidores.py`](app/events/consumidores.py) |
+| Persistencia | [`app/infrastructure/repositorios.py`](app/infrastructure/repositorios.py) — MySQL vía SQLAlchemy |
+| Prueba de punta a punta | [`test/test_corte_vertical.py`](test/test_corte_vertical.py) |
+
+## Estructura del repositorio
+
+```text
+AS_202620_uniTeam/
+├── app/
+│   ├── main.py                 # Composición de la app y traducción de errores a HTTP
+│   ├── config.py               # Configuración leída del entorno
+│   ├── api/                    # Interfaz: endpoints, esquemas y dependencias
+│   ├── application/            # Casos de uso, puertos y bus de eventos
+│   ├── domain/                 # Entidades, flujo de estados y eventos de dominio
+│   ├── events/                 # Consumidores (auditoría)
+│   └── infrastructure/         # Motor, tablas y repositorios (MySQL)
+├── test/                       # Pruebas, incluida la del recorrido completo
+├── docs/                       # arc42, ADR, C4, aspectos y registro de IA
+├── compose.yaml                # Arranque con un comando
+├── Dockerfile
+└── requirements.txt
+```
+
+## Tecnologías
+
+| Tecnología | Versión | Propósito | Decisión |
+|------------|---------|-----------|----------|
+| FastAPI | 0.112.4 | Backend | [ADR 0002](docs/adr/0002-usar-fastapi-y-nextjs.md) |
+| Uvicorn | 0.30.6 | Servidor ASGI | — |
+| SQLAlchemy | 2.0.36 | Acceso a datos | [ADR 0004](docs/adr/0004-usar-mysql-como-base-de-datos.md) |
+| MySQL | 8.4 | Base de datos | [ADR 0004](docs/adr/0004-usar-mysql-como-base-de-datos.md) |
+| Next.js | *pendiente* | Frontend (semana 6) | [ADR 0002](docs/adr/0002-usar-fastapi-y-nextjs.md) |
+| Pytest | 8.3.4 | Pruebas | — |

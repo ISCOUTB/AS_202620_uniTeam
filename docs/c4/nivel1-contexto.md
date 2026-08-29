@@ -3,27 +3,27 @@
 Muestra a UniTeam como una caja negra, quién lo usa y con qué sistemas externos se relaciona.
 El nivel 1 responde a *qué hace el sistema y para quién*, no a *cómo está construido*: por eso
 **no aparece ninguna tecnología** en el diagrama. La elección del stack se documentará en
-[ADR-001](../adr/ADR-001-seleccion-de-stack.md) y afectará a partir del nivel 2 (contenedores).
+[0001-acotar-el-stack-a-cuatro-opciones.md) y afectará a partir del nivel 2 (contenedores).
 
 ## Diagrama
 
 ```mermaid
 flowchart TB
-    est["<b>Estudiante integrante</b><br/><i>[Persona]</i><br/>Miembro de un equipo. Registra y actualiza sus tareas."]
-    lid["<b>Líder de equipo</b><br/><i>[Persona]</i><br/>Coordina el proyecto y reparte responsabilidades."]
-    pro["<b>Profesor</b><br/><i>[Persona]</i><br/>Supervisa el avance de los equipos que acompaña."]
+    est["<b>Estudiante</b><br/><i>[Persona]</i>"]
+    lid["<b>Líder de equipo</b><br/><i>[Persona]</i>"]
+    pro["<b>Profesor</b><br/><i>[Persona]</i>"]
 
-    sys["<b>UniTeam</b><br/><i>[Sistema de software]</i><br/>Centraliza las tareas de un proyecto universitario: qué hay que hacer, quién responde, qué prioridad tiene y en qué estado está."]
+    sys["<b>UniTeam</b><br/><i>[Sistema de software]</i><br/>Gestiona tareas de equipos universitarios."]
 
-    idp["<b>Proveedor de identidad</b><br/><i>[Externo — previsto]</i><br/>Autentica al usuario con su cuenta institucional o de Google."]
-    mail["<b>Servicio de correo</b><br/><i>[Externo — previsto]</i><br/>Entrega invitaciones y avisos a los integrantes."]
+    idp["<b>Proveedor de identidad</b><br/><i>[Externo]</i>"]
+    mail["<b>Servicio de correo</b><br/><i>[Externo]</i>"]
 
-    est -->|"Crea tareas, actualiza su estado y consulta lo asignado"| sys
-    lid -->|"Crea el proyecto, invita integrantes, asigna tareas y consulta el avance"| sys
-    pro -->|"Consulta el avance de los equipos que supervisa"| sys
+    est -->|"Gestiona sus tareas"| sys
+    lid -->|"Gestiona el proyecto"| sys
+    pro -->|"Supervisa avance"| sys
 
-    sys -->|"Delega la autenticación del usuario"| idp
-    sys -->|"Envía invitaciones y avisos de fecha límite"| mail
+    sys -->|"Autentica"| idp
+    sys -->|"Envía avisos"| mail
 
     classDef persona fill:#08427b,stroke:#052e56,color:#ffffff
     classDef sistema fill:#1168bd,stroke:#0b4884,color:#ffffff
