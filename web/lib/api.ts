@@ -51,15 +51,15 @@ export class ErrorApi extends Error {
 
 async function pedir<T>(
   ruta: string,
-  usuario: string,
+  token: string,
   opciones: RequestInit = {},
 ): Promise<T> {
   const respuesta = await fetch(`${API}${ruta}`, {
     ...opciones,
     headers: {
       "Content-Type": "application/json",
-      // Identidad provisional mientras no se integra OIDC.
-      "X-Usuario": usuario,
+      // La identidad la lleva el token; la API la verifica contra el emisor.
+      Authorization: `Bearer ${token}`,
       ...(opciones.headers ?? {}),
     },
     cache: "no-store",
@@ -80,26 +80,26 @@ async function pedir<T>(
 }
 
 export const api = {
-  listarProyectos: (usuario: string) =>
-    pedir<Proyecto[]>("/proyectos", usuario),
+  listarProyectos: (token: string) =>
+    pedir<Proyecto[]>("/proyectos", token),
 
-  obtenerProyecto: (usuario: string, id: string) =>
-    pedir<Proyecto>(`/proyectos/${id}`, usuario),
+  obtenerProyecto: (token: string, id: string) =>
+    pedir<Proyecto>(`/proyectos/${id}`, token),
 
-  crearProyecto: (usuario: string, nombre: string, miembros: string[]) =>
-    pedir<{ id: string }>("/proyectos", usuario, {
+  crearProyecto: (token: string, nombre: string, miembros: string[]) =>
+    pedir<{ id: string }>("/proyectos", token, {
       method: "POST",
       body: JSON.stringify({ nombre, miembros }),
     }),
 
-  agregarMiembro: (usuario: string, id: string, nuevo: string) =>
-    pedir<Proyecto>(`/proyectos/${id}/miembros`, usuario, {
+  agregarMiembro: (token: string, id: string, nuevo: string) =>
+    pedir<Proyecto>(`/proyectos/${id}/miembros`, token, {
       method: "POST",
       body: JSON.stringify({ usuario: nuevo }),
     }),
 
   listarTareas: (
-    usuario: string,
+    token: string,
     id: string,
     filtros: { estado?: EstadoTarea; responsable?: string } = {},
   ) => {
@@ -109,12 +109,12 @@ export const api = {
     const consulta = parametros.toString();
     return pedir<Tarea[]>(
       `/proyectos/${id}/tareas${consulta ? `?${consulta}` : ""}`,
-      usuario,
+      token,
     );
   },
 
   crearTarea: (
-    usuario: string,
+    token: string,
     id: string,
     datos: {
       titulo: string;
@@ -123,24 +123,24 @@ export const api = {
       fecha_limite?: string | null;
     },
   ) =>
-    pedir<Tarea>(`/proyectos/${id}/tareas`, usuario, {
+    pedir<Tarea>(`/proyectos/${id}/tareas`, token, {
       method: "POST",
       body: JSON.stringify(datos),
     }),
 
   cambiarEstado: (
-    usuario: string,
+    token: string,
     id: string,
     tareaId: string,
     estado: EstadoTarea,
   ) =>
-    pedir<Tarea>(`/proyectos/${id}/tareas/${tareaId}/estado`, usuario, {
+    pedir<Tarea>(`/proyectos/${id}/tareas/${tareaId}/estado`, token, {
       method: "PUT",
       body: JSON.stringify({ estado }),
     }),
 
-  progreso: (usuario: string, id: string) =>
-    pedir<Progreso>(`/proyectos/${id}/progreso`, usuario),
+  progreso: (token: string, id: string) =>
+    pedir<Progreso>(`/proyectos/${id}/progreso`, token),
 };
 
 /** Estados a los que se puede pasar desde cada estado (espeja el dominio). */

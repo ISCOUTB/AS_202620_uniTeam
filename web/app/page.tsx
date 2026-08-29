@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, ErrorApi, type Proyecto } from "@/lib/api";
-import { useUsuario } from "@/lib/usuario";
+import { useSesion } from "@/lib/sesion";
 
 export default function PaginaProyectos() {
-  const { usuario, cargado } = useUsuario();
+  const { token, cargado } = useSesion();
   const [proyectos, establecerProyectos] = useState<Proyecto[]>([]);
   const [error, establecerError] = useState<string | null>(null);
   const [cargando, establecerCargando] = useState(false);
@@ -14,10 +14,10 @@ export default function PaginaProyectos() {
   const [miembros, establecerMiembros] = useState("");
 
   const recargar = useCallback(async () => {
-    if (!usuario) return;
+    if (!token) return;
     establecerCargando(true);
     try {
-      establecerProyectos(await api.listarProyectos(usuario));
+      establecerProyectos(await api.listarProyectos(token));
       establecerError(null);
     } catch (e) {
       establecerError(
@@ -26,7 +26,7 @@ export default function PaginaProyectos() {
     } finally {
       establecerCargando(false);
     }
-  }, [usuario]);
+  }, [token]);
 
   useEffect(() => {
     void recargar();
@@ -34,13 +34,13 @@ export default function PaginaProyectos() {
 
   async function crear(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!usuario || !nombre.trim()) return;
+    if (!token || !nombre.trim()) return;
     const lista = miembros
       .split(",")
       .map((m) => m.trim())
       .filter(Boolean);
     try {
-      await api.crearProyecto(usuario, nombre.trim(), lista);
+      await api.crearProyecto(token, nombre.trim(), lista);
       establecerNombre("");
       establecerMiembros("");
       await recargar();
@@ -53,17 +53,17 @@ export default function PaginaProyectos() {
 
   if (!cargado) return null;
 
-  if (!usuario) {
+  if (!token) {
     return (
       <>
         <h1>Tus proyectos</h1>
         <p className="subtitulo">
-          Indica tu usuario en la barra superior para empezar.
+          Inicia sesión para ver los proyectos de los que eres miembro.
         </p>
         <div className="aviso">
-          La identidad es provisional mientras no se integra el proveedor de
-          identidad: se escribe a mano y viaja en la cabecera <code>X-Usuario</code>.
-          El control de acceso sí es real y lo aplica el backend.
+          UniTeam no guarda contraseñas: delega la autenticación en el proveedor
+          de identidad. La API verifica el token que este emite antes de atender
+          cualquier petición.
         </div>
       </>
     );

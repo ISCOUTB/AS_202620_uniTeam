@@ -14,7 +14,7 @@ import {
   type Proyecto,
   type Tarea,
 } from "@/lib/api";
-import { useUsuario } from "@/lib/usuario";
+import { useSesion } from "@/lib/sesion";
 
 const ESTADOS: EstadoTarea[] = ["pendiente", "en_progreso", "completada"];
 const PRIORIDADES: Prioridad[] = ["baja", "media", "alta"];
@@ -26,7 +26,7 @@ function estaVencida(t: Tarea): boolean {
 
 export default function PaginaTablero() {
   const { id } = useParams<{ id: string }>();
-  const { usuario, cargado } = useUsuario();
+  const { token, cargado } = useSesion();
 
   const [proyecto, establecerProyecto] = useState<Proyecto | null>(null);
   const [tareas, establecerTareas] = useState<Tarea[]>([]);
@@ -41,15 +41,15 @@ export default function PaginaTablero() {
   const [fechaLimite, establecerFechaLimite] = useState("");
 
   const recargar = useCallback(async () => {
-    if (!usuario || !id) return;
+    if (!token || !id) return;
     try {
       const [p, t, r] = await Promise.all([
-        api.obtenerProyecto(usuario, id),
-        api.listarTareas(usuario, id, {
+        api.obtenerProyecto(token, id),
+        api.listarTareas(token, id, {
           estado: filtroEstado || undefined,
           responsable: filtroResponsable || undefined,
         }),
-        api.progreso(usuario, id),
+        api.progreso(token, id),
       ]);
       establecerProyecto(p);
       establecerTareas(t);
@@ -60,7 +60,7 @@ export default function PaginaTablero() {
         e instanceof ErrorApi ? e.message : "No se pudo contactar con la API.",
       );
     }
-  }, [usuario, id, filtroEstado, filtroResponsable]);
+  }, [token, id, filtroEstado, filtroResponsable]);
 
   useEffect(() => {
     void recargar();
@@ -68,9 +68,9 @@ export default function PaginaTablero() {
 
   async function crearTarea(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!usuario || !titulo.trim()) return;
+    if (!token || !titulo.trim()) return;
     try {
-      await api.crearTarea(usuario, id, {
+      await api.crearTarea(token, id, {
         titulo: titulo.trim(),
         prioridad,
         responsable: responsable || null,
@@ -88,9 +88,9 @@ export default function PaginaTablero() {
   }
 
   async function mover(tarea: Tarea, estado: EstadoTarea) {
-    if (!usuario) return;
+    if (!token) return;
     try {
-      await api.cambiarEstado(usuario, id, tarea.id, estado);
+      await api.cambiarEstado(token, id, tarea.id, estado);
       await recargar();
     } catch (e) {
       establecerError(
@@ -100,8 +100,8 @@ export default function PaginaTablero() {
   }
 
   if (!cargado) return null;
-  if (!usuario)
-    return <p className="vacio">Indica tu usuario en la barra superior.</p>;
+  if (!token)
+    return <p className="vacio">Inicia sesión para ver este proyecto.</p>;
 
   if (error && !proyecto) {
     return (

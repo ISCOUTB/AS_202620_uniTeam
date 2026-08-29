@@ -17,23 +17,23 @@ def _releer(sesion):
     return sesion
 
 
-def _crear_proyecto(cliente, lider="ana", miembros=("bruno",)):
+def _crear_proyecto(cliente, cab, lider="ana", miembros=("bruno",)):
     respuesta = cliente.post(
         "/proyectos",
         json={"nombre": "Proyecto de Arquitectura", "miembros": list(miembros)},
-        headers={"X-Usuario": lider},
+        headers=cab(lider),
     )
     assert respuesta.status_code == 201
     return respuesta.json()["id"]
 
 
-def test_recorrido_completo_de_una_tarea(cliente, sesion):
+def test_recorrido_completo_de_una_tarea(cliente, sesion, cab):
     """Crear proyecto, crear tarea, verla en el tablero y moverla de estado.
 
     Comprueba además que la tarea quedó realmente escrita en la base de datos,
     no solo devuelta por la API.
     """
-    proyecto_id = _crear_proyecto(cliente)
+    proyecto_id = _crear_proyecto(cliente, cab)
 
     creada = cliente.post(
         f"/proyectos/{proyecto_id}/tareas",
@@ -43,7 +43,7 @@ def test_recorrido_completo_de_una_tarea(cliente, sesion):
             "responsable": "bruno",
             "fecha_limite": "2026-09-05",
         },
-        headers={"X-Usuario": "ana"},
+        headers=cab("ana"),
     )
     assert creada.status_code == 201
     tarea = creada.json()
@@ -58,7 +58,7 @@ def test_recorrido_completo_de_una_tarea(cliente, sesion):
 
     # Consulta del tablero (RF-06).
     tablero = cliente.get(
-        f"/proyectos/{proyecto_id}/tareas", headers={"X-Usuario": "bruno"}
+        f"/proyectos/{proyecto_id}/tareas", headers=cab("bruno")
     )
     assert tablero.status_code == 200
     assert [t["id"] for t in tablero.json()] == [tarea["id"]]
@@ -67,7 +67,7 @@ def test_recorrido_completo_de_una_tarea(cliente, sesion):
     movida = cliente.put(
         f"/proyectos/{proyecto_id}/tareas/{tarea['id']}/estado",
         json={"estado": "en_progreso"},
-        headers={"X-Usuario": "bruno"},
+        headers=cab("bruno"),
     )
     assert movida.status_code == 200
     assert movida.json()["estado"] == "en_progreso"
@@ -75,34 +75,34 @@ def test_recorrido_completo_de_una_tarea(cliente, sesion):
     assert _releer(sesion).get(TareaTabla, tarea["id"]).estado == "en_progreso"
 
 
-def test_transicion_invalida_se_rechaza(cliente):
+def test_transicion_invalida_se_rechaza(cliente, cab):
     """De 'pendiente' no se puede saltar a 'completada'."""
-    proyecto_id = _crear_proyecto(cliente)
+    proyecto_id = _crear_proyecto(cliente, cab)
     tarea = cliente.post(
         f"/proyectos/{proyecto_id}/tareas",
         json={"titulo": "Tarea suelta"},
-        headers={"X-Usuario": "ana"},
+        headers=cab("ana"),
     ).json()
 
     respuesta = cliente.put(
         f"/proyectos/{proyecto_id}/tareas/{tarea['id']}/estado",
         json={"estado": "completada"},
-        headers={"X-Usuario": "ana"},
+        headers=cab("ana"),
     )
     assert respuesta.status_code == 409
 
 
-def test_esc03_usuario_ajeno_no_accede_y_queda_auditado(cliente, sesion):
+def test_esc03_usuario_ajeno_no_accede_y_queda_auditado(cliente, sesion, cab):
     """ESC-03: 403, cero datos del recurso y registro de auditoría."""
-    proyecto_id = _crear_proyecto(cliente)
+    proyecto_id = _crear_proyecto(cliente, cab)
     cliente.post(
         f"/proyectos/{proyecto_id}/tareas",
         json={"titulo": "Tarea confidencial del equipo"},
-        headers={"X-Usuario": "ana"},
+        headers=cab("ana"),
     )
 
     respuesta = cliente.get(
-        f"/proyectos/{proyecto_id}/tareas", headers={"X-Usuario": "intruso"}
+        f"/proyectos/{proyecto_id}/tareas", headers=cab("intruso")
     )
 
     assert respuesta.status_code == 403
@@ -120,37 +120,37 @@ def test_esc03_usuario_ajeno_no_accede_y_queda_auditado(cliente, sesion):
     assert registros[0].operacion == "consultar_tablero"
 
 
-def test_esc03_proyecto_inexistente_no_se_distingue_de_uno_ajeno(cliente):
+def test_esc03_proyecto_inexistente_no_se_distingue_de_uno_ajeno(cliente, cab):
     """Confirmar la existencia de un proyecto ajeno ya sería una fuga."""
     ajeno = cliente.get(
         "/proyectos/00000000-0000-0000-0000-000000000000/tareas",
-        headers={"X-Usuario": "intruso"},
+        headers=cab("intruso"),
     )
     assert ajeno.status_code == 403
 
 
-def test_no_se_asigna_una_tarea_a_alguien_ajeno_al_proyecto(cliente):
-    proyecto_id = _crear_proyecto(cliente)
+def test_no_se_asigna_una_tarea_a_alguien_ajeno_al_proyecto(cliente, cab):
+    proyecto_id = _crear_proyecto(cliente, cab)
     respuesta = cliente.post(
         f"/proyectos/{proyecto_id}/tareas",
         json={"titulo": "Tarea mal asignada", "responsable": "intruso"},
-        headers={"X-Usuario": "ana"},
+        headers=cab("ana"),
     )
     assert respuesta.status_code == 403
 
 
-def test_las_operaciones_permitidas_tambien_quedan_auditadas(cliente, sesion):
+def test_las_operaciones_permitidas_tambien_quedan_auditadas(cliente, sesion, cab):
     """La auditoria de lo permitido comparte transaccion con el cambio.
 
     Sin esta prueba, un fallo del consumidor pasaria inadvertido: el bus aisla
     los errores de los consumidores a proposito, de modo que la peticion habria
     respondido 201 con la auditoria perdida.
     """
-    proyecto_id = _crear_proyecto(cliente)
+    proyecto_id = _crear_proyecto(cliente, cab)
     creada = cliente.post(
         f"/proyectos/{proyecto_id}/tareas",
         json={"titulo": "Tarea auditada"},
-        headers={"X-Usuario": "ana"},
+        headers=cab("ana"),
     )
     assert creada.status_code == 201
     tarea_id = creada.json()["id"]

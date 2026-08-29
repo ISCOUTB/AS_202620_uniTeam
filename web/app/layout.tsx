@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { BarraUsuario } from "./barra-usuario";
-import { ProveedorUsuario } from "@/lib/usuario";
+import { ProveedorSesion } from "@/lib/sesion";
 
 export const metadata: Metadata = {
   title: "UniTeam",
@@ -16,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body>
-        <ProveedorUsuario>
+        <ProveedorSesion>
           <header className="cabecera">
             <div className="cabecera-interior">
               <a className="marca" href="/">
@@ -26,7 +26,7 @@ export default function RootLayout({
             </div>
           </header>
           <main className="contenido">{children}</main>
-        </ProveedorUsuario>
+        </ProveedorSesion>
       </body>
     </html>
   );

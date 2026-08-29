@@ -57,9 +57,9 @@ flowchart LR
 | Origen | Destino | Descripción | Protocolo |
 |--------|---------|-------------|-----------|
 | Estudiante, Líder de equipo, Profesor | Aplicación Web | Uso de la interfaz | HTTPS |
-| Aplicación Web | Proveedor de identidad | Inicio de sesión del usuario | OIDC *(previsto)* |
+| Aplicación Web | Proveedor de identidad | Inicio de sesión del usuario (código + PKCE) | OIDC |
 | Aplicación Web | API | Consumo de la lógica de negocio | REST/JSON |
-| API | Proveedor de identidad | Validación del token recibido | OIDC *(previsto)* |
+| API | Proveedor de identidad | Descarga del JWKS y validación del token | OIDC |
 | API | Base de datos | Persistencia y registro de auditoría | SQL |
 | API | Servicio de correo | Invitaciones y avisos de fecha límite | *(previsto)* |
 
@@ -95,11 +95,19 @@ recibido: las credenciales **nunca pasan por UniTeam**, lo que reduce el alcance
 restricción legal L1 y la superficie de riesgo de
 [ESC-03](../calidad/escenarios-calidad.md#esc-03).
 
-**Estado actual:** la integración OIDC todavía no está implementada. Mientras tanto la
-Aplicación Web pide el nombre de usuario y lo envía en la cabecera `X-Usuario`
-(`web/lib/usuario.tsx`), que la API lee en `app/api/dependencias.py`. Es un sustituto
-provisional y explícitamente inseguro. Lo que sí es real es la **autorización**: la pertenencia
-al proyecto se comprueba contra la base de datos en cada operación.
+**Estado actual:** implementado ([ADR 0005](../adr/0005-delegar-la-autenticacion-en-un-proveedor-oidc.md)).
+La Aplicación Web ejecuta el flujo de código de autorización con PKCE (`web/lib/oidc.ts`) y
+envía el token en `Authorization: Bearer`; la API lo verifica en cada petición contra el JWKS
+del emisor (`app/api/seguridad.py`). La identidad sale del token, no de lo que declare el
+cliente.
+
+Autenticar no es autorizar: estar autenticado no da acceso a un proyecto ajeno. La pertenencia
+se sigue comprobando contra la base de datos en cada operación, y ese es el mecanismo que
+sostiene [ESC-03](../calidad/escenarios-calidad.md#esc-03).
+
+**Proveedor pendiente.** Todavía no se ha elegido entre la cuenta institucional y Google. Para
+desarrollo se usa un emisor mínimo (`scripts/emisor_dev.py`) que habla el protocolo pero **no
+autentica a nadie**; existe para que el sistema arranque sin cuentas externas.
 
 Como la Aplicación Web se ejecuta en el navegador del usuario, la relación «Aplicación Web →
 API» es una petición entre orígenes distintos y necesita CORS. La lista de orígenes es

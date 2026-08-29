@@ -25,15 +25,30 @@ Ese único comando levanta los tres contenedores y deja el sistema en marcha:
 |----------|-----|--------|
 | Aplicación Web | <http://localhost:3000> | Interfaz de usuario (Next.js) |
 | API | <http://localhost:8000> | Backend (FastAPI) · documentación interactiva en `/docs` |
+| Proveedor de identidad | <http://localhost:9000> | Emisor OIDC **de desarrollo** |
 | Base de datos | `localhost:3306` | MySQL 8.4 |
+
+Pulsa **Iniciar sesión**, escribe un nombre en el emisor de desarrollo y vuelves autenticado.
 
 Para detenerlo, `Ctrl+C`. Para borrar también los datos, `docker compose down -v`.
 
-> **Identidad provisional.** Todavía no hay autenticación: el usuario se escribe a mano y viaja
-> en la cabecera `X-Usuario`. Sustituye al proveedor de identidad hasta que se integre OIDC, y
-> **no debe exponerse fuera de un entorno de desarrollo**. La **autorización** sí es real: cada
-> operación comprueba contra la base de datos que el usuario pertenezca al proyecto, y quien no
-> pertenece recibe `403` y queda registrado en auditoría.
+> **El emisor de desarrollo no autentica a nadie.** Firma un token con el nombre que se le pida,
+> para que el sistema se pueda ejercitar sin cuentas externas. **Nunca debe desplegarse fuera de
+> desarrollo**; en su lugar va la cuenta institucional o Google, que es configuración
+> (`OIDC_EMISOR`, `OIDC_AUDIENCIA`) y no código.
+
+### Autenticación y autorización
+
+Son dos cosas distintas y conviene no confundirlas:
+
+- **Autenticación.** UniTeam no guarda contraseñas: delega en un proveedor OpenID Connect
+  ([ADR 0005](docs/adr/0005-delegar-la-autenticacion-en-un-proveedor-oidc.md)). La aplicación web
+  hace el flujo de código con PKCE y envía el token en `Authorization: Bearer`; la API lo
+  verifica en cada petición contra el JWKS del emisor, comprobando firma, emisor, audiencia y
+  caducidad.
+- **Autorización.** Estar autenticado no da acceso a nada: cada operación comprueba contra la
+  base de datos que el usuario pertenezca al proyecto. Quien no pertenece recibe `403` y el
+  intento queda en el registro de auditoría ([ESC-03](docs/calidad/escenarios-calidad.md#esc-03)).
 
 ---
 
@@ -84,22 +99,26 @@ Toda operación sobre un proyecto exige pertenecer a él.
 
 Ejemplo completo:
 
+Todas las peticiones necesitan un token. Sin él, la API responde `401`.
+
 ```bash
+TOKEN="<el token que devuelve el proveedor de identidad>"
+
 # Crear un proyecto
 curl -X POST localhost:8000/proyectos \
-  -H "Content-Type: application/json" -H "X-Usuario: ana" \
-  -d '{"nombre":"Proyecto de Arquitectura","miembros":["bruno"]}'
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+  -d '{"nombre":"Proyecto de Arquitectura","miembros":["bruno@utb.edu.co"]}'
 
 # Crear una tarea dentro de él
 curl -X POST localhost:8000/proyectos/<ID>/tareas \
-  -H "Content-Type: application/json" -H "X-Usuario: ana" \
-  -d '{"titulo":"Redactar la sección 5","prioridad":"alta","responsable":"bruno"}'
+  -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+  -d '{"titulo":"Redactar la sección 5","prioridad":"alta"}'
 
 # Consultar el tablero
-curl localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: bruno"
+curl localhost:8000/proyectos/<ID>/tareas -H "Authorization: Bearer $TOKEN"
 
-# Un usuario ajeno recibe 403 y queda auditado
-curl -i localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: intruso"
+# Sin credencial: 401
+curl -i localhost:8000/proyectos
 ```
 
 ---
@@ -136,17 +155,26 @@ npm install
 npm run dev
 ```
 
-| Variable | Por defecto | Para qué |
-|----------|-------------|----------|
-| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Dónde está la API. La usa el navegador. |
-| `ORIGENES_PERMITIDOS` | `http://localhost:3000` | Orígenes que la API acepta por CORS. |
+| Variable | Dónde | Por defecto | Para qué |
+|----------|-------|-------------|----------|
+| `DATABASE_URL` | API | SQLite local | Conexión a la base de datos. |
+| `OIDC_EMISOR` | API | — | Emisor esperado en el token. **Obligatoria.** |
+| `OIDC_AUDIENCIA` | API | — | Audiencia esperada en el token. **Obligatoria.** |
+| `OIDC_JWKS_URL` | API | se descubre | Útil cuando la API alcanza al emisor por otra URL que el navegador. |
+| `OIDC_CLAIM_USUARIO` | API | `email` | Claim del que sale la identidad. |
+| `ORIGENES_PERMITIDOS` | API | `http://localhost:3000` | Orígenes que la API acepta por CORS. |
+| `NEXT_PUBLIC_API_URL` | Web | `http://localhost:8000` | Dónde está la API. |
+| `NEXT_PUBLIC_OIDC_EMISOR` | Web | `http://localhost:9000` | Proveedor de identidad. |
+| `NEXT_PUBLIC_OIDC_CLIENTE` | Web | `uniteam-web` | Identificador de cliente OIDC. |
+
+Las variables `NEXT_PUBLIC_*` se hornean al compilar el frontend, no al arrancarlo.
 
 ---
 
 ## Pruebas
 
 ```bash
-pytest -v                                    # 20 pruebas
+pytest -v                                    # 30 pruebas
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
 ```
@@ -156,8 +184,9 @@ verificación de enlaces y la compilación del frontend
 ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
 El recorrido completo —interfaz, lógica y persistencia— está cubierto por
-[`test/test_corte_vertical.py`](test/test_corte_vertical.py), que incluye los dos casos del
-escenario de seguridad [ESC-03](docs/calidad/escenarios-calidad.md#esc-03).
+[`test/test_corte_vertical.py`](test/test_corte_vertical.py), y la puerta de entrada por
+[`test/test_autenticacion.py`](test/test_autenticacion.py). Las pruebas levantan el emisor de
+desarrollo en un hilo y firman tokens de verdad: la criptografía no está simulada.
 
 ---
 
@@ -176,7 +205,7 @@ AS_202620_uniTeam/
 │   └── lib/                 Cliente de la API y sesión
 ├── test/                    Pruebas del backend
 ├── docs/                    arc42, ADR, C4, aspectos, escenarios y registro de IA
-├── scripts/                 Utilidades de verificación
+├── scripts/                 Emisor OIDC de desarrollo y verificación de enlaces
 └── compose.yaml             Arranque completo con un comando
 ```
 

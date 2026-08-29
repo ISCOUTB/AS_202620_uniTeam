@@ -23,22 +23,44 @@ services:
     volumes:
       - datos_mysql:/var/lib/mysql
 
+  # Emisor OIDC de desarrollo. Sustituye al proveedor institucional para poder
+  # trabajar en local sin cuentas externas. NUNCA debe usarse en producción:
+  # no comprueba contraseñas, firma un token con el nombre que se le pida.
+  idp:
+    build: .
+    command: ["python", "scripts/emisor_dev.py"]
+    environment:
+      PUERTO: "9000"
+      EMISOR: http://localhost:9000
+    ports:
+      - "9000:9000"
+
   api:
     build: .
     environment:
       DATABASE_URL: mysql+pymysql://uniteam:uniteam@db:3306/uniteam
       ORIGENES_PERMITIDOS: http://localhost:3000
+      # El emisor es la URL que ve el navegador, porque es la que va en el
+      # token; el JWKS se descarga por la red interna de Docker.
+      OIDC_EMISOR: http://localhost:9000
+      OIDC_JWKS_URL: http://idp:9000/jwks
+      OIDC_AUDIENCIA: uniteam-web
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+      idp:
+        condition: service_started
 
   web:
-    build: ./web
-    environment:
-      # La consume el navegador, no el contenedor: por eso es localhost.
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+    build:
+      context: ./web
+      args:
+        # Las consume el navegador, no el contenedor: por eso son localhost.
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+        NEXT_PUBLIC_OIDC_EMISOR: http://localhost:9000
+        NEXT_PUBLIC_OIDC_CLIENTE: uniteam-web
     ports:
       - "3000:3000"
     depends_on:

@@ -131,7 +131,7 @@ confirmarán en [ADR 0001](../adr/0001-acotar-el-stack-a-cuatro-opciones.md).
 | Canal | Participantes | Protocolo previsto | Qué transporta |
 |-------|--------------|--------------------|----------------|
 | C1 | Cliente (navegador o escritorio) ↔ UniTeam | HTTPS sobre una API web | Operaciones sobre proyectos y tareas, y las vistas de consulta. |
-| C2 | UniTeam ↔ Proveedor de identidad | OAuth 2.0 / OpenID Connect sobre HTTPS | Delegación de la autenticación y obtención de la identidad del usuario. |
+| C2 | UniTeam ↔ Proveedor de identidad | OpenID Connect sobre HTTPS: código de autorización con PKCE desde el navegador, y descarga del JWKS desde la API ([ADR 0005](../adr/0005-delegar-la-autenticacion-en-un-proveedor-oidc.md)) | Delegación de la autenticación y verificación del token. |
 | C3 | UniTeam ↔ Servicio de correo | API del proveedor o SMTP autenticado | Invitaciones y avisos salientes. |
 | C4 | UniTeam ↔ Base de datos MySQL ([ADR 0004](../adr/0004-usar-mysql-como-base-de-datos.md)) | SQL sobre conexión cifrada en tránsito | Persistencia de proyectos, tareas, membresías y registro de auditoría. |
 
@@ -234,7 +234,7 @@ flowchart TB
 
 | Paquete | Responsabilidad | Archivos principales |
 |---------|----------------|---------------------|
-| `app/api/` | Traduce HTTP a casos de uso y los errores del dominio a códigos de estado. No contiene reglas de negocio. | `rutas_tareas.py`, `rutas_proyectos.py`, `rutas_progreso.py`, `esquemas.py`, `dependencias.py` |
+| `app/api/` | Traduce HTTP a casos de uso y los errores del dominio a códigos de estado. Verifica el token del proveedor de identidad. No contiene reglas de negocio. | `rutas_tareas.py`, `rutas_proyectos.py`, `rutas_progreso.py`, `seguridad.py`, `esquemas.py`, `dependencias.py` |
 | `app/application/` | Orquesta los casos de uso, **autoriza cada operación** y publica los eventos. Declara los puertos que necesita de la persistencia. | `servicio_tareas.py`, `servicio_proyectos.py`, `puertos.py`, `bus.py` |
 | `app/domain/` | Entidades, flujo de estados, eventos de dominio y errores. No depende de ningún framework. | `modelos.py`, `eventos.py`, `errores.py` |
 | `app/events/` | Consumidores de los eventos publicados. Hoy, la auditoría. | `consumidores.py` |
@@ -343,6 +343,7 @@ enlaza a ellas.
 | [0002](../adr/0002-usar-fastapi-y-nextjs.md) | Usar FastAPI en el backend y Next.js en el frontend. | Aceptada |
 | [0003](../adr/0003-usar-eventos-de-dominio-en-proceso.md) | Usar un estilo orientado a eventos, con despacho en proceso. | Aceptada |
 | [0004](../adr/0004-usar-mysql-como-base-de-datos.md) | Usar MySQL como base de datos. | Aceptada |
+| [0005](../adr/0005-delegar-la-autenticacion-en-un-proveedor-oidc.md) | Delegar la autenticación en un proveedor OIDC. | Aceptada |
 
 ---
 
