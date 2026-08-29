@@ -35,7 +35,7 @@ El mapa completo de interesados, con lo que le importa a cada uno y los conflict
 | [Escenarios de calidad](docs/calidad/escenarios-calidad.md) | Cinco escenarios de seis partes con medidas verificables. |
 | [Árbol de utilidad](docs/calidad/arbol-utilidad.md) | Priorización por impacto en el negocio y riesgo técnico. |
 | [C4 nivel 1 — Contexto](docs/c4/nivel1-contexto.md) | Diagrama de contexto del sistema. |
-| [C4 nivel 2 — Contenedore](docs/c4/nivel2-contenedores.md) | Diagrama de contenedores del sistema. |
+| [C4 nivel 2 — Contenedores](docs/c4/nivel2-contenedores.md) | Diagrama de contenedores del sistema. |
 | [Decisiones de arquitectura](docs/adr/) | Registro de decisiones (ADR). |
 | [Uso de IA y decisiones del equipo](docs/ia.md) | Bitácora de uso de IA generativa y registro de decisiones. |
 
