@@ -5,24 +5,35 @@
 UniTeam implementará un sistema de gestión colaborativa de tareas para facilitar la
 organización del trabajo dentro de equipos universitarios.
 
-El aspecto será evidenciado en el prototipo mediante la creación, asignación, actualización y
+El aspecto se evidencia en el prototipo mediante la creación, asignación, actualización y
 consulta de tareas dentro de un proyecto.
 
-## Aspectos y su escenario de calidad
+## Tabla de trazabilidad
 
-Cada aspecto declarado se enlaza con el requisito funcional que lo formaliza en
-[arc42 §1.1](arc42/arc42-uniteam.md#11-resumen-de-requisitos), con el atributo de calidad que
-lo condiciona y con el [escenario de calidad](calidad/escenarios-calidad.md) que lo hace
-verificable.
+Una fila por aspecto, con la cadena completa **aspecto → requisito → C4 → ADR → código →
+pruebas → evidencia de calidad**. Cada celda enlaza a su destino.
 
-| ID | Aspecto declarado | RF | Atributo de calidad determinante | Escenario de calidad |ADR| Por qué ese escenario |
-|----|------------------|----|----------------------------------|---------------------|--------|----------------------|
-| A-01 | Crear tareas | RF-01 | Usabilidad | [ESC-02](calidad/escenarios-calidad.md#esc-02) |---| Crear la primera tarea es el punto donde el usuario nuevo decide si la herramienta le sirve o vuelve al chat del grupo. |
-| A-02 | Asignar tareas a integrantes del equipo | RF-02 | Seguridad | [ESC-03](calidad/escenarios-calidad.md#esc-03) |[ADR-003 — Selección del estilo arquitectónico](adr/0003-usar-eventos-de-dominio-en-proceso.md)| Asignar exige saber quién pertenece al proyecto; ahí es donde el control de acceso entre proyectos se pone a prueba. |
-| A-03 | Establecer prioridades | RF-03 | Usabilidad | [ESC-02](calidad/escenarios-calidad.md#esc-02) |---| La prioridad se fija durante el mismo flujo de creación y asignación medido en el escenario. |
-| A-04 | Definir estados de las tareas | RF-04 | Modificabilidad | [ESC-05](calidad/escenarios-calidad.md#esc-05) |[ADR-003 — Selección del estilo arquitectónico](adr/0003-usar-eventos-de-dominio-en-proceso.md)| El flujo de estados es lo que más va a cambiar: cada equipo trabaja distinto. |
-| A-05 | Establecer fechas límite | RF-05 | Disponibilidad | [ESC-04](calidad/escenarios-calidad.md#esc-04) |[ADR-003 — Selección del estilo arquitectónico](adr/0003-usar-eventos-de-dominio-en-proceso.md)| El valor de la fecha límite se concentra en la semana de entregas, que es cuando el sistema no puede estar caído. |
-| A-06 | Consultar el progreso de las actividades | RF-06 | Rendimiento |[ESC-01](calidad/escenarios-calidad.md#esc-01) |[ADR-003 — Selección del estilo arquitectónico](adr/0003-usar-eventos-de-dominio-en-proceso.md)| Consultar el avance debe ser más rápido que preguntar por el chat; si no, el aspecto no aporta valor. |
+| ID | Aspecto | Requisito | C4 | ADR | Código | Pruebas | Evidencia |
+|----|---------|-----------|----|-----|--------|---------|-----------|
+| A-01 | Crear tareas | [RF-01](arc42/arc42-uniteam.md#11-resumen-de-requisitos) | [API](c4/nivel2-contenedores.md) | [0002](adr/0002-usar-fastapi-y-nextjs.md) | [`rutas_tareas.py`](../app/api/rutas_tareas.py) · [`servicio_tareas.py`](../app/application/servicio_tareas.py) | [`test_recorrido_completo_de_una_tarea`](../test/test_corte_vertical.py) | [ESC-02](calidad/escenarios-calidad.md#esc-02): ≤ 5 min sin capacitación |
+| A-02 | Asignar tareas a integrantes | [RF-02](arc42/arc42-uniteam.md#11-resumen-de-requisitos) | [API](c4/nivel2-contenedores.md) | [0003](adr/0003-usar-eventos-de-dominio-en-proceso.md) | [`servicio_tareas.py`](../app/application/servicio_tareas.py) (`asignar_tarea`) | [`test_no_se_asigna_una_tarea_a_alguien_ajeno_al_proyecto`](../test/test_corte_vertical.py) | [ESC-03](calidad/escenarios-calidad.md#esc-03): 100 % denegado con 403 |
+| A-03 | Establecer prioridades | [RF-03](arc42/arc42-uniteam.md#11-resumen-de-requisitos) | [API](c4/nivel2-contenedores.md) | [0002](adr/0002-usar-fastapi-y-nextjs.md) | [`modelos.py`](../app/domain/modelos.py) (`Prioridad`) | [`test_recorrido_completo_de_una_tarea`](../test/test_corte_vertical.py) | [ESC-02](calidad/escenarios-calidad.md#esc-02): flujo completo sin errores irrecuperables |
+| A-04 | Definir estados de las tareas | [RF-04](arc42/arc42-uniteam.md#11-resumen-de-requisitos) | [API](c4/nivel2-contenedores.md) | [0003](adr/0003-usar-eventos-de-dominio-en-proceso.md) | [`modelos.py`](../app/domain/modelos.py) (`TRANSICIONES`) | [`test_transicion_invalida_se_rechaza`](../test/test_corte_vertical.py) | [ESC-05](calidad/escenarios-calidad.md#esc-05): ≤ 2 componentes por estado nuevo |
+| A-05 | Establecer fechas límite | [RF-05](arc42/arc42-uniteam.md#11-resumen-de-requisitos) | [Base de datos](c4/nivel2-contenedores.md) | [0004](adr/0004-usar-mysql-como-base-de-datos.md) | [`tablas.py`](../app/infrastructure/tablas.py) (`fecha_limite`) | [`test_recorrido_completo_de_una_tarea`](../test/test_corte_vertical.py) | [ESC-04](calidad/escenarios-calidad.md#esc-04): 0 escrituras confirmadas perdidas |
+| A-06 | Consultar el progreso | [RF-06](arc42/arc42-uniteam.md#11-resumen-de-requisitos) | [API](c4/nivel2-contenedores.md) → [Base de datos](c4/nivel2-contenedores.md) | [0004](adr/0004-usar-mysql-como-base-de-datos.md) | [`repositorios.py`](../app/infrastructure/repositorios.py) (`listar_por_proyecto`) | [`test_recorrido_completo_de_una_tarea`](../test/test_corte_vertical.py) | [ESC-01](calidad/escenarios-calidad.md#esc-01): p95 ≤ 2 s con 200 tareas |
+| A-07 | Aislar la información entre proyectos | [RF-02](arc42/arc42-uniteam.md#11-resumen-de-requisitos) | [API](c4/nivel2-contenedores.md) | [0003](adr/0003-usar-eventos-de-dominio-en-proceso.md) | [`servicio_tareas.py`](../app/application/servicio_tareas.py) (`_autorizar`) · [`consumidores.py`](../app/events/consumidores.py) | [`test_esc03_usuario_ajeno_no_accede_y_queda_auditado`](../test/test_corte_vertical.py) | [ESC-03](calidad/escenarios-calidad.md#esc-03): auditoría en ≤ 1 s |
+
+### Cómo leer la columna Evidencia
+
+Cada aspecto se cierra contra la **medida** de un escenario de calidad, no contra una opinión.
+Las medidas de [ESC-01](calidad/escenarios-calidad.md#esc-01) y
+[ESC-02](calidad/escenarios-calidad.md#esc-02) todavía **no están medidas**: exigen prueba de
+carga y prueba de usabilidad con participantes, previstas para las semanas siguientes. Las de
+[ESC-03](calidad/escenarios-calidad.md#esc-03),
+[ESC-04](calidad/escenarios-calidad.md#esc-04) y
+[ESC-05](calidad/escenarios-calidad.md#esc-05) sí tienen prueba automatizada asociada, y las de
+ESC-03 se ejecutan en cada `push`
+([`ci.yml`](../.github/workflows/ci.yml)).
 
 ## Documentos relacionados
 
@@ -30,5 +41,5 @@ verificable.
 - [Escenarios de calidad](calidad/escenarios-calidad.md)
 - [Árbol de utilidad](calidad/arbol-utilidad.md)
 - [Documentación de arquitectura (arc42)](arc42/arc42-uniteam.md)
-- [C4 nivel 1 — Contexto](c4/nivel1-contexto.md)
-- [ADR-003 — Selección del estilo arquitectónico](adr/0003-usar-eventos-de-dominio-en-proceso.md)
+- [C4 nivel 1 — Contexto](c4/nivel1-contexto.md) · [C4 nivel 2 — Contenedores](c4/nivel2-contenedores.md)
+- [Decisiones de arquitectura](adr/)

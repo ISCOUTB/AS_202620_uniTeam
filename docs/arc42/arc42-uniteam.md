@@ -10,7 +10,7 @@
 | **Proyecto** | UniTeam — plataforma colaborativa para equipos universitarios |
 | **Equipo** | Julio César Emiliani · Ian Novoa Carrillo · Juan José Bustamante · Daniel Isaac Manjarrés |
 | **Periodo** | Semestre 2026-20 |
-| **Estado** | Secciones 1, 2, 3, 9, 10 y 11 redactadas. Las demás se completan en las semanas siguientes. |
+| **Estado** | Secciones 1, 2, 3, 4, 5, 6, 9, 10, 11 y 12 redactadas. Pendientes: 7 (despliegue) y 8 (conceptos transversales). |
 
 ---
 
@@ -133,7 +133,7 @@ confirmarán en [0001-acotar-el-stack-a-cuatro-opciones.md).
 | C1 | Cliente (navegador o escritorio) ↔ UniTeam | HTTPS sobre una API web | Operaciones sobre proyectos y tareas, y las vistas de consulta. |
 | C2 | UniTeam ↔ Proveedor de identidad | OAuth 2.0 / OpenID Connect sobre HTTPS | Delegación de la autenticación y obtención de la identidad del usuario. |
 | C3 | UniTeam ↔ Servicio de correo | API del proveedor o SMTP autenticado | Invitaciones y avisos salientes. |
-| C4 | UniTeam ↔ Almacenamiento persistente | Conexión de base de datos cifrada en tránsito | Persistencia de proyectos, tareas, membresías y registro de auditoría. |
+| C4 | UniTeam ↔ Base de datos MySQL ([ADR 0004](../adr/0004-usar-mysql-como-base-de-datos.md)) | SQL sobre conexión cifrada en tránsito | Persistencia de proyectos, tareas, membresías y registro de auditoría. |
 
 **Correspondencia entre entradas/salidas y canales:** toda interacción de usuario (sección
 3.1) viaja por **C1**; la autenticación nunca viaja por C1 con credenciales propias, sino que
@@ -191,11 +191,137 @@ La implementación de eventos será **pragmática**, evitando infraestructura in
 
 # 5. Vista de bloques de construcción
 
-*Pendiente.* Corresponde a los niveles 2 y 3 de C4.
+## 5.1 Nivel 1 — El sistema por dentro
+
+La caja negra que dibuja el [C4 de contexto](../c4/nivel1-contexto.md) se abre en tres
+contenedores, detallados en el [C4 de contenedores](../c4/nivel2-contenedores.md):
+
+| Bloque | Responsabilidad | Estado |
+|--------|----------------|--------|
+| Aplicación Web | Interfaz de usuario. Inicia la autenticación y consume la API. | Prevista para la semana 6; sin código todavía. |
+| API | Autorización, reglas de negocio y publicación de eventos de dominio. | Implementada. |
+| Base de datos | Estado del sistema y registro de auditoría. | Implementada (MySQL, [ADR 0004](../adr/0004-usar-mysql-como-base-de-datos.md)). |
+
+## 5.2 Nivel 2 — Caja blanca de la API
+
+La API es el bloque con contenido propio. Se descompone en cinco paquetes, y cada uno se
+corresponde con un directorio del repositorio: es la comprobación que exige el primer corte.
+
+```mermaid
+flowchart TB
+    api["api/<br/>Interfaz HTTP"]
+    app["application/<br/>Casos de uso, puertos y bus"]
+    dom["domain/<br/>Entidades, estados y eventos"]
+    ev["events/<br/>Consumidores"]
+    infra["infrastructure/<br/>Motor, tablas y repositorios"]
+
+    api --> app
+    app --> dom
+    ev --> dom
+    app -. "puertos" .-> infra
+    ev --> infra
+    infra --> dom
+
+    classDef interfaz fill:#1168bd,stroke:#0b4884,color:#ffffff
+    classDef nucleo fill:#08427b,stroke:#052e56,color:#ffffff
+    classDef soporte fill:#4a5568,stroke:#2d3748,color:#ffffff
+    class api interfaz
+    class dom nucleo
+    class app,ev soporte
+    class infra soporte
+    linkStyle default stroke:#8a94a3,stroke-width:1.5px
+```
+
+| Paquete | Responsabilidad | Archivos principales |
+|---------|----------------|---------------------|
+| `app/api/` | Traduce HTTP a casos de uso y los errores del dominio a códigos de estado. No contiene reglas de negocio. | `rutas_tareas.py`, `rutas_proyectos.py`, `esquemas.py`, `dependencias.py` |
+| `app/application/` | Orquesta los casos de uso, **autoriza cada operación** y publica los eventos. Declara los puertos que necesita de la persistencia. | `servicio_tareas.py`, `puertos.py`, `bus.py` |
+| `app/domain/` | Entidades, flujo de estados, eventos de dominio y errores. No depende de ningún framework. | `modelos.py`, `eventos.py`, `errores.py` |
+| `app/events/` | Consumidores de los eventos publicados. Hoy, la auditoría. | `consumidores.py` |
+| `app/infrastructure/` | Implementa los puertos contra MySQL: motor, tablas y repositorios. | `db.py`, `tablas.py`, `repositorios.py` |
+
+**Regla de dependencia.** Las flechas apuntan siempre hacia `domain/`, que no importa nada de
+los demás paquetes. `application/` no conoce SQLAlchemy: habla con los puertos de `puertos.py`,
+y es `app/api/dependencias.py` quien inyecta la implementación concreta. Eso es lo que hace
+barato el cambio que mide [ESC-05](../calidad/escenarios-calidad.md#esc-05): añadir un estado al
+flujo de trabajo se resuelve en `domain/modelos.py`, en la tabla `TRANSICIONES`, sin tocar la
+persistencia ni la interfaz.
+
+**Dónde vive cada escenario.** La autorización de
+[ESC-03](../calidad/escenarios-calidad.md#esc-03) está centralizada en un único método,
+`ServicioTareas._autorizar`, por el que pasan todos los casos de uso. No hay ninguna ruta que
+llegue a los datos sin atravesarlo, y esa es la propiedad que hace verificable el escenario.
 
 # 6. Vista de tiempo de ejecución
 
-*Pendiente.*
+## 6.1 Crear una tarea
+
+El recorrido completo del corte vertical: interfaz, lógica y persistencia.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Líder de equipo
+    participant R as api/rutas_tareas
+    participant S as application/ServicioTareas
+    participant P as infrastructure/Repositorios
+    participant B as application/BusEventos
+    participant C as events/Consumidores
+
+    U->>R: POST /proyectos/{id}/tareas
+    R->>S: crear_tarea(usuario, proyecto, datos)
+    S->>P: obtener(proyecto)
+    P-->>S: Proyecto con sus miembros
+    Note over S: Comprueba la pertenencia<br/>antes de cualquier escritura
+    S->>P: guardar(tarea)
+    S->>B: publicar(TareaCreada)
+    B->>C: auditar_tarea_creada
+    C->>P: registrar en auditoría
+    S-->>R: Tarea
+    R-->>U: 201 Created
+```
+
+Lo que importa de este orden: la comprobación de pertenencia ocurre **antes** de que exista
+ninguna escritura, y el evento se publica **después** de que la operación se ejecutó. La
+auditoría de una operación permitida comparte la transacción con el cambio que audita, de modo
+que ambos se confirman o ninguno lo hace.
+
+## 6.2 Acceso denegado a un proyecto ajeno
+
+El escenario prioritario, [ESC-03](../calidad/escenarios-calidad.md#esc-03), visto en ejecución.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor X as Usuario ajeno al proyecto
+    participant R as api/rutas_tareas
+    participant S as application/ServicioTareas
+    participant P as infrastructure/Repositorios
+    participant B as application/BusEventos
+    participant C as events/Consumidores
+    participant D as Base de datos
+
+    X->>R: GET /proyectos/{id}/tareas
+    R->>S: consultar_tablero(usuario, proyecto)
+    S->>P: obtener(proyecto)
+    P-->>S: Proyecto sin ese miembro
+    S->>B: publicar(AccesoDenegado)
+    B->>C: auditar_acceso_denegado
+    C->>D: INSERT auditoría (sesión propia, commit inmediato)
+    S-->>R: AccesoDenegado
+    R-->>X: 403 sin datos del recurso
+    Note over R,D: La petición hace rollback,<br/>pero la auditoría ya está confirmada
+```
+
+Dos detalles deliberados. El primero: el consumidor de auditoría abre **su propia sesión** y
+confirma de inmediato, porque la petición termina en `rollback` y, si compartiera transacción,
+el registro se perdería justo en el caso que hay que auditar. Lo descubrimos ejecutando la
+prueba, no razonando sobre el diseño.
+
+El segundo: la respuesta es 403 tanto si el proyecto existe y el usuario no pertenece a él como
+si el proyecto no existe. Distinguir ambos casos confirmaría a un tercero la existencia de un
+proyecto ajeno, que ya es una fuga. Hay una prueba dedicada a esto,
+`test_esc03_proyecto_inexistente_no_se_distingue_de_uno_ajeno`.
 
 # 7. Vista de despliegue
 
@@ -208,11 +334,15 @@ La implementación de eventos será **pragmática**, evitando infraestructura in
 
 # 9. Decisiones de arquitectura
 
-Las decisiones se registran como ADR en [`docs/adr/`](../adr/).
+Las decisiones se registran como ADR en [`docs/adr/`](../adr/). Esta sección no las repite:
+enlaza a ellas.
 
 | ADR | Decisión | Estado |
 |-----|----------|--------|
-| [0001-acotar-el-stack-a-cuatro-opciones.md) | Selección del stack dentro del conjunto permitido por T1. | Propuesta — pendiente de decisión del equipo |
+| [0001](../adr/0001-acotar-el-stack-a-cuatro-opciones.md) | Acotar el stack a cuatro opciones. | Reemplazado por 0002 |
+| [0002](../adr/0002-usar-fastapi-y-nextjs.md) | Usar FastAPI en el backend y Next.js en el frontend. | Aceptada |
+| [0003](../adr/0003-usar-eventos-de-dominio-en-proceso.md) | Usar un estilo orientado a eventos, con despacho en proceso. | Aceptada |
+| [0004](../adr/0004-usar-mysql-como-base-de-datos.md) | Usar MySQL como base de datos. | Aceptada |
 
 ---
 
