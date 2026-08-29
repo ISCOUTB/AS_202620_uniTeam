@@ -31,7 +31,12 @@ escala Alto / Medio / Bajo, y se justifica en el [árbol de utilidad](arbol-util
 chat del grupo, el equipo vuelve al chat y la herramienta pierde su razón de ser.
 
 **Cómo se verifica.** Prueba de carga automatizada sobre un conjunto de datos sintético de
-200 tareas, con 30 usuarios virtuales concurrentes, midiendo percentiles de latencia.
+200 tareas, con 30 usuarios virtuales concurrentes, midiendo percentiles de latencia:
+[`scripts/medir_esc01.py`](../../scripts/medir_esc01.py).
+
+**Estado:** medido. Línea base de 2026-08-29: **p95 de 762 ms** frente al umbral de 2 s, sin
+errores. Procedimiento y salvedades en
+[la ficha de la medición](mediciones/esc-01-linea-base.md).
 
 ---
 

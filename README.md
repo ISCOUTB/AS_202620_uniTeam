@@ -97,12 +97,11 @@ Toda operación sobre un proyecto exige pertenecer a él.
 | `PUT` | `/proyectos/{id}/tareas/{tarea}/responsable` | Asigna la tarea a un miembro. |
 | `PUT` | `/proyectos/{id}/tareas/{tarea}/estado` | Mueve la tarea de estado. |
 
-Ejemplo completo:
-
 Todas las peticiones necesitan un token. Sin él, la API responde `401`.
 
 ```bash
-TOKEN="<el token que devuelve el proveedor de identidad>"
+# Con el emisor de desarrollo, un token se obtiene así:
+TOKEN=$(python scripts/token_dev.py ana@utb.edu.co)
 
 # Crear un proyecto
 curl -X POST localhost:8000/proyectos \
@@ -178,6 +177,18 @@ pytest -v                                    # 30 pruebas
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
 ```
+
+### Medición de rendimiento
+
+```bash
+TOKEN=$(python scripts/token_dev.py ana@utb.edu.co)
+python scripts/medir_esc01.py --url http://localhost:8000 --token "$TOKEN"
+```
+
+Reproduce [ESC-01](docs/calidad/escenarios-calidad.md#esc-01) —200 tareas, 30 usuarios
+concurrentes— y contrasta el resultado con su umbral. La línea base actual es de **762 ms en
+el p95** frente a los 2 s comprometidos:
+[ficha de la medición](docs/calidad/mediciones/esc-01-linea-base.md).
 
 En integración continua las pruebas se ejecutan **contra MySQL** en cada `push`, junto con la
 verificación de enlaces y la compilación del frontend
