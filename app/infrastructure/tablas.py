@@ -1,5 +1,6 @@
 """Tablas SQLAlchemy. Traducen el dominio a filas; no llevan reglas."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from typing import Optional
 
 from sqlalchemy import Date, DateTime, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -41,8 +42,8 @@ class TareaTabla(Base):
     creada_por: Mapped[str] = mapped_column(String(120), nullable=False)
     prioridad: Mapped[str] = mapped_column(String(20), nullable=False)
     estado: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
-    responsable: Mapped[str | None] = mapped_column(String(120), nullable=True)
-    fecha_limite: Mapped[Date | None] = mapped_column(Date, nullable=True)
+    responsable: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    fecha_limite: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     creada_en: Mapped[datetime] = mapped_column(DateTime, nullable=False)
 
 
