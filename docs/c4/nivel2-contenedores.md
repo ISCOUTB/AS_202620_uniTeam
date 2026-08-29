@@ -4,4 +4,4 @@ Abre la caja de UniTeam del nivel 1 y muestra sus contenedores: las unidades ind
 (aplicación web, API y base de datos), cómo se comunican entre si y con los sistemas externos ya identificados.
 El nivel 2 responde a *como esta construido el sistema a alto nivel*, por eso aparece la tecnología concreta - 
 la seleccionada en
-[001 — Selección de stack](../adr/001-seleccion-de-stack.md)
+[ADR001](../adr/001-seleccion-de-stack.md)
