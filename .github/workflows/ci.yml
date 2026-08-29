@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  pruebas:
+    name: Pruebas contra MySQL
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: uniteam
+          MYSQL_DATABASE: uniteam_test
+          MYSQL_USER: uniteam
+          MYSQL_PASSWORD: uniteam
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uuniteam -puniteam"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Ejecutar las pruebas
+        env:
+          DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
+        run: pytest -v

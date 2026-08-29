@@ -1,6 +1,6 @@
 # ADR-001 — Selección del stack de desarrollo
 
-- **Estado:** Propuesta — pendiente de decisión del equipo
+- **Estado:** Reemplazado por [0002 — Usar FastAPI y Next.js](0002-usar-fastapi-y-nextjs.md)
 - **Fecha:** 2026-08-16
 - **Decide:** el equipo de desarrollo (I-04)
 
@@ -45,6 +45,9 @@ Se decidirá según, en este orden:
 
 ## Decisión
 
-*Pendiente.* Se completa esta sección cuando el equipo tome la decisión, junto con sus
+*No se tomó en este ADR.* La decisión concreta se registró en
+[0002 — Usar FastAPI y Next.js](0002-usar-fastapi-y-nextjs.md), que reemplaza a este.
+
+*Texto original:* Se completa esta sección cuando el equipo tome la decisión, junto con sus
 consecuencias y las alternativas descartadas. Hasta entonces, el diseño de la arquitectura se
 mantiene independiente del framework.

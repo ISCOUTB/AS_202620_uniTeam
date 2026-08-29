@@ -1,91 +1,101 @@
-# C4 - Nivel 2: Diagrama de contenedores 
+# C4 — Nivel 2: Diagrama de contenedores
 
-Abre la caja de UniTeam del nivel 1 y muestra sus contenedores: las unidades independientes  que lo componen
-(aplicación web, API y base de datos), cómo se comunican entre si y con los sistemas externos ya identificados.
-El nivel 2 responde a *como esta construido el sistema a alto nivel*, por eso aparece la tecnología concreta - 
-la seleccionada en
-[ADR-001](../adr/001-seleccion-de-stack.md).
+Descompone UniTeam en las unidades desplegables que lo forman. A diferencia del
+[nivel 1](nivel1-contexto.md), este nivel sí lleva tecnología: la fijan
+[0002 — Usar FastAPI y Next.js](../adr/0002-usar-fastapi-y-nextjs.md) y
+[0004 — Usar MySQL](../adr/0004-usar-mysql-como-base-de-datos.md).
 
 ## Diagrama
 
 ```mermaid
-flowchart TB
- subgraph sys["UniTeam [Sistema de software]"]
-    direction TB
-        web["<b>Aplicación Web</b><br><i>[Contenedor: Next.js]</i><br>Interfaz donde los usuarios crean, asignan y consultan tareas."]
-        api["<b>API</b><br><i>[Contenedor: FastAPI]</i><br>Expone la lógica de negocio: tareas, proyectos, prioridades y estados."]
-        db["<b>Base de datos</b><br><i>[Contenedor: MySQL]</i><br>Almacena usuarios, proyectos, tareas y su historial."]
-  end
-    est["<b>Estudiante integrante</b><br><i>[Persona]</i>"] -- Usa (HTTPS) --> web
-    lid["<b>Líder de equipo</b><br><i>[Persona]</i>"] -- Usa (HTTPS) --> web
-    pro["<b>Profesor</b><br><i>[Persona]</i>"] -- Usa (HTTPS) --> web
-    web -- Llama (REST/JSON) --> api
-    api -- Lee y escribe (SQL) --> db
-    api -- Delega autenticación --> idp["<b>Proveedor de identidad</b><br><i>[Externo — previsto]</i>"]
-    api -- Envía invitaciones y avisos --> mail["<b>Servicio de correo</b><br><i>[Externo — previsto]</i>"]
+flowchart LR
+    est["<b>Estudiante integrante</b><br/><i>[Persona]</i>"]
+    lid["<b>Líder de equipo</b><br/><i>[Persona]</i>"]
+    pro["<b>Profesor</b><br/><i>[Persona]</i>"]
 
-    est@{ shape: rect}
-    lid@{ shape: rect}
-    pro@{ shape: rect}
-     web:::contenedor
-     api:::contenedor
-     db:::contenedor
-     est:::persona
-     lid:::persona
-     pro:::persona
-     idp:::externo
-     mail:::externo
+    subgraph sys["UniTeam · Sistema de software"]
+        web["<b>Aplicación Web</b><br/><i>[Contenedor: Next.js]</i><br/>Interfaz de usuario"]
+        api["<b>API</b><br/><i>[Contenedor: FastAPI]</i><br/>Lógica de negocio y autorización"]
+        db[("<b>Base de datos</b><br/><i>[Contenedor: MySQL]</i><br/>Datos y auditoría")]
+    end
+
+    idp["<b>Proveedor de identidad</b><br/><i>[Sistema externo]</i>"]
+    mail["<b>Servicio de correo</b><br/><i>[Sistema externo]</i>"]
+
+    est -->|"Usa (HTTPS)"| web
+    lid -->|"Usa (HTTPS)"| web
+    pro -->|"Consulta (HTTPS)"| web
+    web -->|"REST/JSON"| api
+    api -->|"SQL"| db
+    api -->|"Valida el token (OIDC)"| idp
+    api -->|"Invitaciones y avisos"| mail
+    web -->|"Inicia sesión (OIDC)"| idp
+
     classDef persona fill:#08427b,stroke:#052e56,color:#ffffff
     classDef contenedor fill:#1168bd,stroke:#0b4884,color:#ffffff
-    classDef externo fill:#6b6b6b,stroke:#4d4d4d,color:#ffffff
-    classDef limite fill:none,stroke:#1168bd,stroke-dasharray: 4 3,color:#1168bd
+    classDef almacen fill:#0e5595,stroke:#083a6d,color:#ffffff
+    classDef externo fill:#737b85,stroke:#4d4d4d,color:#ffffff
 
     class est,lid,pro persona
-    class web,api,db contenedor
+    class web,api contenedor
+    class db almacen
     class idp,mail externo
-    class sys limite
+    style sys fill:none,stroke:#9aa4b2,stroke-dasharray: 7 5,color:#8a94a3
+    linkStyle default stroke:#8a94a3,stroke-width:1.5px
 ```
 
 ## Leyenda
 
 | Color | Significado |
 |-------|-------------|
-| Azul oscuro | Persona: usuario del sistema. |
-| Azul | Contenedor: unidad de despliegue dentro del alcance de este proyecto. |
+| Azul oscuro | Persona que usa el sistema. |
+| Azul | Contenedor: unidad desplegable dentro del alcance del proyecto. |
 | Gris | Sistema externo, fuera del control del equipo. |
-
-## Contenedores
-
-| Contenedor | Tecnología | Responsabilidad |
-|------------|-----------|------------------|
-| Aplicación Web | Next.js | Interfaz donde los usuarios crean, asignan y consultan tareas. Único punto de entrada para los tres actores. |
-| API | FastAPI | Expone la lógica de negocio: tareas, proyectos, prioridades y estados. Única puerta de acceso a la base de datos y a los sistemas externos. |
-| Base de datos | MySQL | Almacena usuarios, proyectos, tareas y su historial. |
 
 ## Relaciones
 
 | Origen | Destino | Descripción | Protocolo |
 |--------|---------|-------------|-----------|
 | Estudiante, Líder de equipo, Profesor | Aplicación Web | Uso de la interfaz | HTTPS |
+| Aplicación Web | Proveedor de identidad | Inicio de sesión del usuario | OIDC *(previsto)* |
 | Aplicación Web | API | Consumo de la lógica de negocio | REST/JSON |
-| API | Base de datos | Persistencia de datos | SQL |
-| API | Proveedor de identidad | Delegación de autenticación | — (previsto) |
-| API | Servicio de correo | Envío de invitaciones y avisos | — (previsto) |
+| API | Proveedor de identidad | Validación del token recibido | OIDC *(previsto)* |
+| API | Base de datos | Persistencia y registro de auditoría | SQL |
+| API | Servicio de correo | Invitaciones y avisos de fecha límite | *(previsto)* |
 
-## Sistemas externos
+## Correspondencia con el nivel 1
 
-Se mantienen los mismos identificados en el [nivel 1 — contexto](./nivel1-contexto.md), ambos
-marcados como **previstos**.
+Las tres personas y los dos sistemas externos del [nivel 1](nivel1-contexto.md) reaparecen aquí
+sin cambios; lo que el nivel 1 dibujaba como una caja única —UniTeam— se abre en tres
+contenedores. No hay ningún elemento en este diagrama que no exista en el de contexto.
 
-| Sistema | Para qué se usa |
-|---------|----------------|
-| Proveedor de identidad | Autenticación de los usuarios mediante cuenta institucional o de Google. |
-| Servicio de correo electrónico | Invitaciones a un proyecto y avisos de fechas límite. |
+## Correspondencia con el código
 
-## Fuera del alcance
+Cada contenedor tiene su lugar en el repositorio. Es lo primero que se contrasta en el corte:
 
-- División de la API en microservicios: en el prototipo se mantiene como un único contenedor
-  monolítico (ver [ADR-001](../adr/ADR-001-seleccion-de-stack.md)).
-- Caché o cola de mensajería independiente: no hay un contenedor dedicado a esto en esta
-  entrega; `events/` vive dentro del contenedor API (ver nivel 3 — componentes).
-- Balanceo de carga o réplicas de base de datos: no aplican a un prototipo académico.
+| Contenedor | Tecnología | Dónde vive en el repositorio |
+|-----------|-----------|------------------------------|
+| Aplicación Web | Next.js | **Todavía sin código.** Prevista para la semana 6; hoy la API se ejercita con su documentación interactiva en `/docs` y con las pruebas. |
+| API | FastAPI | `app/main.py`, `app/api/`, `app/application/`, `app/domain/`, `app/events/` |
+| Base de datos | MySQL | `app/infrastructure/` — esquema en `tablas.py`, acceso en `repositorios.py` |
+
+## Nota sobre los eventos de dominio
+
+[0003](../adr/0003-usar-eventos-de-dominio-en-proceso.md) elige un estilo orientado a eventos.
+Ese estilo **no aparece como contenedor** porque se aplica **en proceso**: el despacho ocurre
+dentro de la API (`app/application/bus.py`), sin broker ni cola externa. Añadir un componente de
+mensajería restaría margen a [ESC-04](../calidad/escenarios-calidad.md#esc-04) e implicaría
+infraestructura que la restricción T3 no contempla. Productores y consumidores son estructura
+interna de la API y corresponden al nivel 3.
+
+## Nota sobre el flujo de autenticación
+
+El navegador se redirige al proveedor de identidad (OIDC) y la API se limita a validar el token
+recibido: las credenciales **nunca pasan por UniTeam**, lo que reduce el alcance de la
+restricción legal L1 y la superficie de riesgo de
+[ESC-03](../calidad/escenarios-calidad.md#esc-03).
+
+**Estado actual:** la integración OIDC todavía no está implementada. Mientras tanto la API toma
+la identidad de la cabecera `X-Usuario` (`app/api/dependencias.py`), que es un sustituto
+provisional y explícitamente inseguro. Lo que sí es real es la **autorización**: la pertenencia
+al proyecto se comprueba contra la base de datos en cada operación.

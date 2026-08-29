@@ -15,6 +15,7 @@ dist/
 build/
 venv/
 .venv/
+.venv*/
 env/
 
 # IDE
@@ -32,3 +33,5 @@ htmlcov/
 # Sistema operativo
 Thumbs.db
 .DS_Store
+# Base de datos local de desarrollo (SQLite)
+*.db
