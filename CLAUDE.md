@@ -35,6 +35,6 @@ El propósito es dejar clara la autoría del trabajo: la IA no hace el trabajo p
 ## Restricciones vigentes
 
 - Stack acotado a **NestJS o FastAPI** (backend) y **Flutter o Next.js** (frontend). La
-  elección concreta está pendiente en [0001-acotar-el-stack-a-cuatro-opciones.md).
+  elección concreta está pendiente en [ADR 0001](docs/adr/0001-acotar-el-stack-a-cuatro-opciones.md).
 - **No** se desarrolla aplicación móvil nativa: el objetivo es navegador web y/o escritorio.
 - Sin presupuesto: solo herramientas gratuitas o de código abierto.

@@ -3,7 +3,7 @@
 Muestra a UniTeam como una caja negra, quién lo usa y con qué sistemas externos se relaciona.
 El nivel 1 responde a *qué hace el sistema y para quién*, no a *cómo está construido*: por eso
 **no aparece ninguna tecnología** en el diagrama. La elección del stack se documentará en
-[0001-acotar-el-stack-a-cuatro-opciones.md) y afectará a partir del nivel 2 (contenedores).
+[ADR 0001](../adr/0001-acotar-el-stack-a-cuatro-opciones.md) y afectará a partir del nivel 2 (contenedores).
 
 ## Diagrama
 

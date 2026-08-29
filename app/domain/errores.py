@@ -15,3 +15,7 @@ class RecursoNoEncontrado(ErrorDominio):
 
 class TransicionInvalida(ErrorDominio):
     """El estado destino no es alcanzable desde el estado actual."""
+
+
+class YaEsMiembro(ErrorDominio):
+    """El usuario que se intenta agregar ya pertenece al proyecto."""

@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
-from app.domain.modelos import EstadoTarea, Prioridad
+from app.domain.modelos import EstadoTarea, Prioridad, RolMiembro
 
 
 class CrearProyecto(BaseModel):
@@ -43,3 +43,27 @@ class ProyectoSalida(BaseModel):
     id: str
     nombre: str
     miembros: list[str]
+
+
+class AgregarMiembro(BaseModel):
+    usuario: str = Field(min_length=1, max_length=120)
+    rol: RolMiembro = RolMiembro.INTEGRANTE
+
+
+class MiembroSalida(BaseModel):
+    usuario: str
+    rol: RolMiembro
+
+
+class ProyectoDetalle(BaseModel):
+    id: str
+    nombre: str
+    miembros: list[MiembroSalida]
+
+
+class ProgresoSalida(BaseModel):
+    total: int
+    por_estado: dict[str, int]
+    sin_responsable: int
+    vencidas: int
+    porcentaje_completado: float

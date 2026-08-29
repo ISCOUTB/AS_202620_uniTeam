@@ -8,9 +8,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api import rutas_proyectos, rutas_tareas
+from app.api import rutas_progreso, rutas_proyectos, rutas_tareas
 from app.config import ajustes
-from app.domain.errores import AccesoDenegado, RecursoNoEncontrado, TransicionInvalida
+from app.domain.errores import (
+    AccesoDenegado,
+    RecursoNoEncontrado,
+    TransicionInvalida,
+    YaEsMiembro,
+)
 from app.infrastructure.db import crear_esquema
 
 @asynccontextmanager
@@ -39,6 +44,11 @@ def _no_encontrado(request: Request, exc: RecursoNoEncontrado) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": str(exc)})
 
 
+@app.exception_handler(YaEsMiembro)
+def _ya_es_miembro(request: Request, exc: YaEsMiembro) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"detail": str(exc)})
+
+
 @app.exception_handler(TransicionInvalida)
 def _transicion_invalida(request: Request, exc: TransicionInvalida) -> JSONResponse:
     return JSONResponse(status_code=409, content={"detail": str(exc)})
@@ -55,4 +65,5 @@ def activo() -> dict:
 
 
 app.include_router(rutas_proyectos.router)
+app.include_router(rutas_progreso.router)
 app.include_router(rutas_tareas.router)

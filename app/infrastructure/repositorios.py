@@ -1,8 +1,8 @@
 """Adaptadores de persistencia: implementan los puertos con SQLAlchemy."""
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.domain.modelos import (
@@ -10,6 +10,7 @@ from app.domain.modelos import (
     Miembro,
     Prioridad,
     Proyecto,
+    ResumenProgreso,
     RolMiembro,
     Tarea,
 )
@@ -36,6 +37,29 @@ class RepositorioProyectosSQL:
                 Miembro(usuario=m.usuario, rol=RolMiembro(m.rol)) for m in fila.miembros
             ],
         )
+
+    def listar_por_usuario(self, usuario: str) -> list[Proyecto]:
+        """Solo los proyectos de los que el usuario es miembro.
+
+        El filtro está en la consulta, no después: así no existe la ruta por
+        la que un proyecto ajeno llegue siquiera a memoria (ESC-03).
+        """
+        filas = self._s.scalars(
+            select(ProyectoTabla)
+            .join(MiembroTabla, MiembroTabla.proyecto_id == ProyectoTabla.id)
+            .where(MiembroTabla.usuario == usuario)
+            .order_by(ProyectoTabla.nombre)
+        ).all()
+        return [
+            Proyecto(
+                id=f.id,
+                nombre=f.nombre,
+                miembros=[
+                    Miembro(usuario=m.usuario, rol=RolMiembro(m.rol)) for m in f.miembros
+                ],
+            )
+            for f in filas
+        ]
 
     def guardar(self, proyecto: Proyecto) -> None:
         fila = self._s.get(ProyectoTabla, proyecto.id)
@@ -95,13 +119,61 @@ class RepositorioTareasSQL:
         fila.fecha_limite = tarea.fecha_limite
         self._s.flush()
 
-    def listar_por_proyecto(self, proyecto_id: str) -> list[Tarea]:
-        filas = self._s.scalars(
-            select(TareaTabla)
-            .where(TareaTabla.proyecto_id == proyecto_id)
-            .order_by(TareaTabla.creada_en)
-        ).all()
-        return [self._a_dominio(f) for f in filas]
+    def listar_por_proyecto(
+        self,
+        proyecto_id: str,
+        estado: Optional[EstadoTarea] = None,
+        responsable: Optional[str] = None,
+        limite: int = 50,
+        desplazamiento: int = 0,
+    ) -> list[Tarea]:
+        consulta = select(TareaTabla).where(TareaTabla.proyecto_id == proyecto_id)
+        if estado is not None:
+            consulta = consulta.where(TareaTabla.estado == estado.value)
+        if responsable is not None:
+            consulta = consulta.where(TareaTabla.responsable == responsable)
+        # El id desempata: ordenar solo por fecha haría inestable la paginación
+        # si dos tareas comparten marca de tiempo.
+        consulta = (
+            consulta.order_by(TareaTabla.creada_en, TareaTabla.id)
+            .limit(limite)
+            .offset(desplazamiento)
+        )
+        return [self._a_dominio(f) for f in self._s.scalars(consulta).all()]
+
+    def resumir_progreso(self, proyecto_id: str) -> ResumenProgreso:
+        """Cuenta en la base de datos, sin traer las tareas a memoria."""
+        por_estado = dict(
+            self._s.execute(
+                select(TareaTabla.estado, func.count())
+                .where(TareaTabla.proyecto_id == proyecto_id)
+                .group_by(TareaTabla.estado)
+            ).all()
+        )
+        sin_responsable = self._s.scalar(
+            select(func.count())
+            .select_from(TareaTabla)
+            .where(
+                TareaTabla.proyecto_id == proyecto_id,
+                TareaTabla.responsable.is_(None),
+            )
+        )
+        vencidas = self._s.scalar(
+            select(func.count())
+            .select_from(TareaTabla)
+            .where(
+                TareaTabla.proyecto_id == proyecto_id,
+                TareaTabla.fecha_limite.is_not(None),
+                TareaTabla.fecha_limite < date.today(),
+                TareaTabla.estado != EstadoTarea.COMPLETADA.value,
+            )
+        )
+        return ResumenProgreso(
+            total=sum(por_estado.values()),
+            por_estado={str(k): int(v) for k, v in por_estado.items()},
+            sin_responsable=int(sin_responsable or 0),
+            vencidas=int(vencidas or 0),
+        )
 
 
 class RepositorioAuditoriaSQL:

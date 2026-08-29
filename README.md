@@ -2,10 +2,23 @@
 
 ### Integrantes del equipo
 
-* Julio César Emiliani
-* Ian Novoa Carrillo
-* Juan Jose Bustamante
-* Daniel Isaac Manjarres
+| Integrante | Identidades en el historial de git |
+|-----------|-----------------------------------|
+| Julio César Emiliani Ramos | `super-gremlin` · `Julio Cesar Emiliani <jlemiliani@gmail.com>` |
+| Ian Novoa Carrillo | `Ian Novoa <iannovoacc8@gmail.com>` |
+| Juan José Bustamante | `JuanB` (`Paradox2700`) |
+| Daniel Isaac Manjarrés | `Daniel Manjarres Herrera <danielmh0907@gmail.com>` |
+
+Julio César Emiliani Ramos aparece con **dos identidades** —su cuenta de GitHub `super-gremlin`
+y su correo personal—, según desde dónde haya empujado cada commit. Son la misma persona, y hay
+que consolidarlas antes de contar contribuciones.
+
+**Sobre la coautoría de Claude.** Algunos commits llevan el pie
+`Co-Authored-By: Claude`. Esos commits los redactó, revisó, probó y subió **Julio César
+Emiliani Ramos**, que es su autor y responsable; la coautoría deja constancia de que hubo
+asistencia de IA en su elaboración, tal como exige la política del curso. El detalle de qué se
+pidió, qué se aceptó y **qué se rechazó y por qué** está en
+[`docs/ia.md`](docs/ia.md).
 
 ### Idea original y aporte del prototipo
 
@@ -124,6 +137,24 @@ MySQL de Docker:
 docker compose up -d db
 DATABASE_URL="mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam" pytest -v
 ```
+
+## Endpoints
+
+| Método | Ruta | Qué hace |
+|--------|------|----------|
+| `POST` | `/proyectos` | Crea un proyecto; quien lo crea queda como líder. |
+| `GET` | `/proyectos` | Lista los proyectos del usuario. Nunca devuelve ajenos. |
+| `GET` | `/proyectos/{id}` | Detalle del proyecto con sus miembros y roles. |
+| `POST` | `/proyectos/{id}/miembros` | Agrega un miembro. Reservado al líder. |
+| `POST` | `/proyectos/{id}/tareas` | Crea una tarea. |
+| `GET` | `/proyectos/{id}/tareas` | Tablero, con filtros `estado` y `responsable` y paginación. |
+| `GET` | `/proyectos/{id}/tareas/{tarea_id}` | Detalle de una tarea. |
+| `PUT` | `/proyectos/{id}/tareas/{tarea_id}/responsable` | Asigna la tarea a un miembro. |
+| `PUT` | `/proyectos/{id}/tareas/{tarea_id}/estado` | Mueve la tarea de estado. |
+| `GET` | `/proyectos/{id}/progreso` | Resumen del avance, calculado en la base de datos. |
+
+Toda operación sobre un proyecto exige pertenecer a él: quien no es miembro recibe `403` y el
+intento queda en el registro de auditoría.
 
 ## Corte vertical
 

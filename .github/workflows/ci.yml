@@ -36,6 +36,9 @@ jobs:
       - name: Instalar dependencias
         run: pip install -r requirements.txt
 
+      - name: Verificar los enlaces de la documentación
+        run: python scripts/verificar_enlaces.py
+
       - name: Ejecutar las pruebas
         env:
           DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test

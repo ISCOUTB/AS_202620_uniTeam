@@ -8,7 +8,7 @@ from datetime import date, datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from app.domain.errores import TransicionInvalida
+from app.domain.errores import TransicionInvalida, YaEsMiembro
 
 
 class Prioridad(str, Enum):
@@ -52,6 +52,16 @@ class Proyecto:
     def es_miembro(self, usuario: str) -> bool:
         return any(m.usuario == usuario for m in self.miembros)
 
+    def es_lider(self, usuario: str) -> bool:
+        return any(
+            m.usuario == usuario and m.rol is RolMiembro.LIDER for m in self.miembros
+        )
+
+    def agregar_miembro(self, usuario: str, rol: "RolMiembro") -> None:
+        if self.es_miembro(usuario):
+            raise YaEsMiembro(f"'{usuario}' ya pertenece al proyecto.")
+        self.miembros.append(Miembro(usuario=usuario, rol=rol))
+
 
 @dataclass
 class Tarea:
@@ -74,3 +84,24 @@ class Tarea:
 
     def asignar(self, usuario: str) -> None:
         self.responsable = usuario
+
+
+@dataclass
+class ResumenProgreso:
+    """Vista agregada del avance de un proyecto (RF-06).
+
+    Se calcula con una consulta agregada, no trayendo las tareas a memoria:
+    es una de las tácticas declaradas para ESC-01.
+    """
+
+    total: int
+    por_estado: dict[str, int]
+    sin_responsable: int
+    vencidas: int
+
+    @property
+    def porcentaje_completado(self) -> float:
+        if self.total == 0:
+            return 0.0
+        completadas = self.por_estado.get(EstadoTarea.COMPLETADA.value, 0)
+        return round(completadas * 100 / self.total, 1)

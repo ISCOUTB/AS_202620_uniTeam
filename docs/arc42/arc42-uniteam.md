@@ -80,7 +80,7 @@ sección 9 —lo que el equipo elige.
 
 | ID | Restricción | Justificación | Consecuencia arquitectónica |
 |----|------------|--------------|----------------------------|
-| T1 | El stack está acotado a **NestJS o FastAPI** en el backend y **Flutter o Next.js** en el frontend. | Son las tecnologías que el equipo conoce o puede aprender dentro del semestre. Ampliar el abanico haría inviable el prototipo con dedicación parcial. | La elección concreta dentro de ese conjunto es una decisión pendiente, documentada en [0001-acotar-el-stack-a-cuatro-opciones.md). El diseño se mantiene independiente del framework hasta que se resuelva. |
+| T1 | El stack está acotado a **NestJS o FastAPI** en el backend y **Flutter o Next.js** en el frontend. | Son las tecnologías que el equipo conoce o puede aprender dentro del semestre. Ampliar el abanico haría inviable el prototipo con dedicación parcial. | La elección concreta dentro de ese conjunto es una decisión pendiente, documentada en [ADR 0001](../adr/0001-acotar-el-stack-a-cuatro-opciones.md). El diseño se mantiene independiente del framework hasta que se resuelva. |
 | T2 | El sistema se entrega para **navegador web y/o escritorio**. La aplicación móvil nativa queda fuera del alcance. | El equipo decidió no abordar móvil en este semestre; sostener un cliente móvil adicional excede la capacidad disponible. | Condiciona T1: cualquier opción de frontend debe cubrir web o escritorio. Fija además el entorno de los escenarios [ESC-01](../calidad/escenarios-calidad.md#esc-01) y [ESC-02](../calidad/escenarios-calidad.md#esc-02). |
 | T3 | El despliegue se hace sobre **infraestructura gratuita o cuentas de estudiante**. | No hay presupuesto (ver O3). | Recursos de cómputo y memoria limitados, y posible latencia de arranque en frío. Es la razón por la que [ESC-01](../calidad/escenarios-calidad.md#esc-01) acota su meta a 200 tareas y 30 usuarios concurrentes, y por la que [ESC-04](../calidad/escenarios-calidad.md#esc-04) no promete alta disponibilidad. |
 | T4 | La documentación vive **en el mismo repositorio**, en Markdown, con los diagramas como código (Mermaid). | Requisito del curso y condición para que la documentación evolucione junto con el código en lugar de quedar desactualizada en una herramienta aparte. | No se usan herramientas de diagramación propietarias ni binarios que no puedan revisarse en un *diff*. |
@@ -126,7 +126,7 @@ aprendizaje o de calificaciones, mensajería entre integrantes y registro de tie
 ## 3.2 Contexto técnico
 
 Los canales técnicos son **previstos**: quedan condicionados por la restricción T1 y se
-confirmarán en [0001-acotar-el-stack-a-cuatro-opciones.md).
+confirmarán en [ADR 0001](../adr/0001-acotar-el-stack-a-cuatro-opciones.md).
 
 | Canal | Participantes | Protocolo previsto | Qué transporta |
 |-------|--------------|--------------------|----------------|
@@ -234,8 +234,8 @@ flowchart TB
 
 | Paquete | Responsabilidad | Archivos principales |
 |---------|----------------|---------------------|
-| `app/api/` | Traduce HTTP a casos de uso y los errores del dominio a códigos de estado. No contiene reglas de negocio. | `rutas_tareas.py`, `rutas_proyectos.py`, `esquemas.py`, `dependencias.py` |
-| `app/application/` | Orquesta los casos de uso, **autoriza cada operación** y publica los eventos. Declara los puertos que necesita de la persistencia. | `servicio_tareas.py`, `puertos.py`, `bus.py` |
+| `app/api/` | Traduce HTTP a casos de uso y los errores del dominio a códigos de estado. No contiene reglas de negocio. | `rutas_tareas.py`, `rutas_proyectos.py`, `rutas_progreso.py`, `esquemas.py`, `dependencias.py` |
+| `app/application/` | Orquesta los casos de uso, **autoriza cada operación** y publica los eventos. Declara los puertos que necesita de la persistencia. | `servicio_tareas.py`, `servicio_proyectos.py`, `puertos.py`, `bus.py` |
 | `app/domain/` | Entidades, flujo de estados, eventos de dominio y errores. No depende de ningún framework. | `modelos.py`, `eventos.py`, `errores.py` |
 | `app/events/` | Consumidores de los eventos publicados. Hoy, la auditoría. | `consumidores.py` |
 | `app/infrastructure/` | Implementa los puertos contra MySQL: motor, tablas y repositorios. | `db.py`, `tablas.py`, `repositorios.py` |

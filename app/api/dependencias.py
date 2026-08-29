@@ -11,6 +11,7 @@ from fastapi import Depends, Header
 from sqlalchemy.orm import Session
 
 from app.application.bus import BusEventos
+from app.application.servicio_proyectos import ServicioProyectos
 from app.application.servicio_tareas import ServicioTareas
 from app.events.consumidores import registrar_consumidores
 from app.infrastructure.db import SesionLocal
@@ -44,3 +45,11 @@ def obtener_servicio(sesion: Session = Depends(obtener_sesion)) -> ServicioTarea
         tareas=RepositorioTareasSQL(sesion),
         bus=bus,
     )
+
+
+def obtener_servicio_proyectos(
+    sesion: Session = Depends(obtener_sesion),
+) -> ServicioProyectos:
+    bus = BusEventos()
+    registrar_consumidores(bus, sesion, SesionLocal)
+    return ServicioProyectos(proyectos=RepositorioProyectosSQL(sesion), bus=bus)

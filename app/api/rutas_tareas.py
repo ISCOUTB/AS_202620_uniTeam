@@ -1,10 +1,18 @@
 """Endpoints de tareas: la capa de interfaz del corte vertical."""
-from fastapi import APIRouter, Depends, status
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, status
 
 from app.api.dependencias import obtener_servicio, usuario_actual
-from app.api.esquemas import AsignarTarea, CambiarEstado, CrearTarea, TareaSalida
+from app.api.esquemas import (
+    AsignarTarea,
+    CambiarEstado,
+    CrearTarea,
+    ProgresoSalida,
+    TareaSalida,
+)
 from app.application.servicio_tareas import ServicioTareas
-from app.domain.modelos import Tarea
+from app.domain.modelos import EstadoTarea, Tarea
 
 router = APIRouter(prefix="/proyectos/{proyecto_id}/tareas", tags=["tareas"])
 
@@ -44,10 +52,28 @@ def crear_tarea(
 @router.get("", response_model=list[TareaSalida])
 def consultar_tablero(
     proyecto_id: str,
+    estado: Optional[EstadoTarea] = None,
+    responsable: Optional[str] = None,
+    limite: int = Query(50, ge=1, le=200),
+    desplazamiento: int = Query(0, ge=0),
     usuario: str = Depends(usuario_actual),
     servicio: ServicioTareas = Depends(obtener_servicio),
 ) -> list[TareaSalida]:
-    return [_salida(t) for t in servicio.consultar_tablero(usuario, proyecto_id)]
+    """Tablero del proyecto, con filtros opcionales y paginación.
+
+    El tope de 200 no es arbitrario: es el tamaño de proyecto para el que
+    ESC-01 compromete la latencia.
+    """
+    tareas = servicio.consultar_tablero(
+        usuario,
+        proyecto_id,
+        estado=estado,
+        responsable=responsable,
+        limite=limite,
+        desplazamiento=desplazamiento,
+    )
+    return [_salida(t) for t in tareas]
+
 
 
 @router.get("/{tarea_id}", response_model=TareaSalida)

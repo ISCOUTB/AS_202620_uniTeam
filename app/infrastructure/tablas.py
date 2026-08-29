@@ -3,6 +3,7 @@ from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy import Date, DateTime, ForeignKey, String
+from sqlalchemy.dialects import mysql
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.infrastructure.db import Base
@@ -44,7 +45,11 @@ class TareaTabla(Base):
     estado: Mapped[str] = mapped_column(String(20), nullable=False, index=True)
     responsable: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
     fecha_limite: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    creada_en: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    # fsp=6 en MySQL: sin fracción de segundo, dos tareas creadas en el mismo
+    # segundo empatan y el orden del tablero deja de ser determinista.
+    creada_en: Mapped[datetime] = mapped_column(
+        DateTime().with_variant(mysql.DATETIME(fsp=6), "mysql"), nullable=False
+    )
 
 
 class AuditoriaTabla(Base):
@@ -58,5 +63,7 @@ class AuditoriaTabla(Base):
     operacion: Mapped[str] = mapped_column(String(60), nullable=False)
     resultado: Mapped[str] = mapped_column(String(30), nullable=False)
     ocurrido_en: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+        DateTime().with_variant(mysql.DATETIME(fsp=6), "mysql"),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
     )

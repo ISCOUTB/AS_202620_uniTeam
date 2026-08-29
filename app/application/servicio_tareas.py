@@ -12,7 +12,7 @@ from app.application.bus import BusEventos
 from app.application.puertos import RepositorioProyectos, RepositorioTareas
 from app.domain import eventos
 from app.domain.errores import AccesoDenegado, RecursoNoEncontrado
-from app.domain.modelos import EstadoTarea, Prioridad, Tarea
+from app.domain.modelos import EstadoTarea, Prioridad, ResumenProgreso, Tarea
 
 
 class ServicioTareas:
@@ -82,9 +82,34 @@ class ServicioTareas:
         )
         return tarea
 
-    def consultar_tablero(self, usuario: str, proyecto_id: str) -> list[Tarea]:
+    def consultar_tablero(
+        self,
+        usuario: str,
+        proyecto_id: str,
+        estado: Optional[EstadoTarea] = None,
+        responsable: Optional[str] = None,
+        limite: int = 50,
+        desplazamiento: int = 0,
+    ) -> list[Tarea]:
+        """Tablero del proyecto, con filtros y paginación.
+
+        La paginación no es un adorno: ESC-01 compromete la latencia hasta 200
+        tareas, y devolver la colección entera sin límite es justamente la
+        forma de incumplirlo cuando el proyecto crece.
+        """
         self._autorizar(usuario, proyecto_id, "consultar_tablero")
-        return self._tareas.listar_por_proyecto(proyecto_id)
+        return self._tareas.listar_por_proyecto(
+            proyecto_id,
+            estado=estado,
+            responsable=responsable,
+            limite=limite,
+            desplazamiento=desplazamiento,
+        )
+
+    def consultar_progreso(self, usuario: str, proyecto_id: str) -> ResumenProgreso:
+        """Resumen agregado del avance (RF-06)."""
+        self._autorizar(usuario, proyecto_id, "consultar_progreso")
+        return self._tareas.resumir_progreso(proyecto_id)
 
     def obtener_tarea(self, usuario: str, proyecto_id: str, tarea_id: str) -> Tarea:
         self._autorizar(usuario, proyecto_id, "obtener_tarea")
