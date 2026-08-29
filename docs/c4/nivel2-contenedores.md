@@ -8,7 +8,7 @@ la seleccionada en
 
 ## Diagrama
 
-\`\`\`mermaid
+```mermaid
 flowchart TB
  subgraph sys["UniTeam [Sistema de software]"]
     direction TB
@@ -44,7 +44,7 @@ flowchart TB
     class web,api,db contenedor
     class idp,mail externo
     class sys limite
-\`\`\`
+```
 
 ## Leyenda
 
