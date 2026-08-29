@@ -198,7 +198,7 @@ contenedores, detallados en el [C4 de contenedores](../c4/nivel2-contenedores.md
 
 | Bloque | Responsabilidad | Estado |
 |--------|----------------|--------|
-| Aplicación Web | Interfaz de usuario. Inicia la autenticación y consume la API. | Prevista para la semana 6; sin código todavía. |
+| Aplicación Web | Interfaz de usuario. Consume la API con la identidad del usuario. | Implementada (Next.js, `web/`). |
 | API | Autorización, reglas de negocio y publicación de eventos de dominio. | Implementada. |
 | Base de datos | Estado del sistema y registro de auditoría. | Implementada (MySQL, [ADR 0004](../adr/0004-usar-mysql-como-base-de-datos.md)). |
 

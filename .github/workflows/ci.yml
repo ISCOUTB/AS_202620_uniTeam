@@ -43,3 +43,22 @@ jobs:
         env:
           DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
         run: pytest -v
+
+  frontend:
+    name: Compilación del frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Instalar dependencias
+        working-directory: web
+        run: npm install
+
+      - name: Compilar y comprobar tipos
+        working-directory: web
+        run: npm run build

@@ -6,6 +6,7 @@ los errores del dominio a códigos HTTP.
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.api import rutas_progreso, rutas_proyectos, rutas_tareas
@@ -30,6 +31,15 @@ app = FastAPI(
     description="Gestión colaborativa de tareas para equipos universitarios.",
     version="0.2.0",
     lifespan=ciclo_de_vida,
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ajustes.origenes_permitidos,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "X-Usuario"],
 )
 
 

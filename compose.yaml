@@ -27,11 +27,22 @@ services:
     build: .
     environment:
       DATABASE_URL: mysql+pymysql://uniteam:uniteam@db:3306/uniteam
+      ORIGENES_PERMITIDOS: http://localhost:3000
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+
+  web:
+    build: ./web
+    environment:
+      # La consume el navegador, no el contenedor: por eso es localhost.
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
 
 volumes:
   datos_mysql:

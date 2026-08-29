@@ -75,7 +75,7 @@ Cada contenedor tiene su lugar en el repositorio. Es lo primero que se contrasta
 
 | Contenedor | Tecnología | Dónde vive en el repositorio |
 |-----------|-----------|------------------------------|
-| Aplicación Web | Next.js | **Todavía sin código.** Prevista para la semana 6; hoy la API se ejercita con su documentación interactiva en `/docs` y con las pruebas. |
+| Aplicación Web | Next.js | `web/app/` — páginas de proyectos y tablero; `web/lib/api.ts` — cliente de la API. |
 | API | FastAPI | `app/main.py`, `app/api/`, `app/application/`, `app/domain/`, `app/events/` |
 | Base de datos | MySQL | `app/infrastructure/` — esquema en `tablas.py`, acceso en `repositorios.py` |
 
@@ -95,7 +95,12 @@ recibido: las credenciales **nunca pasan por UniTeam**, lo que reduce el alcance
 restricción legal L1 y la superficie de riesgo de
 [ESC-03](../calidad/escenarios-calidad.md#esc-03).
 
-**Estado actual:** la integración OIDC todavía no está implementada. Mientras tanto la API toma
-la identidad de la cabecera `X-Usuario` (`app/api/dependencias.py`), que es un sustituto
+**Estado actual:** la integración OIDC todavía no está implementada. Mientras tanto la
+Aplicación Web pide el nombre de usuario y lo envía en la cabecera `X-Usuario`
+(`web/lib/usuario.tsx`), que la API lee en `app/api/dependencias.py`. Es un sustituto
 provisional y explícitamente inseguro. Lo que sí es real es la **autorización**: la pertenencia
 al proyecto se comprueba contra la base de datos en cada operación.
+
+Como la Aplicación Web se ejecuta en el navegador del usuario, la relación «Aplicación Web →
+API» es una petición entre orígenes distintos y necesita CORS. La lista de orígenes es
+explícita (`ORIGENES_PERMITIDOS`), nunca `*`.

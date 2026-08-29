@@ -1,144 +1,73 @@
-# UniTeam — Plataforma colaborativa para equipos universitarios
+# UniTeam
 
-### Integrantes del equipo
+**Gestión colaborativa de tareas para equipos universitarios.** Centraliza qué hay que hacer,
+quién responde por cada cosa, qué prioridad tiene y en qué estado está — información que hoy
+vive dispersa entre chats, documentos y hojas de cálculo.
 
-| Integrante | Identidades en el historial de git |
-|-----------|-----------------------------------|
-| Julio César Emiliani Ramos | `super-gremlin` · `Julio Cesar Emiliani <jlemiliani@gmail.com>` |
-| Ian Novoa Carrillo | `Ian Novoa <iannovoacc8@gmail.com>` |
-| Juan José Bustamante | `JuanB` (`Paradox2700`) |
-| Daniel Isaac Manjarrés | `Daniel Manjarres Herrera <danielmh0907@gmail.com>` |
+[![CI](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/workflows/ci.yml/badge.svg)](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/workflows/ci.yml)
 
-Julio César Emiliani Ramos aparece con **dos identidades** —su cuenta de GitHub `super-gremlin`
-y su correo personal—, según desde dónde haya empujado cada commit. Son la misma persona, y hay
-que consolidarlas antes de contar contribuciones.
+Proyecto de la asignatura **Arquitecturas de Software**, semestre 2026-20 · Universidad
+Tecnológica de Bolívar.
 
-**Sobre la coautoría de Claude.** Algunos commits llevan el pie
-`Co-Authored-By: Claude`. Esos commits los redactó, revisó, probó y subió **Julio César
-Emiliani Ramos**, que es su autor y responsable; la coautoría deja constancia de que hubo
-asistencia de IA en su elaboración, tal como exige la política del curso. El detalle de qué se
-pidió, qué se aceptó y **qué se rechazó y por qué** está en
-[`docs/ia.md`](docs/ia.md).
+---
 
-### Idea original y aporte del prototipo
+## Arranque rápido
 
-**UniTeam** es una herramienta web para facilitar la organización y coordinación de equipos de trabajo universitarios.
-
-La idea consiste en centralizar la gestión de las actividades de un equipo en una sola plataforma. Los integrantes podrán crear tareas, asignarlas a otros miembros, establecer una prioridad, definir un estado y realizar seguimiento a su progreso.
-
-El prototipo busca solucionar el problema de tener la información del trabajo grupal dispersa entre diferentes medios de comunicación y herramientas. UniTeam permitirá que cada integrante pueda identificar fácilmente **qué tareas existen, quién es responsable de ellas, qué prioridad tienen y cuál es su estado**.
-
-### Stakeholders o beneficiarios
-
-* **Estudiantes:** serán los principales usuarios de UniTeam. Podrán organizar sus proyectos, distribuir tareas entre los integrantes y realizar seguimiento al trabajo del equipo.
-* **Equipos de trabajo universitarios:** se beneficiarán de una herramienta centralizada para coordinar responsabilidades y mejorar la organización del trabajo colaborativo.
-* **Profesores:** podrán beneficiarse del sistema como herramienta de seguimiento de los proyectos y actividades realizadas por los equipos.
-* **Universidad:** podrá beneficiarse indirectamente de una herramienta que facilite la organización y colaboración durante el desarrollo de proyectos académicos.
-
-El mapa completo de interesados, con lo que le importa a cada uno y los conflictos entre sus intereses, está en [`docs/calidad/interesados.md`](docs/calidad/interesados.md).
-
-### Documentación
-
-| Documento | Contenido |
-|-----------|-----------|
-| [Ficha del problema](docs/ficha.md) | Problema, propuesta, usuarios y alcance del prototipo. |
-| [Aspectos declarados](docs/aspectos.md) | Capacidades comprometidas, cada una enlazada con su escenario de calidad. |
-| [Arquitectura (arc42)](docs/arc42/arc42-uniteam.md) | Objetivos, restricciones, contexto y requisitos de calidad. |
-| [Mapa de interesados](docs/calidad/interesados.md) | Interesados, atributos derivados y conflictos entre ellos. |
-| [Escenarios de calidad](docs/calidad/escenarios-calidad.md) | Cinco escenarios de seis partes con medidas verificables. |
-| [Árbol de utilidad](docs/calidad/arbol-utilidad.md) | Priorización por impacto en el negocio y riesgo técnico. |
-| [C4 nivel 1 — Contexto](docs/c4/nivel1-contexto.md) | Diagrama de contexto del sistema. |
-| [C4 nivel 2 — Contenedores](docs/c4/nivel2-contenedores.md) | Contenedores y su correspondencia con el código. |
-| [Decisiones de arquitectura](docs/adr/) | Registro de decisiones (ADR). |
-| [Uso de IA y decisiones del equipo](docs/ia.md) | Bitácora de uso de IA generativa y registro de decisiones. |
-
-### Entrega S2 — Interesados y escenarios de calidad
-
-| Solicitud | Dónde encontrarlo |
-|-----------|-----------|
-| arc42 secciones 1–3 | [arc42 §1](docs/arc42/arc42-uniteam.md#1-introducción-y-objetivos) · [§2](docs/arc42/arc42-uniteam.md#2-restricciones-de-la-arquitectura) · [§3](docs/arc42/arc42-uniteam.md#3-contexto-y-alcance) |
-| Árbol de utilidad | [docs/calidad/arbol-utilidad.md](docs/calidad/arbol-utilidad.md) — también en [arc42 §10.1](docs/arc42/arc42-uniteam.md#101-árbol-de-calidad) |
-| 3–5 escenarios de calidad con medida | [docs/calidad/escenarios-calidad.md](docs/calidad/escenarios-calidad.md) (5 escenarios) — resumen en [arc42 §10.2](docs/arc42/arc42-uniteam.md#102-escenarios-de-calidad) |
-| Restricciones justificadas | [arc42 §2](docs/arc42/arc42-uniteam.md#2-restricciones-de-la-arquitectura): técnicas, organizativas y legales |
-| C4 de contexto (nivel 1) | [docs/c4/nivel1-contexto.md](docs/c4/nivel1-contexto.md) |
-| Resumen del proceso (1 página) | [docs/entregas/S2-resumen.md](docs/entregas/S2-resumen.md) — el PDF se entrega aparte, fuera del repositorio |
-
-## Cómo se arranca
-
-**Requisitos previos:** Docker con el complemento Compose (`docker compose version`). Nada más:
-ni Python ni MySQL instalados en la máquina.
+**Requisito previo:** Docker con el complemento Compose (`docker compose version`). Nada más.
 
 ```bash
 docker compose up
 ```
 
-Ese único comando construye la API, levanta MySQL, espera a que responda y arranca el sistema en
-<http://localhost:8000>. La documentación interactiva de la API queda en
-<http://localhost:8000/docs>, y `GET /activo` responde `{"status": "ok"}` cuando todo está en pie.
+Ese único comando levanta los tres contenedores y deja el sistema en marcha:
 
-Para detenerlo, `Ctrl+C`; para borrar también los datos, `docker compose down -v`.
+| Servicio | URL | Qué es |
+|----------|-----|--------|
+| Aplicación Web | <http://localhost:3000> | Interfaz de usuario (Next.js) |
+| API | <http://localhost:8000> | Backend (FastAPI) · documentación interactiva en `/docs` |
+| Base de datos | `localhost:3306` | MySQL 8.4 |
 
-### Recorrido de ejemplo
+Para detenerlo, `Ctrl+C`. Para borrar también los datos, `docker compose down -v`.
 
-```bash
-# 1. Crear un proyecto (quien lo crea queda como líder)
-curl -X POST localhost:8000/proyectos \
-  -H "Content-Type: application/json" -H "X-Usuario: ana" \
-  -d '{"nombre":"Proyecto de Arquitectura","miembros":["bruno"]}'
+> **Identidad provisional.** Todavía no hay autenticación: el usuario se escribe a mano y viaja
+> en la cabecera `X-Usuario`. Sustituye al proveedor de identidad hasta que se integre OIDC, y
+> **no debe exponerse fuera de un entorno de desarrollo**. La **autorización** sí es real: cada
+> operación comprueba contra la base de datos que el usuario pertenezca al proyecto, y quien no
+> pertenece recibe `403` y queda registrado en auditoría.
 
-# 2. Crear una tarea dentro de él (usa el id devuelto arriba)
-curl -X POST localhost:8000/proyectos/<ID>/tareas \
-  -H "Content-Type: application/json" -H "X-Usuario: ana" \
-  -d '{"titulo":"Redactar la sección 5","prioridad":"alta","responsable":"bruno"}'
+---
 
-# 3. Consultar el tablero
-curl localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: bruno"
+## Arquitectura
 
-# 4. Un usuario ajeno al proyecto recibe 403 y queda registrado en auditoría (ESC-03)
-curl -i localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: intruso"
+UniTeam es un sistema de tres contenedores, descritos en el
+[C4 de contenedores](docs/c4/nivel2-contenedores.md):
+
+```
+Navegador ──HTTPS──▶ Aplicación Web ──REST/JSON──▶ API ──SQL──▶ MySQL
+                       (Next.js)                (FastAPI)
 ```
 
-> **Identidad provisional.** La cabecera `X-Usuario` sustituye al proveedor de identidad
-> mientras no se integra OIDC (ver [C4 nivel 2](docs/c4/nivel2-contenedores.md)). No es
-> autenticación y no debe exponerse fuera de un entorno de desarrollo. La **autorización** sí es
-> real: cada operación comprueba la pertenencia al proyecto contra la base de datos.
+El backend sigue un estilo orientado a eventos con **despacho en proceso**
+([ADR 0003](docs/adr/0003-usar-eventos-de-dominio-en-proceso.md)): no hay broker ni cola
+externa. Las reglas de negocio viven en un dominio que no depende de ningún framework, y la
+persistencia queda detrás de repositorios.
 
-### Alternativa sin Docker
+| Documento | Contenido |
+|-----------|-----------|
+| [Documentación arc42](docs/arc42/arc42-uniteam.md) | Objetivos, restricciones, contexto, bloques de construcción y vista de ejecución. |
+| [C4 nivel 1 — Contexto](docs/c4/nivel1-contexto.md) · [nivel 2 — Contenedores](docs/c4/nivel2-contenedores.md) | Diagramas como código, en Mermaid. |
+| [Decisiones de arquitectura](docs/adr/) | Un ADR por decisión, con contexto, alternativas y consecuencias. |
+| [Escenarios de calidad](docs/calidad/escenarios-calidad.md) | Cinco escenarios de seis partes con medida verificable. |
+| [Árbol de utilidad](docs/calidad/arbol-utilidad.md) · [Interesados](docs/calidad/interesados.md) | Priorización por impacto y riesgo, y de dónde sale. |
+| [Tabla de aspectos](docs/aspectos.md) | Trazabilidad de aspecto a evidencia, eslabón por eslabón. |
+| [Uso de IA](docs/ia.md) | Qué se pidió, qué se aceptó y qué se rechazó, con su motivo. |
+| [Ficha del problema](docs/ficha.md) | Problema, usuarios y alcance del prototipo. |
 
-Si prefieres no usar contenedores, hace falta Python 3.11 o superior y, para la persistencia
-real, un MySQL accesible:
+---
 
-```bash
-python -m venv .venv && . .venv/bin/activate    # en Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
+## API
 
-Sin `DATABASE_URL` definida arranca sobre un SQLite local, útil para probar la API pero **no**
-es el entorno soportado (ver [ADR 0004](docs/adr/0004-usar-mysql-como-base-de-datos.md)).
-
-## Cómo se prueba
-
-En integración continua las pruebas se ejecutan **contra MySQL** en cada `push`
-(ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
-
-En local, sin levantar servicios:
-
-```bash
-python -m venv .venv && . .venv/bin/activate    # en Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-pytest -v
-```
-
-Sin `DATABASE_URL` definida, las pruebas usan un SQLite temporal. Para ejecutarlas contra el
-MySQL de Docker:
-
-```bash
-docker compose up -d db
-DATABASE_URL="mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam" pytest -v
-```
-
-## Endpoints
+Toda operación sobre un proyecto exige pertenecer a él.
 
 | Método | Ruta | Qué hace |
 |--------|------|----------|
@@ -146,55 +75,130 @@ DATABASE_URL="mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam" pytest -v
 | `GET` | `/proyectos` | Lista los proyectos del usuario. Nunca devuelve ajenos. |
 | `GET` | `/proyectos/{id}` | Detalle del proyecto con sus miembros y roles. |
 | `POST` | `/proyectos/{id}/miembros` | Agrega un miembro. Reservado al líder. |
+| `GET` | `/proyectos/{id}/progreso` | Resumen del avance, calculado en la base de datos. |
 | `POST` | `/proyectos/{id}/tareas` | Crea una tarea. |
 | `GET` | `/proyectos/{id}/tareas` | Tablero, con filtros `estado` y `responsable` y paginación. |
-| `GET` | `/proyectos/{id}/tareas/{tarea_id}` | Detalle de una tarea. |
-| `PUT` | `/proyectos/{id}/tareas/{tarea_id}/responsable` | Asigna la tarea a un miembro. |
-| `PUT` | `/proyectos/{id}/tareas/{tarea_id}/estado` | Mueve la tarea de estado. |
-| `GET` | `/proyectos/{id}/progreso` | Resumen del avance, calculado en la base de datos. |
+| `GET` | `/proyectos/{id}/tareas/{tarea}` | Detalle de una tarea. |
+| `PUT` | `/proyectos/{id}/tareas/{tarea}/responsable` | Asigna la tarea a un miembro. |
+| `PUT` | `/proyectos/{id}/tareas/{tarea}/estado` | Mueve la tarea de estado. |
 
-Toda operación sobre un proyecto exige pertenecer a él: quien no es miembro recibe `403` y el
-intento queda en el registro de auditoría.
+Ejemplo completo:
 
-## Corte vertical
+```bash
+# Crear un proyecto
+curl -X POST localhost:8000/proyectos \
+  -H "Content-Type: application/json" -H "X-Usuario: ana" \
+  -d '{"nombre":"Proyecto de Arquitectura","miembros":["bruno"]}'
 
-El recorrido que atraviesa las tres capas, para seguirlo en el código:
+# Crear una tarea dentro de él
+curl -X POST localhost:8000/proyectos/<ID>/tareas \
+  -H "Content-Type: application/json" -H "X-Usuario: ana" \
+  -d '{"titulo":"Redactar la sección 5","prioridad":"alta","responsable":"bruno"}'
 
-| Tramo | Ruta |
-|-------|------|
-| Interfaz | [`app/api/rutas_tareas.py`](app/api/rutas_tareas.py) — endpoints HTTP |
-| Lógica | [`app/application/servicio_tareas.py`](app/application/servicio_tareas.py) — casos de uso y autorización |
-| Dominio | [`app/domain/modelos.py`](app/domain/modelos.py) — entidades y flujo de estados |
-| Eventos | [`app/application/bus.py`](app/application/bus.py) · [`app/events/consumidores.py`](app/events/consumidores.py) |
-| Persistencia | [`app/infrastructure/repositorios.py`](app/infrastructure/repositorios.py) — MySQL vía SQLAlchemy |
-| Prueba de punta a punta | [`test/test_corte_vertical.py`](test/test_corte_vertical.py) |
+# Consultar el tablero
+curl localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: bruno"
+
+# Un usuario ajeno recibe 403 y queda auditado
+curl -i localhost:8000/proyectos/<ID>/tareas -H "X-Usuario: intruso"
+```
+
+---
+
+## Desarrollo
+
+### Backend
+
+Requiere Python 3.11 o superior.
+
+```bash
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Sin `DATABASE_URL` definida arranca sobre un SQLite local, cómodo para desarrollo pero **no es
+el entorno soportado** ([ADR 0004](docs/adr/0004-usar-mysql-como-base-de-datos.md)). Para
+trabajar contra MySQL:
+
+```bash
+docker compose up -d db
+export DATABASE_URL="mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam"
+```
+
+### Frontend
+
+Requiere Node.js 20 o superior. Con la API ya en marcha:
+
+```bash
+cd web
+npm install
+npm run dev
+```
+
+| Variable | Por defecto | Para qué |
+|----------|-------------|----------|
+| `NEXT_PUBLIC_API_URL` | `http://localhost:8000` | Dónde está la API. La usa el navegador. |
+| `ORIGENES_PERMITIDOS` | `http://localhost:3000` | Orígenes que la API acepta por CORS. |
+
+---
+
+## Pruebas
+
+```bash
+pytest -v                                    # 20 pruebas
+python scripts/verificar_enlaces.py          # enlaces de la documentación
+cd web && npm run build                      # comprueba tipos y compilación
+```
+
+En integración continua las pruebas se ejecutan **contra MySQL** en cada `push`, junto con la
+verificación de enlaces y la compilación del frontend
+([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
+El recorrido completo —interfaz, lógica y persistencia— está cubierto por
+[`test/test_corte_vertical.py`](test/test_corte_vertical.py), que incluye los dos casos del
+escenario de seguridad [ESC-03](docs/calidad/escenarios-calidad.md#esc-03).
+
+---
 
 ## Estructura del repositorio
 
 ```text
 AS_202620_uniTeam/
-├── app/
-│   ├── main.py                 # Composición de la app y traducción de errores a HTTP
-│   ├── config.py               # Configuración leída del entorno
-│   ├── api/                    # Interfaz: endpoints, esquemas y dependencias
-│   ├── application/            # Casos de uso, puertos y bus de eventos
-│   ├── domain/                 # Entidades, flujo de estados y eventos de dominio
-│   ├── events/                 # Consumidores (auditoría)
-│   └── infrastructure/         # Motor, tablas y repositorios (MySQL)
-├── test/                       # Pruebas, incluida la del recorrido completo
-├── docs/                       # arc42, ADR, C4, aspectos y registro de IA
-├── compose.yaml                # Arranque con un comando
-├── Dockerfile
-└── requirements.txt
+├── app/                     API (FastAPI)
+│   ├── api/                 Interfaz HTTP: rutas, esquemas y dependencias
+│   ├── application/         Casos de uso, puertos y bus de eventos
+│   ├── domain/              Entidades, flujo de estados y eventos de dominio
+│   ├── events/              Consumidores de eventos (auditoría)
+│   └── infrastructure/      Motor, tablas y repositorios (MySQL)
+├── web/                     Aplicación Web (Next.js)
+│   ├── app/                 Páginas y estilos
+│   └── lib/                 Cliente de la API y sesión
+├── test/                    Pruebas del backend
+├── docs/                    arc42, ADR, C4, aspectos, escenarios y registro de IA
+├── scripts/                 Utilidades de verificación
+└── compose.yaml             Arranque completo con un comando
 ```
 
-## Tecnologías
+Los límites de estas carpetas se corresponden con los contenedores y paquetes de los diagramas
+C4; la correspondencia concreta está en
+[arc42 §5](docs/arc42/arc42-uniteam.md#5-vista-de-bloques-de-construcción).
 
-| Tecnología | Versión | Propósito | Decisión |
-|------------|---------|-----------|----------|
-| FastAPI | 0.112.4 | Backend | [ADR 0002](docs/adr/0002-usar-fastapi-y-nextjs.md) |
-| Uvicorn | 0.30.6 | Servidor ASGI | — |
-| SQLAlchemy | 2.0.36 | Acceso a datos | [ADR 0004](docs/adr/0004-usar-mysql-como-base-de-datos.md) |
-| MySQL | 8.4 | Base de datos | [ADR 0004](docs/adr/0004-usar-mysql-como-base-de-datos.md) |
-| Next.js | *pendiente* | Frontend (semana 6) | [ADR 0002](docs/adr/0002-usar-fastapi-y-nextjs.md) |
-| Pytest | 8.3.4 | Pruebas | — |
+---
+
+## Equipo
+
+| Integrante | Identidades en el historial de git |
+|-----------|-----------------------------------|
+| Julio César Emiliani Ramos | `super-gremlin` · `Julio Cesar Emiliani <jlemiliani@gmail.com>` |
+| Ian Novoa Carrillo | `Ian Novoa` (`iansx`) |
+| Juan José Bustamante | `JuanB` (`Paradox2700`) |
+| Daniel Isaac Manjarrés | `Daniel Manjarres Herrera` |
+
+Julio César Emiliani Ramos aparece con **dos identidades**, su cuenta de GitHub y su correo
+personal, según desde dónde haya empujado cada commit. Son la misma persona.
+
+**Sobre la coautoría de Claude.** Algunos commits llevan el pie `Co-Authored-By: Claude`. Los
+redactó, revisó, probó y subió Julio César Emiliani Ramos, que es su autor y responsable; el
+pie deja constancia de que hubo asistencia de IA, como exige la política del curso. El detalle
+de qué se pidió, qué se aceptó y **qué se rechazó y por qué** está en [`docs/ia.md`](docs/ia.md).
