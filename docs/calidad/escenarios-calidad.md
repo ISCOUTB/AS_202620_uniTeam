@@ -16,7 +16,7 @@ escala Alto / Medio / Bajo, y se justifica en el [árbol de utilidad](arbol-util
 
 ## ESC-01 — Rendimiento: latencia de consulta del tablero
 
-**Atributo:** Rendimiento · **Prioridad:** (Alto, Medio) · **Interesado:** I-02 Líder de equipo
+**Atributo:** Rendimiento · **Prioridad:** (Alto, Medio) · **Interesado:** I-02 Líder de equipo **ADR:**[ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)
 
 | Parte | Contenido |
 |-------|-----------|
@@ -62,7 +62,7 @@ de desarrollo, observando sin intervenir y registrando tiempo, errores y abandon
 
 ## ESC-03 — Seguridad: control de acceso entre proyectos
 
-**Atributo:** Seguridad · **Prioridad:** (Alto, Alto) · **Interesados:** I-05 Universidad, I-06 Estudiante ajeno
+**Atributo:** Seguridad · **Prioridad:** (Alto, Alto) · **Interesados:** I-05 Universidad, I-06 Estudiante ajeno **ADR:** [ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)
 
 | Parte | Contenido |
 |-------|-----------|
@@ -88,7 +88,7 @@ continua. La construcción es fallida si un solo caso devuelve datos.
 
 ## ESC-04 — Disponibilidad: recuperación ante falla en periodo de entregas
 
-**Atributo:** Disponibilidad · **Prioridad:** (Medio, Medio) · **Interesado:** I-03 Profesor, I-02 Líder de equipo
+**Atributo:** Disponibilidad · **Prioridad:** (Medio, Medio) · **Interesado:** I-03 Profesor, I-02 Líder de equipo **ADR:** [ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)
 
 | Parte | Contenido |
 |-------|-----------|
@@ -113,7 +113,7 @@ datos. La disponibilidad se mide con un chequeo automático cada 5 minutos.
 
 ## ESC-05 — Modificabilidad: extensión del flujo de estados
 
-**Atributo:** Modificabilidad · **Prioridad:** (Medio, Alto) · **Interesado:** I-04 Equipo de desarrollo
+**Atributo:** Modificabilidad · **Prioridad:** (Medio, Alto) · **Interesado:** I-04 Equipo de desarrollo **ADR:** [ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)
 
 | Parte | Contenido |
 |-------|-----------|
@@ -135,10 +135,10 @@ cuentan los componentes tocados en el commit correspondiente.
 
 ## Resumen
 
-| ID | Atributo | Medida de respuesta | Prioridad (impacto, riesgo) |
-|----|----------|--------------------|-----------------------------|
-| [ESC-01](#esc-01) | Rendimiento | p95 ≤ 2 s con 200 tareas y 30 usuarios concurrentes | (Alto, Medio) |
-| [ESC-02](#esc-02) | Usabilidad | ≤ 5 min, 8 de 10 participantes, sin ayuda | (Alto, Medio) |
-| [ESC-03](#esc-03) | Seguridad | 100 % denegado con 403, 0 datos expuestos, auditoría ≤ 1 s | (Alto, Alto) |
-| [ESC-04](#esc-04) | Disponibilidad | Restablecimiento ≤ 2 min, 0 escrituras perdidas, ≥ 99 % mensual | (Medio, Medio) |
-| [ESC-05](#esc-05) | Modificabilidad | ≤ 2 componentes, ≤ 1 día-persona, API estable | (Medio, Alto) |
+| ID | Atributo | Medida de respuesta | Prioridad (impacto, riesgo) |ADR asociado|
+|----|----------|--------------------|-----------------------------|-----|
+| [ESC-01](#esc-01) | Rendimiento | p95 ≤ 2 s con 200 tareas y 30 usuarios concurrentes | (Alto, Medio) |[ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)|
+| [ESC-02](#esc-02) | Usabilidad | ≤ 5 min, 8 de 10 participantes, sin ayuda | (Alto, Medio) |---|
+| [ESC-03](#esc-03) | Seguridad | 100 % denegado con 403, 0 datos expuestos, auditoría ≤ 1 s | (Alto, Alto) |[ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)|
+| [ESC-04](#esc-04) | Disponibilidad | Restablecimiento ≤ 2 min, 0 escrituras perdidas, ≥ 99 % mensual | (Medio, Medio) |[ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)|
+| [ESC-05](#esc-05) | Modificabilidad | ≤ 2 componentes, ≤ 1 día-persona, API estable | (Medio, Alto) |[ADR-003 — Selección del estilo arquitectónico](adr/ADR-003-...)|
