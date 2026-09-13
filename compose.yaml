@@ -5,6 +5,9 @@
 # Levanta MySQL (ADR 0004) y la API, y espera a que la base de datos responda
 # antes de arrancar la aplicacion.
 services:
+  # Estas credenciales son de un contenedor local que se crea y se destruye
+  # con `docker compose`: no abren nada y no hay despliegue que proteger.
+  # El razonamiento completo esta en docs/calidad/analisis-estatico.md.
   db:
     image: mysql:8.4
     environment:

@@ -19,12 +19,28 @@ import statistics
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 UMBRAL_P95 = 2.0
 UMBRAL_P99 = 4.0
+
+
+def _base_http(url: str) -> str:
+    """Normaliza la URL base y la acepta solo si es HTTP o HTTPS.
+
+    `urlopen` también habla `file://` y `ftp://`. La URL la escribe quien
+    ejecuta el script, no un usuario del sistema, pero comprobar el esquema
+    cuesta tres líneas y evita que una errata se convierta en una lectura de
+    disco.
+    """
+    url = url.rstrip("/")
+    esquema = urllib.parse.urlparse(url).scheme.lower()
+    if esquema not in ("http", "https"):
+        raise SystemExit(f"La URL debe ser http o https: {url}")
+    return url
 
 
 def _peticion(url: str, token: str, metodo: str = "GET", cuerpo: dict | None = None):
@@ -99,7 +115,7 @@ def main() -> int:
     cli.add_argument("--proyecto", help="Reutiliza un proyecto ya sembrado")
     argumentos = cli.parse_args()
 
-    base = argumentos.url.rstrip("/")
+    base = _base_http(argumentos.url)
 
     proyecto = argumentos.proyecto
     if proyecto is None:

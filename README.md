@@ -75,6 +75,7 @@ persistencia queda detrás de repositorios.
 | [Escenarios de calidad](docs/calidad/escenarios-calidad.md) | Cinco escenarios de seis partes con medida verificable. |
 | [Árbol de utilidad](docs/calidad/arbol-utilidad.md) · [Interesados](docs/calidad/interesados.md) | Priorización por impacto y riesgo, y de dónde sale. |
 | [Tabla de aspectos](docs/aspectos.md) | Trazabilidad de aspecto a evidencia, eslabón por eslabón. |
+| [Análisis estático](docs/calidad/analisis-estatico.md) | Qué se corrigió de lo que reporta SonarCloud, y por qué lo demás no se corrige. |
 | [Uso de IA](docs/ia.md) | Qué se pidió, qué se aceptó y qué se rechazó, con su motivo. |
 | [Ficha del problema](docs/ficha.md) | Problema, usuarios y alcance del prototipo. |
 
@@ -131,8 +132,26 @@ Requiere Python 3.11 o superior.
 ```bash
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+pip install --require-hashes --only-binary :all: -r requirements.lock.txt
 uvicorn app.main:app --reload
+```
+
+**Dos archivos de dependencias, y no son intercambiables.** `requirements.txt` es la lista
+legible de lo que el proyecto necesita; `requirements.lock.txt` fija el árbol completo —las 33
+dependencias, directas y transitivas— con la huella SHA-256 de cada paquete. Es el equivalente
+de `package-lock.json` en el frontend, y es lo que instalan la imagen de Docker y la integración
+continua, para que dos construcciones de la misma revisión instalen lo mismo.
+
+El cierre está resuelto para **Python 3.11**, la versión de la imagen y de la CI. En una versión
+más reciente de Python puede que alguna rueda fijada no exista; ahí `pip install -r
+requirements.txt` sigue sirviendo para desarrollar, aunque lo que se valida en CI es el cierre.
+
+Tras tocar `requirements.txt` hay que regenerarlo —el trabajo `cierre` de la CI falla si se
+separan—:
+
+```bash
+pip install pip-tools
+pip-compile --generate-hashes --strip-extras --output-file=requirements.lock.txt requirements.txt
 ```
 
 Sin `DATABASE_URL` definida arranca sobre un SQLite local, cómodo para desarrollo pero **no es
@@ -150,7 +169,7 @@ Requiere Node.js 20 o superior. Con la API ya en marcha:
 
 ```bash
 cd web
-npm install
+npm ci
 npm run dev
 ```
 
@@ -173,7 +192,7 @@ Las variables `NEXT_PUBLIC_*` se hornean al compilar el frontend, no al arrancar
 ## Pruebas
 
 ```bash
-pytest -v                                    # 30 pruebas
+pytest -v                                    # 33 pruebas
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
 ```

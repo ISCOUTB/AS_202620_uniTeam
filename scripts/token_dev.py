@@ -26,8 +26,23 @@ def _b64(datos: bytes) -> str:
     return base64.urlsafe_b64encode(datos).rstrip(b"=").decode()
 
 
+def _base_http(url: str) -> str:
+    """Normaliza la URL base y la acepta solo si es HTTP o HTTPS.
+
+    `urlopen` también habla `file://` y `ftp://`. La URL la escribe quien
+    ejecuta el script, no un usuario del sistema, pero comprobar el esquema
+    cuesta tres líneas y evita que una errata se convierta en una lectura de
+    disco.
+    """
+    url = url.rstrip("/")
+    esquema = urllib.parse.urlparse(url).scheme.lower()
+    if esquema not in ("http", "https"):
+        raise SystemExit(f"La URL debe ser http o https: {url}")
+    return url
+
+
 def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
-    emisor = emisor.rstrip("/")
+    emisor = _base_http(emisor)
     with urllib.request.urlopen(f"{emisor}/.well-known/openid-configuration") as r:
         descubrimiento = json.load(r)
 

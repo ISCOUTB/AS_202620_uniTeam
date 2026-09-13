@@ -10,6 +10,7 @@ import jwt
 import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 
+from app.api import seguridad
 from scripts import emisor_dev
 from test.conftest import AUDIENCIA, token_de
 
@@ -90,3 +91,19 @@ def test_la_identidad_sale_del_token_no_de_lo_que_diga_el_cliente(cliente, cab):
 def test_credenciales_malformadas_se_rechazan(cliente, cabecera):
     respuesta = cliente.get("/proyectos", headers={"Authorization": cabecera})
     assert respuesta.status_code == 401
+
+
+@pytest.mark.parametrize("emisor_malo", [
+    "file:///etc/passwd",
+    "ftp://interno/claves",
+    "localhost:9000",          # sin esquema
+])
+def test_un_emisor_que_no_es_http_se_rechaza_al_descubrir_el_jwks(emisor_malo):
+    """El descubrimiento del emisor solo habla HTTP y HTTPS.
+
+    `urlopen` acepta muchos más esquemas. Sin esta comprobación, un
+    `OIDC_EMISOR` mal puesto —o manipulado— convertiría la búsqueda del JWKS
+    en una lectura del disco de la API.
+    """
+    with pytest.raises(seguridad.ConfiguracionInvalida):
+        seguridad._descubrir_jwks(emisor_malo)

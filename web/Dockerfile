@@ -1,7 +1,10 @@
 FROM node:22-alpine AS constructor
 WORKDIR /app
-COPY package.json package-lock.json* ./
-RUN npm ci || npm install
+COPY package.json package-lock.json ./
+# `npm ci` instala exactamente lo que fija package-lock.json, y falla si el
+# manifiesto y el cierre no concuerdan; --ignore-scripts evita ejecutar los
+# scripts de instalación de las dependencias al construir la imagen.
+RUN npm ci --ignore-scripts
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8000
 ARG NEXT_PUBLIC_OIDC_EMISOR=http://localhost:9000

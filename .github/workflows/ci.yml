@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
+      # Credenciales de un servicio efimero del corredor, no de un despliegue:
+      # docs/calidad/analisis-estatico.md las justifica.
       mysql:
         image: mysql:8.4
         env:
@@ -34,7 +36,7 @@ jobs:
           cache: pip
 
       - name: Instalar dependencias
-        run: pip install -r requirements.txt
+        run: "pip install --require-hashes --only-binary :all: -r requirements.lock.txt"
 
       - name: Verificar los enlaces de la documentación
         run: python scripts/verificar_enlaces.py
@@ -57,8 +59,36 @@ jobs:
 
       - name: Instalar dependencias
         working-directory: web
-        run: npm install
+        run: npm ci --ignore-scripts
 
       - name: Compilar y comprobar tipos
         working-directory: web
         run: npm run build
+
+  cierre:
+    name: Cierre de dependencias al día
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # La misma versión que la imagen de la API: una resolución hecha con
+          # otra versión de Python produce un árbol distinto.
+          python-version: "3.11"
+
+      - name: Recompilar el cierre y compararlo con el del repositorio
+        run: |
+          pip install pip-tools
+          pip-compile --generate-hashes --strip-extras --no-header --quiet \
+            --output-file=esperado.txt requirements.txt
+          # Se comparan solo las líneas de paquete: la cabecera de
+          # requirements.lock.txt explica cómo regenerarlo y pip-compile no la
+          # produce.
+          grep -v '^#' requirements.lock.txt > cierre-actual.txt
+          grep -v '^#' esperado.txt > cierre-esperado.txt
+          diff -u cierre-actual.txt cierre-esperado.txt || {
+            echo '::error file=requirements.lock.txt::No corresponde a requirements.txt. Regenéralo con pip-compile --generate-hashes --strip-extras.'
+            exit 1
+          }

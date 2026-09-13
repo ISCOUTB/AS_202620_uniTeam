@@ -5,8 +5,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# El cierre con hash fija el árbol completo de dependencias y su huella;
+# --only-binary impide que pip ejecute el `setup.py` de un paquete al
+# instalarlo, que es por donde entra una dependencia comprometida.
+COPY requirements.lock.txt .
+RUN pip install --no-cache-dir --require-hashes --only-binary :all: \
+        -r requirements.lock.txt
 
 COPY app ./app
 COPY scripts ./scripts

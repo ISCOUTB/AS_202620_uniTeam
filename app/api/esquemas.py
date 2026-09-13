@@ -33,8 +33,8 @@ class TareaSalida(BaseModel):
     titulo: str
     prioridad: Prioridad
     estado: EstadoTarea
-    responsable: Optional[str]
-    fecha_limite: Optional[date]
+    responsable: Optional[str] = None
+    fecha_limite: Optional[date] = None
     creada_por: str
     creada_en: datetime
 

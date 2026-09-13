@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import threading
+import urllib.parse
 import urllib.request
 from typing import Optional
 
@@ -30,9 +31,26 @@ class ConfiguracionInvalida(RuntimeError):
     """Falta configuración obligatoria del proveedor de identidad."""
 
 
+def _url_http(url: str, que: str) -> str:
+    """Acepta la URL solo si es HTTP o HTTPS.
+
+    `urlopen` habla muchos esquemas, y `file://` entre ellos: sin esta
+    comprobación, una configuración equivocada —o manipulada— convertiría el
+    descubrimiento del emisor en una lectura del disco de la API. El emisor
+    sale de la configuración del despliegue, no de la petición, así que esto
+    es defensa en profundidad, no control de acceso.
+    """
+    esquema = urllib.parse.urlparse(url).scheme.lower()
+    if esquema not in ("http", "https"):
+        raise ConfiguracionInvalida(
+            f"{que} debe ser una URL http o https, no {esquema or 'una URL sin esquema'}: {url}"
+        )
+    return url
+
+
 def _descubrir_jwks(emisor: str) -> str:
     """Obtiene `jwks_uri` del documento de descubrimiento del emisor."""
-    url = f"{emisor}/.well-known/openid-configuration"
+    url = _url_http(f"{emisor}/.well-known/openid-configuration", "OIDC_EMISOR")
     with urllib.request.urlopen(url, timeout=10) as respuesta:
         documento = json.load(respuesta)
     jwks_uri = documento.get("jwks_uri")
@@ -54,7 +72,8 @@ def _cliente_jwks() -> PyJWKClient:
     with _candado:
         cliente = _clientes.get(emisor)
         if cliente is None:
-            url = ajustes.oidc_jwks_url or _descubrir_jwks(emisor)
+            url = _url_http(ajustes.oidc_jwks_url, "OIDC_JWKS_URL") \
+                if ajustes.oidc_jwks_url else _descubrir_jwks(emisor)
             # PyJWKClient cachea las claves y sabe recargarlas si aparece un
             # 'kid' desconocido, que es lo que ocurre cuando el emisor rota.
             cliente = PyJWKClient(url, cache_keys=True, lifespan=600)
