@@ -323,6 +323,147 @@ si el proyecto no existe. Distinguir ambos casos confirmaría a un tercero la ex
 proyecto ajeno, que ya es una fuga. Hay una prueba dedicada a esto,
 `test_esc03_proyecto_inexistente_no_se_distingue_de_uno_ajeno`.
 
+## 6.3 Crear un proyecto
+
+El líder crea un proyecto y queda automáticamente como líder. Los miembros iniciales se agregan
+como integrantes.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor L as Líder de equipo
+    participant R as api/rutas_proyectos
+    participant S as application/ServicioProyectos
+    participant P as infrastructure/Repositorios
+
+    L->>R: POST /proyectos {nombre, miembros}
+    R->>S: crear(usuario, nombre, miembros)
+    S->>P: guardar(Proyecto)
+    S-->>R: Proyecto
+    R-->>L: 201 Created + ProyectoSalida
+```
+
+La creación es atómica: el proyecto y sus miembros se persisten en la misma transacción.
+El líder no necesita una acción separada para asignarse el rol; el servicio lo hace implícitamente.
+
+## 6.4 Asignar responsable a una tarea
+
+Cualquier miembro del proyecto puede asignar una tarea a otro miembro. La autorización
+comprueba pertenencia al proyecto antes de la asignación.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor M as Miembro del proyecto
+    participant R as api/rutas_tareas
+    participant S as application/ServicioTareas
+    participant P as infrastructure/Repositorios
+    participant B as application/BusEventos
+    participant C as events/Consumidores
+
+    M->>R: PUT /proyectos/{id}/tareas/{tarea}/responsable {responsable}
+    R->>S: asignar_tarea(usuario, proyecto, tarea, responsable)
+    S->>P: obtener(proyecto)
+    P-->>S: Proyecto con miembros
+    Note over S: Comprueba pertenencia<br/>del solicitante y del responsable
+    S->>P: obtener(tarea)
+    S->>P: guardar(tarea)
+    S->>B: publicar(TareaAsignada)
+    B->>C: auditar_tarea_asignada
+    C->>P: registrar en auditoría
+    S-->>R: Tarea
+    R-->>M: 200 OK + TareaSalida
+```
+
+La comprobación de pertenencia del **responsable** ocurre dentro del servicio antes de la
+escritura: no se puede asignar una tarea a alguien ajeno al proyecto.
+
+## 6.5 Cambiar estado de una tarea
+
+Cualquier miembro puede mover su tarea (o una asignada a él) siguiendo el flujo de estados
+definido en `TRANSICIONES`. El servicio valida la transición antes de persistir.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor M as Miembro del proyecto
+    participant R as api/rutas_tareas
+    participant S as application/ServicioTareas
+    participant P as infrastructure/Repositorios
+    participant B as application/BusEventos
+    participant C as events/Consumidores
+
+    M->>R: PUT /proyectos/{id}/tareas/{tarea}/estado {estado}
+    R->>S: cambiar_estado(usuario, proyecto, tarea, nuevo)
+    S->>P: obtener(tarea)
+    P-->>S: Tarea
+    Note over S: Valida transición en TRANSICIONES<br/>desde estado actual al nuevo
+    S->>P: guardar(tarea)
+    S->>B: publicar(EstadoCambiado)
+    B->>C: auditar_estado_cambiado
+    C->>P: registrar en auditoría
+    S-->>R: Tarea
+    R-->>M: 200 OK + TareaSalida
+```
+
+Si la transición no está permitida (ej. `pendiente` → `completada`), el dominio lanza
+`TransicionInvalida` → la API responde `409 Conflict`. El evento solo se publica
+tras la persistencia exitosa.
+
+## 6.6 Consultar progreso del proyecto
+
+Cualquier miembro consulta el resumen agregado. El cálculo se hace en la base de datos
+mediante una consulta `GROUP BY`, sin traer las tareas a memoria (táctica para ESC-01).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor M as Miembro del proyecto
+    participant R as api/rutas_progreso
+    participant S as application/ServicioTareas
+    participant P as infrastructure/Repositorios
+
+    M->>R: GET /proyectos/{id}/progreso
+    R->>S: consultar_progreso(usuario, proyecto)
+    S->>P: obtener(proyecto)
+    P-->>S: Proyecto (verifica pertenencia)
+    S->>P: resumir_progreso(proyecto_id)
+    Note over P: COUNT por estado<br/>COUNT sin responsable<br/>COUNT vencidas
+    P-->>S: ResumenProgreso
+    S-->>R: ResumenProgreso
+    R-->>M: 200 OK + ProgresoSalida
+```
+
+La respuesta incluye: `total`, `por_estado`, `sin_responsable`, `vencidas` y
+`porcentaje_completado`. No expone tareas individuales.
+
+## 6.7 Agregar miembro al proyecto
+
+Solo el líder puede agregar miembros. El servicio verifica el rol `lider` antes de
+modificar la lista de miembros.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor L as Líder del proyecto
+    participant R as api/rutas_proyectos
+    participant S as application/ServicioProyectos
+    participant P as infrastructure/Repositorios
+
+    L->>R: POST /proyectos/{id}/miembros {usuario, rol}
+    R->>S: agregar_miembro(usuario, proyecto, nuevo, rol)
+    S->>P: obtener(proyecto)
+    P-->>S: Proyecto
+    Note over S: Verifica es_lider(usuario)<br/>Verifica no es miembro(nuevo)
+    S->>P: guardar(Proyecto con nuevo miembro)
+    S-->>R: Proyecto
+    R-->>L: 201 Created + ProyectoDetalle
+```
+
+Si un no-líder intenta agregar, el servicio lanza `AccesoDenegado` → la API responde
+`403` y el consumidor de auditoría registra el intento. El miembro agregado accede
+inmediatamente al proyecto (ver prueba `test_un_miembro_recien_agregado_ya_ve_el_tablero`).
+
 # 7. Vista de despliegue
 
 *Pendiente.*
@@ -344,6 +485,7 @@ enlaza a ellas.
 | [0003](../adr/0003-usar-eventos-de-dominio-en-proceso.md) | Usar un estilo orientado a eventos, con despacho en proceso. | Aceptada |
 | [0004](../adr/0004-usar-mysql-como-base-de-datos.md) | Usar MySQL como base de datos. | Aceptada |
 | [0005](../adr/0005-delegar-la-autenticacion-en-un-proveedor-oidc.md) | Delegar la autenticación en un proveedor OIDC. | Aceptada |
+| [0006](../adr/0006-estilo-sincrono-con-eventos-en-proceso.md) | Mantener el modelo sincrónico con eventos en proceso. | Aceptada |
 
 ---
 

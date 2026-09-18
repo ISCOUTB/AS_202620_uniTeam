@@ -1,0 +1,532 @@
+openapi: "3.0.3"
+info:
+  title: UniTeam API
+  description: Gestión colaborativa de tareas para equipos universitarios.
+  version: "0.2.0"
+servers:
+  - url: http://localhost:8000
+    description: Servidor local de desarrollo
+paths:
+  /:
+    get:
+      summary: Estado del servicio
+      operationId: raiz
+      tags:
+        - sistema
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /activo:
+    get:
+      summary: Estado del servicio
+      operationId: activo
+      tags:
+        - sistema
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+  /proyectos:
+    get:
+      summary: Listar proyectos propios
+      operationId: listar_mis_proyectos
+      tags:
+        - proyectos
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: Proyectos de los que el usuario es miembro
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProyectoDetalle"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+    post:
+      summary: Crear proyecto
+      operationId: crear_proyecto
+      tags:
+        - proyectos
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearProyecto"
+      responses:
+        "201":
+          description: Proyecto creado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProyectoSalida"
+        "400":
+          $ref: "#/components/responses/SolicitudIncorrecta"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+  /proyectos/{proyecto_id}:
+    get:
+      summary: Obtener detalle de proyecto
+      operationId: obtener_proyecto
+      tags:
+        - proyectos
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+      responses:
+        "200":
+          description: Detalle del proyecto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProyectoDetalle"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+  /proyectos/{proyecto_id}/miembros:
+    post:
+      summary: Agregar miembro al proyecto
+      operationId: agregar_miembro
+      tags:
+        - proyectos
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AgregarMiembro"
+      responses:
+        "201":
+          description: Miembro agregado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProyectoDetalle"
+        "400":
+          $ref: "#/components/responses/SolicitudIncorrecta"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+        "409":
+          $ref: "#/components/responses/Conflicto"
+  /proyectos/{proyecto_id}/tareas:
+    get:
+      summary: Listar tareas (tablero)
+      operationId: consultar_tablero
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+        - name: estado
+          in: query
+          schema:
+            type: string
+            enum: [pendiente, en_progreso, completada]
+        - name: responsable
+          in: query
+          schema:
+            type: string
+        - name: limite
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+          default: 50
+        - name: desplazamiento
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+          default: 0
+      responses:
+        "200":
+          description: Lista de tareas paginada
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/TareaSalida"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+        "422":
+          $ref: "#/components/responses/NoProcesable"
+    post:
+      summary: Crear tarea
+      operationId: crear_tarea
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CrearTarea"
+      responses:
+        "201":
+          description: Tarea creada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TareaSalida"
+        "400":
+          $ref: "#/components/responses/SolicitudIncorrecta"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+  /proyectos/{proyecto_id}/tareas/{tarea_id}:
+    get:
+      summary: Obtener tarea
+      operationId: obtener_tarea
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+        - $ref: "#/components/parameters/tarea_id"
+      responses:
+        "200":
+          description: Detalle de la tarea
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TareaSalida"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+  /proyectos/{proyecto_id}/tareas/{tarea_id}/responsable:
+    put:
+      summary: Asignar responsable
+      operationId: asignar_tarea
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+        - $ref: "#/components/parameters/tarea_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AsignarTarea"
+      responses:
+        "200":
+          description: Tarea actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TareaSalida"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+  /proyectos/{proyecto_id}/tareas/{tarea_id}/estado:
+    put:
+      summary: Cambiar estado
+      operationId: cambiar_estado
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+        - $ref: "#/components/parameters/tarea_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CambiarEstado"
+      responses:
+        "200":
+          description: Tarea actualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TareaSalida"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+        "409":
+          $ref: "#/components/responses/Conflicto"
+  /proyectos/{proyecto_id}/progreso:
+    get:
+      summary: Consultar progreso
+      operationId: consultar_progreso
+      tags:
+        - proyectos
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+      responses:
+        "200":
+          description: Resumen del avance del proyecto
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProgresoSalida"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    proyecto_id:
+      name: proyecto_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    tarea_id:
+      name: tarea_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    CrearProyecto:
+      type: object
+      required: [nombre]
+      properties:
+        nombre:
+          type: string
+          minLength: 1
+          maxLength: 200
+        miembros:
+          type: array
+          items:
+            type: string
+          default: []
+    AgregarMiembro:
+      type: object
+      required: [usuario]
+      properties:
+        usuario:
+          type: string
+          minLength: 1
+          maxLength: 120
+        rol:
+          type: string
+          enum: [integrante, lider]
+          default: integrante
+    CrearTarea:
+      type: object
+      required: [titulo]
+      properties:
+        titulo:
+          type: string
+          minLength: 1
+          maxLength: 300
+        prioridad:
+          type: string
+          enum: [baja, media, alta]
+          default: media
+        responsable:
+          type: string
+          nullable: true
+        fecha_limite:
+          type: string
+          format: date
+          nullable: true
+    AsignarTarea:
+      type: object
+      required: [responsable]
+      properties:
+        responsable:
+          type: string
+    CambiarEstado:
+      type: object
+      required: [estado]
+      properties:
+        estado:
+          type: string
+          enum: [pendiente, en_progreso, completada]
+    ProyectoSalida:
+      type: object
+      required: [id, nombre, miembros]
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+        miembros:
+          type: array
+          items:
+            type: string
+    ProyectoDetalle:
+      type: object
+      required: [id, nombre, miembros]
+      properties:
+        id:
+          type: string
+        nombre:
+          type: string
+        miembros:
+          type: array
+          items:
+            $ref: "#/components/schemas/MiembroSalida"
+    MiembroSalida:
+      type: object
+      required: [usuario, rol]
+      properties:
+        usuario:
+          type: string
+        rol:
+          type: string
+          enum: [integrante, lider]
+    TareaSalida:
+      type: object
+      required: [id, proyecto_id, titulo, prioridad, estado, creada_por, creada_en]
+      properties:
+        id:
+          type: string
+        proyecto_id:
+          type: string
+        titulo:
+          type: string
+        prioridad:
+          type: string
+          enum: [baja, media, alta]
+        estado:
+          type: string
+          enum: [pendiente, en_progreso, completada]
+        responsable:
+          type: string
+          nullable: true
+        fecha_limite:
+          type: string
+          format: date
+          nullable: true
+        creada_por:
+          type: string
+        creada_en:
+          type: string
+          format: date-time
+    ProgresoSalida:
+      type: object
+      required: [total, por_estado, sin_responsable, vencidas, porcentaje_completado]
+      properties:
+        total:
+          type: integer
+        por_estado:
+          type: object
+          additionalProperties:
+            type: integer
+        sin_responsable:
+          type: integer
+        vencidas:
+          type: integer
+        porcentaje_completado:
+          type: number
+  responses:
+    NoAutenticado:
+      description: No autenticado
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+          example:
+            detail: "Falta la credencial: se espera 'Authorization: Bearer <token>'."
+      headers:
+        WWW-Authenticate:
+          description: Bearer
+    Prohibido:
+      description: Acceso denegado
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+          example:
+            detail: "No tiene acceso a este proyecto o el proyecto no existe."
+    NoEncontrado:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+    Conflicto:
+      description: Conflicto
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+    SolicitudIncorrecta:
+      description: Solicitud incorrecta
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string
+    NoProcesable:
+      description: Validación fallida
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              detail:
+                type: string

@@ -44,6 +44,7 @@ propusieron.
 | D-006 | 2026-08-29 | **La persistencia soportada es MySQL.** SQLite queda únicamente como valor por defecto de las pruebas locales, no como entorno de ejecución. | Equipo | [ADR 0004](adr/0004-usar-mysql-como-base-de-datos.md), [`ci.yml`](../.github/workflows/ci.yml) |
 | D-005 | 2026-08-29 | **Usar MySQL** como base de datos del prototipo. | Equipo | [ADR 0004](adr/0004-usar-mysql-como-base-de-datos.md), [C4 nivel 2](c4/nivel2-contenedores.md) |
 | D-004 | 2026-08-16 | Aprobar la priorización del árbol de utilidad: seguridad primero, luego rendimiento y usabilidad; disponibilidad y modificabilidad como metas secundarias. Con ella, aceptar las renuncias explícitas —sin alta disponibilidad, permisos por proyecto y no por tarea, y metas de rendimiento acotadas a 200 tareas y 30 usuarios concurrentes—. | Equipo | [Árbol de utilidad](calidad/arbol-utilidad.md), [arc42 §1.2](arc42/arc42-uniteam.md#12-metas-de-calidad) |
+| D-010 | 2026-09-18 | Mantener el modelo sincrónico para operaciones y consumidores de eventos. Documentar en ADR-006 las condiciones que activarían una migración a consumidores asíncronos. | Equipo | [ADR 0006](adr/0006-estilo-sincrono-con-eventos-en-proceso.md) |
 
 ## Bitácora de uso de IA
 
@@ -78,6 +79,8 @@ propone más de lo que se acepta.
 | 2026-08-29 | CORS en la API, para que el navegador pueda llamarla desde la Aplicación Web. | `app/main.py`, `app/config.py` | [C4 nivel 2](c4/nivel2-contenedores.md) | Sí |
 | 2026-08-29 | Corrección: la identidad del usuario usaba un hook por componente, así que la página no se enteraba de los cambios hechos en la barra superior. Se pasa a un contexto compartido. | `web/lib/usuario.tsx` | — | Detectado al ejercitar la interfaz en un navegador |
 | 2026-08-29 | Corrección: la paginación era inestable porque MySQL guarda `DATETIME` con precisión de segundo y el orden empataba. Se añade fracción de segundo y desempate por `id`. | `app/infrastructure/tablas.py`, `app/infrastructure/repositorios.py` | [ESC-01](calidad/escenarios-calidad.md#esc-01) | Detectado al ejecutar las pruebas contra MySQL |
+| 2026-09-18 | Contrato de API documentado: `docs/api/contrato.md`, `docs/api/openapi.yaml`, `docs/api/pruebas-de-contrato.md`. Pruebas de contrato en `test/test_contrato.py`. Verificación en CI. | `docs/api/`, `test/test_contrato.py`, `.github/workflows/ci.yml` | — | Sí, revisado por el equipo |
+| 2026-09-18 | ADR-006: se mantiene el modelo sincrónico con eventos en proceso. Condiciones para migrar a consumidores asíncronos documentadas. | `docs/adr/0006-estilo-sincrono-con-eventos-en-proceso.md` | — | Equipo |
 | 2026-09-13 | Cierre de dependencias del backend con huella SHA-256, e instalación con `--require-hashes --only-binary`. La CI recompila el cierre en cada `push` y falla si no corresponde a `requirements.txt`. | `requirements.lock.txt`, `Dockerfile`, `.github/workflows/ci.yml` | D-009 | Sí, revisado por el equipo |
 | 2026-09-13 | `npm ci --ignore-scripts` en lugar de `npm install`, en la imagen de la Aplicación Web y en la CI. | `web/Dockerfile`, `.github/workflows/ci.yml` | D-009 | Sí |
 | 2026-09-13 | Corrección: `responsable` y `fecha_limite` de `TareaSalida` eran opcionales sin valor por defecto, lo que en Pydantic v2 las declara obligatorias admitiendo nulo. | `app/api/esquemas.py` | D-009 | Detectado por análisis estático |
