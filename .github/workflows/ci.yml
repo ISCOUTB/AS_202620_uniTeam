@@ -108,3 +108,31 @@ jobs:
             echo '::error file=requirements.lock.txt::No corresponde a requirements.txt. Regenéralo con pip-compile --generate-hashes --strip-extras.'
             exit 1
           }
+
+  actualizar-cierre:
+    name: Actualizar cierre de dependencias
+    needs: cierre
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      
+      - name: Instalar pip-tools
+        run: pip install pip-tools
+      
+      - name: Regenerar requirements.lock.txt
+        run: |
+          pip-compile --generate-hashes --strip-extras --no-header --quiet \
+            --output-file=requirements.lock.txt requirements.txt
+      
+      - name: Commit automático
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: actualizar requirements.lock.txt"
+          file_pattern: requirements.lock.txt
