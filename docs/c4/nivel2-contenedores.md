@@ -22,14 +22,14 @@ flowchart LR
     idp["<b>Proveedor de identidad</b><br/><i>[Sistema externo]</i>"]
     mail["<b>Servicio de correo</b><br/><i>[Sistema externo]</i>"]
 
-    est -->|"Usa (HTTPS)"| web
-    lid -->|"Usa (HTTPS)"| web
-    pro -->|"Consulta (HTTPS)"| web
+    est -->|"Usa [HTTPS]"| web
+    lid -->|"Usa [HTTPS]"| web
+    pro -->|"Consulta [HTTPS]"| web
     web -->|"REST/JSON"| api
     api -->|"SQL"| db
-    api -->|"Valida el token (OIDC)"| idp
-    api -->|"Invitaciones y avisos"| mail
-    web -->|"Inicia sesión (OIDC)"| idp
+    api -->|"Valida token [OIDC]"| idp
+    api -->|"Invitaciones [SMTP]"| mail
+    web -->|"Inicia sesión [OIDC/PKCE]"| idp
 
     classDef persona fill:#08427b,stroke:#052e56,color:#ffffff
     classDef contenedor fill:#1168bd,stroke:#0b4884,color:#ffffff
@@ -54,14 +54,14 @@ flowchart LR
 
 ## Relaciones
 
-| Origen | Destino | Descripción | Protocolo |
-|--------|---------|-------------|-----------|
-| Estudiante, Líder de equipo, Profesor | Aplicación Web | Uso de la interfaz | HTTPS |
-| Aplicación Web | Proveedor de identidad | Inicio de sesión del usuario (código + PKCE) | OIDC |
-| Aplicación Web | API | Consumo de la lógica de negocio | REST/JSON |
-| API | Proveedor de identidad | Descarga del JWKS y validación del token | OIDC |
-| API | Base de datos | Persistencia y registro de auditoría | SQL |
-| API | Servicio de correo | Invitaciones y avisos de fecha límite | *(previsto)* |
+| Origen | Destino | Descripción | Protocolo | Formato |
+|--------|---------|-------------|-----------|---------|
+| Estudiante, Líder de equipo, Profesor | Aplicación Web | Uso de la interfaz | HTTPS | HTML/JS |
+| Aplicación Web | Proveedor de identidad | Inicio de sesión (código + PKCE) | OIDC | PKCE |
+| Aplicación Web | API | Consumo de la lógica de negocio | HTTPS | REST/JSON |
+| API | Proveedor de identidad | Descarga del JWKS y validación del token | OIDC | JWKS |
+| API | Base de datos | Persistencia y registro de auditoría | SQL | SQL |
+| API | Servicio de correo | Invitaciones y avisos de fecha límite | SMTP | *(previsto)* |
 
 ## Correspondencia con el nivel 1
 

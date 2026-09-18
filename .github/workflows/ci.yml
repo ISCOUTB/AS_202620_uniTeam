@@ -41,10 +41,26 @@ jobs:
       - name: Verificar los enlaces de la documentación
         run: python scripts/verificar_enlaces.py
 
-      - name: Ejecutar las pruebas
+      - name: Verificar el contrato OpenAPI
+        run: |
+          pip install pyyaml
+          python -c "
+          import yaml, sys
+          with open('docs/api/openapi.yaml') as f:
+              spec = yaml.safe_load(f)
+          required_paths = ['/proyectos', '/proyectos/{proyecto_id}', '/proyectos/{proyecto_id}/tareas', '/proyectos/{proyecto_id}/tareas/{tarea_id}', '/proyectos/{proyecto_id}/progreso']
+          for p in required_paths:
+              assert p in spec['paths'], f'Ruta faltante en contrato: {p}'
+          print('Contrato OpenAPI: completo')
+          "
+      - name: Ejecutar las pruebas de contrato
         env:
           DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
-        run: pytest -v
+        run: pytest -v test/test_contrato.py
+      - name: Ejecutar las pruebas de integración
+        env:
+          DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
+        run: pytest -v test/test_corte_vertical.py test/test_tablero.py test/test_proyectos.py test/test_autenticacion.py
 
   frontend:
     name: Compilación del frontend
