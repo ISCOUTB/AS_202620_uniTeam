@@ -1,6 +1,6 @@
 # Propiedad de datos y auditoría de modularidad — UniTeam
 
-Complementa el [mapa de contextos](mapa-de-contextos.md). Cada entidad tiene un único
+Complementa el [mapa de contextos](mapa-contextos.md). Cada entidad tiene un único
 módulo con permiso de **escritura**; cualquier otro contexto que necesite el dato lo obtiene
 por consulta síncrona (Identidad y Autorización) o por evento de dominio (los demás casos),
 según lo define [ADR-003](../adr/0003-usar-eventos-de-dominio-en-proceso.md).
