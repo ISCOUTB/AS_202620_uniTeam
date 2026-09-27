@@ -8,6 +8,11 @@
 
 const EMISOR = (process.env.NEXT_PUBLIC_OIDC_EMISOR ?? "http://localhost:9000").replace(/\/$/, "");
 const CLIENTE = process.env.NEXT_PUBLIC_OIDC_CLIENTE ?? "uniteam-web";
+// Algunos proveedores (Auth0) solo emiten un token de acceso en formato JWT,
+// verificable por la API, si se les pide para una audiencia concreta.
+const AUDIENCIA = process.env.NEXT_PUBLIC_OIDC_AUDIENCIA ?? "";
+// Claim del que sale el nombre que se muestra; el mismo que usa la API.
+const CLAIM_USUARIO = process.env.NEXT_PUBLIC_OIDC_CLAIM_USUARIO ?? "email";
 
 const CLAVE_TOKEN = "uniteam.token";
 const CLAVE_VERIFICADOR = "uniteam.pkce";
@@ -55,7 +60,9 @@ async function reto(verificador: string): Promise<string> {
 }
 
 export function redireccion(): string {
-  return `${window.location.origin}/callback`;
+  // Con barra final: es la URL exacta que sirve el sitio estático, y la que
+  // hay que registrar en el proveedor de identidad.
+  return `${window.location.origin}/callback/`;
 }
 
 /** Lleva al usuario al proveedor de identidad. */
@@ -75,6 +82,7 @@ export async function iniciarSesion(): Promise<void> {
     code_challenge: await reto(verificador),
     code_challenge_method: "S256",
   });
+  if (AUDIENCIA) parametros.set("audience", AUDIENCIA);
   window.location.assign(`${authorization_endpoint}?${parametros}`);
 }
 
@@ -147,7 +155,8 @@ export function contenidoDelToken(
       atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")),
     );
     return {
-      usuario: carga.email ?? carga.preferred_username ?? carga.sub ?? "usuario",
+      usuario:
+        carga[CLAIM_USUARIO] ?? carga.email ?? carga.preferred_username ?? carga.sub ?? "usuario",
       expira: Number(carga.exp ?? 0) * 1000,
     };
   } catch {

@@ -13,6 +13,7 @@ from typing import Callable
 
 from sqlalchemy.orm import Session
 
+from app import observabilidad
 from app.application.bus import BusEventos
 from app.domain import eventos
 from app.infrastructure.repositorios import RepositorioAuditoriaSQL
@@ -32,6 +33,9 @@ def registrar_consumidores(
                 resultado="denegado",
             )
             propia.commit()
+        # Se cuenta después de confirmar: la métrica no puede decir que hubo
+        # un acceso denegado auditado si la auditoría no llegó a escribirse.
+        observabilidad.ACCESOS_DENEGADOS.inc()
 
     def auditar_tarea_creada(evento: eventos.TareaCreada) -> None:
         RepositorioAuditoriaSQL(sesion).registrar(

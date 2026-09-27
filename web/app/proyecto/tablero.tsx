@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   api,
   ErrorApi,
@@ -24,8 +24,10 @@ function estaVencida(t: Tarea): boolean {
   return t.fecha_limite < new Date().toISOString().slice(0, 10);
 }
 
-export default function PaginaTablero() {
-  const { id } = useParams<{ id: string }>();
+export function Tablero() {
+  // El identificador va en la consulta (?id=) y no en la ruta: el sitio se
+  // exporta como ficheros estáticos y no puede generar una página por proyecto.
+  const id = useSearchParams().get("id") ?? "";
   const { token, cargado } = useSesion();
 
   const [proyecto, establecerProyecto] = useState<Proyecto | null>(null);

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import statistics
 import sys
 import time
@@ -100,9 +101,12 @@ def medir(base: str, token: str, proyecto: str, usuarios: int, por_usuario: int)
 def percentil(valores: list[float], p: float) -> float:
     if not valores:
         return float("nan")
+    # Rango más cercano. La versión anterior usaba round(x + 0.5), que con el
+    # redondeo al par de Python caía un rango por encima: sobrestimaba el
+    # percentil, en el sentido conservador.
     ordenados = sorted(valores)
-    indice = min(int(round(p / 100 * len(ordenados) + 0.5)) - 1, len(ordenados) - 1)
-    return ordenados[max(indice, 0)]
+    indice = math.ceil(p / 100 * len(ordenados)) - 1
+    return ordenados[min(max(indice, 0), len(ordenados) - 1)]
 
 
 def main() -> int:

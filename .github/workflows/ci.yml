@@ -4,13 +4,21 @@ on:
   push:
   pull_request:
 
+# Si llega un push nuevo a la misma rama, el run anterior ya no decide nada.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   pruebas:
     name: Pruebas contra MySQL
     runs-on: ubuntu-latest
 
     services:
-      # Credenciales de un servicio efimero del corredor, no de un despliegue:
+      # Credenciales de un servicio efímero del corredor, no de un despliegue:
       # docs/calidad/analisis-estatico.md las justifica.
       mysql:
         image: mysql:8.4
@@ -27,6 +35,9 @@ jobs:
           --health-timeout=5s
           --health-retries=20
 
+    env:
+      DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
+
     steps:
       - uses: actions/checkout@v4
 
@@ -38,29 +49,37 @@ jobs:
       - name: Instalar dependencias
         run: "pip install --require-hashes --only-binary :all: -r requirements.lock.txt"
 
+      # Determinista: compara lo que fija el repositorio consigo mismo, sin
+      # volver a resolver contra PyPI. El cierre completo ya lo validó pip
+      # en el paso anterior, que en modo --require-hashes rechaza cualquier
+      # dependencia sin fijar.
+      - name: Comprobar el cierre de dependencias
+        run: |
+          python scripts/verificar_cierre.py
+          pip check
+
       - name: Verificar los enlaces de la documentación
         run: python scripts/verificar_enlaces.py
 
       - name: Verificar el contrato OpenAPI
-        run: |
-          pip install pyyaml
-          python -c "
-          import yaml, sys
-          with open('docs/api/openapi.yaml') as f:
-              spec = yaml.safe_load(f)
-          required_paths = ['/proyectos', '/proyectos/{proyecto_id}', '/proyectos/{proyecto_id}/tareas', '/proyectos/{proyecto_id}/tareas/{tarea_id}', '/proyectos/{proyecto_id}/progreso']
-          for p in required_paths:
-              assert p in spec['paths'], f'Ruta faltante en contrato: {p}'
-          print('Contrato OpenAPI: completo')
-          "
+        run: python scripts/verificar_contrato.py
+
       - name: Ejecutar las pruebas de contrato
-        env:
-          DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
-        run: pytest -v test/test_contrato.py
-      - name: Ejecutar las pruebas de integración
-        env:
-          DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
-        run: pytest -v test/test_corte_vertical.py test/test_tablero.py test/test_proyectos.py test/test_autenticacion.py
+        run: pytest -v test/test_contrato.py --cov=app --cov-report=
+
+      - name: Ejecutar las pruebas de integración y de operación
+        run: >-
+          pytest -v
+          test/test_corte_vertical.py test/test_tablero.py test/test_proyectos.py
+          test/test_autenticacion.py test/test_operacion.py
+          --cov=app --cov-append --cov-report=xml --cov-report=term
+
+      - name: Guardar el informe de cobertura
+        uses: actions/upload-artifact@v4
+        with:
+          name: cobertura
+          path: coverage.xml
+          retention-days: 7
 
   frontend:
     name: Compilación del frontend
@@ -81,58 +100,59 @@ jobs:
         working-directory: web
         run: npm run build
 
-  cierre:
-    name: Cierre de dependencias al día
+  imagenes:
+    name: Construcción de las imágenes
     runs-on: ubuntu-latest
 
+    # Las mismas imágenes que ejecuta el despliegue (render.yaml): si no
+    # construyen aquí, no se despliegan allí.
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          # La misma versión que la imagen de la API: una resolución hecha con
-          # otra versión de Python produce un árbol distinto.
-          python-version: "3.11"
+      - name: Imagen de la API
+        run: docker build --target api -t uniteam-api .
 
-      - name: Recompilar el cierre y compararlo con el del repositorio
+      - name: La imagen de la API no incluye el emisor de desarrollo
         run: |
-          pip install pip-tools
-          pip-compile --generate-hashes --strip-extras --no-header --quiet \
-            --output-file=esperado.txt requirements.txt
-          # Se comparan solo las líneas de paquete: la cabecera de
-          # requirements.lock.txt explica cómo regenerarlo y pip-compile no la
-          # produce.
-          grep -v '^#' requirements.lock.txt > cierre-actual.txt
-          grep -v '^#' esperado.txt > cierre-esperado.txt
-          diff -u cierre-actual.txt cierre-esperado.txt || {
-            echo '::error file=requirements.lock.txt::No corresponde a requirements.txt. Regenéralo con pip-compile --generate-hashes --strip-extras.'
+          if docker run --rm --entrypoint ls uniteam-api scripts/emisor_dev.py 2>/dev/null; then
+            echo "::error::La imagen de producción contiene el emisor OIDC de desarrollo."
             exit 1
-          }
+          fi
 
-  actualizar-cierre:
-    name: Actualizar cierre de dependencias
-    needs: cierre
-    if: failure()
+      - name: Imagen de la Aplicación Web
+        run: docker build -t uniteam-web web
+
+  sonarcloud:
+    name: Análisis estático (SonarCloud)
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+    needs: pruebas
+
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      
-      - name: Instalar pip-tools
-        run: pip install pip-tools
-      
-      - name: Regenerar requirements.lock.txt
+          # Sonar necesita el historial para atribuir el código nuevo.
+          fetch-depth: 0
+
+      - name: Recuperar el informe de cobertura
+        uses: actions/download-artifact@v4
+        with:
+          name: cobertura
+
+      - name: Avisar si falta el token
+        if: env.SONAR_TOKEN == ''
         run: |
-          pip-compile --generate-hashes --strip-extras --no-header --quiet \
-            --output-file=requirements.lock.txt requirements.txt
-      
-      - name: Commit automático
-        uses: stefanzweifel/git-auto-commit-action@v5
+          echo "::warning::Falta el secreto SONAR_TOKEN: el análisis de SonarCloud no se ejecutó. Ver docs/despliegue/guia.md."
+
+      # qualitygate.wait hace que el trabajo falle si el Quality Gate falla,
+      # así que un Quality Gate rojo bloquea la integración igual que una
+      # prueba roja.
+      - name: Analizar y esperar el Quality Gate
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v5
         with:
-          commit_message: "chore: actualizar requirements.lock.txt"
-          file_pattern: requirements.lock.txt
+          args: >
+            -Dsonar.qualitygate.wait=true
+            -Dsonar.qualitygate.timeout=300

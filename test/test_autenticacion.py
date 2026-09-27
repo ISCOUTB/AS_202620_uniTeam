@@ -107,3 +107,17 @@ def test_un_emisor_que_no_es_http_se_rechaza_al_descubrir_el_jwks(emisor_malo):
     """
     with pytest.raises(seguridad.ConfiguracionInvalida):
         seguridad._descubrir_jwks(emisor_malo)
+
+
+def test_se_acepta_el_emisor_con_barra_final(cliente, emisor):
+    """Auth0 emite `iss` con barra final; la configuración la guarda sin ella."""
+    token = emisor_dev.firmar(f"{emisor}/", AUDIENCIA, "ana")
+    respuesta = cliente.get("/proyectos", headers={"Authorization": f"Bearer {token}"})
+    assert respuesta.status_code == 200
+
+
+def test_un_emisor_que_solo_comparte_prefijo_se_rechaza(cliente, emisor):
+    """Aceptar la barra final no abre la puerta a otros emisores."""
+    token = emisor_dev.firmar(f"{emisor}/otro", AUDIENCIA, "ana")
+    respuesta = cliente.get("/proyectos", headers={"Authorization": f"Bearer {token}"})
+    assert respuesta.status_code == 401

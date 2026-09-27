@@ -122,7 +122,7 @@ export default function PaginaProyectos() {
       ) : (
         <div className="rejilla rejilla-proyectos">
           {proyectos.map((p) => (
-            <Link key={p.id} href={`/proyectos/${p.id}`} className="tarjeta">
+            <Link key={p.id} href={`/proyecto/?id=${encodeURIComponent(p.id)}`} className="tarjeta">
               <strong>{p.nombre}</strong>
               <div className="fila" style={{ marginTop: 10 }}>
                 {p.miembros.map((m) => (

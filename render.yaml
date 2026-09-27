@@ -1,0 +1,103 @@
+# Infraestructura como código del despliegue de UniTeam (Render Blueprint).
+#
+# Describe las dos piezas que se ejecutan en Render. Las otras dos son
+# servicios gestionados de terceros y se configuran en su consola:
+#
+#   Pieza                   Dónde                      Decisión
+#   ----------------------  -------------------------  --------
+#   Aplicación Web (sitio)  Render, sitio estático     ADR 0007
+#   API                     Render, servicio Docker    ADR 0008
+#   Base de datos           Aiven for MySQL, Free      ADR 0009
+#   Proveedor de identidad  Auth0, plan Free           ADR 0010
+#
+# Procedimiento completo, incluido el orden de los primeros despliegues y la
+# reversión: docs/despliegue/guia.md
+#
+# Secretos. Las variables con `sync: false` NO tienen valor en este archivo:
+# Render las pide al crear el Blueprint y las guarda en su almacén de
+# configuración. El certificado de la base de datos va como Secret File. En
+# el repositorio no hay ninguna credencial de este entorno.
+
+services:
+  # -- API ---------------------------------------------------------------
+  - type: web
+    name: uniteam-api
+    runtime: docker
+    plan: free
+    # Virginia es la región de Render más cercana a Colombia; la base de
+    # datos de Aiven debe crearse en la costa este de EE. UU. por la misma
+    # razón (latencia API -> BD, ESC-01).
+    region: virginia
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Render solo envía tráfico a una instancia nueva cuando /health responde
+    # 200, lo que exige que la base de datos conteste: un despliegue que no
+    # alcanza MySQL no sustituye al anterior.
+    healthCheckPath: /health
+    # Solo se despliega un commit cuya CI está en verde.
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - app/**
+        - Dockerfile
+        - requirements.lock.txt
+    envVars:
+      - key: ENTORNO
+        value: produccion
+      - key: NIVEL_LOG
+        value: INFO
+      # mysql+pymysql://USUARIO:CLAVE@HOST:PUERTO/defaultdb?ssl_ca=/etc/secrets/aiven-ca.pem
+      - key: DATABASE_URL
+        sync: false
+      # https://<tenant>.us.auth0.com/  (con barra final, como lo emite Auth0)
+      - key: OIDC_EMISOR
+        sync: false
+      # Identificador de la API registrada en Auth0, p. ej. https://api.uniteam
+      - key: OIDC_AUDIENCIA
+        sync: false
+      # Claim con el correo que añade la Action de Auth0 (guía, paso 3).
+      - key: OIDC_CLAIM_USUARIO
+        value: https://uniteam.app/email
+      # URL pública del sitio, para CORS. Nunca «*».
+      - key: ORIGENES_PERMITIDOS
+        sync: false
+
+  # -- Aplicación Web ----------------------------------------------------
+  - type: web
+    name: uniteam-web
+    runtime: static
+    buildCommand: cd web && npm ci --ignore-scripts && npm run build
+    staticPublishPath: ./web/out
+    autoDeployTrigger: checksPass
+    buildFilter:
+      paths:
+        - web/**
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+    # Next.js hornea estas variables en la compilación: no son secretas —las
+    # lee cualquier navegador— pero dependen de URLs que no se conocen hasta
+    # el primer despliegue, por eso se rellenan en la consola.
+    envVars:
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+      - key: NODE_VERSION
+        value: "22"
+      # https://uniteam-api.onrender.com (la URL que Render asigne a la API)
+      - key: NEXT_PUBLIC_API_URL
+        sync: false
+      - key: NEXT_PUBLIC_OIDC_EMISOR
+        sync: false
+      - key: NEXT_PUBLIC_OIDC_CLIENTE
+        sync: false
+      - key: NEXT_PUBLIC_OIDC_AUDIENCIA
+        sync: false
+      - key: NEXT_PUBLIC_OIDC_CLAIM_USUARIO
+        value: https://uniteam.app/email

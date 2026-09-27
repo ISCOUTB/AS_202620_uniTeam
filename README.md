@@ -11,6 +11,26 @@ Tecnológica de Bolívar.
 
 ---
 
+## Sistema desplegado
+
+| | URL |
+|---|---|
+| **Aplicación** | <https://uniteam-web.onrender.com> |
+| API | <https://uniteam-api.onrender.com> · [contrato OpenAPI](docs/api/openapi.yaml) |
+| Health check | <https://uniteam-api.onrender.com/health> |
+| Métrica de ESC-01 | <https://uniteam-api.onrender.com/metricas/esc-01> |
+| Análisis estático | [SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam) |
+
+Se entra con una cuenta de Google. La primera petición tras 15 minutos sin uso tarda alrededor
+de un minuto: la API gratuita se duerme y despierta
+([ADR-008](docs/adr/0008-desplegar-la-api-como-contenedor-en-render.md#consecuencias)).
+
+Dónde se ejecuta cada pieza y por qué: [arc42 §7](docs/arc42/arc42-uniteam.md#7-vista-de-despliegue).
+Cómo recrear el entorno desde cero: [guía de despliegue](docs/despliegue/guia.md). Cuánto cuesta:
+[estimación de costo](docs/despliegue/costos.md).
+
+---
+
 ## Arranque rápido
 
 **Requisito previo:** Docker con el complemento Compose (`docker compose version`). Nada más.
@@ -31,6 +51,10 @@ Ese único comando levanta los tres contenedores y deja el sistema en marcha:
 Pulsa **Iniciar sesión**, escribe un nombre en el emisor de desarrollo y vuelves autenticado.
 
 Para detenerlo, `Ctrl+C`. Para borrar también los datos, `docker compose down -v`.
+
+Las contraseñas de la base de datos local salen de un archivo `.env` si existe —plantilla en
+[`.env.example`](.env.example)— y, si no, de valores de desarrollo que solo abren un contenedor
+en tu máquina: los puertos se publican en `127.0.0.1`, no en la red.
 
 > **El emisor de desarrollo no autentica a nadie.** Firma un token con el nombre que se le pida,
 > para que el sistema se pueda ejercitar sin cuentas externas. **Nunca debe desplegarse fuera de
@@ -100,6 +124,17 @@ Toda operación sobre un proyecto exige pertenecer a él.
 
 Todas las peticiones necesitan un token. Sin él, la API responde `401`.
 
+Rutas de operación, sin credencial:
+
+| Método | Ruta | Qué hace |
+|--------|------|----------|
+| `GET` | `/health` | 200 si la API responde y alcanza la base de datos; 503 si no. |
+| `GET` | `/metricas/esc-01` | p50, p95 y p99 del tablero frente al umbral de [ESC-01](docs/calidad/escenarios-calidad.md#esc-01). |
+| `GET` | `/metricas` | Métricas en formato Prometheus. |
+
+Los logs salen en JSON, una línea por petición, sin datos personales
+([arc42 §7.4](docs/arc42/arc42-uniteam.md#74-operación)).
+
 ```bash
 # Con el emisor de desarrollo, un token se obtiene así:
 TOKEN=$(python scripts/token_dev.py ana@utb.edu.co)
@@ -160,7 +195,7 @@ trabajar contra MySQL:
 
 ```bash
 docker compose up -d db
-export DATABASE_URL="mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam"
+export DATABASE_URL="mysql+pymysql://uniteam:uniteam-local@127.0.0.1:3306/uniteam"
 ```
 
 ### Frontend
@@ -192,7 +227,7 @@ Las variables `NEXT_PUBLIC_*` se hornean al compilar el frontend, no al arrancar
 ## Pruebas
 
 ```bash
-pytest -v                                    # 33 pruebas
+pytest -v                                    # 74 pruebas
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
 ```
@@ -209,9 +244,11 @@ concurrentes— y contrasta el resultado con su umbral. La línea base actual es
 el p95** frente a los 2 s comprometidos:
 [ficha de la medición](docs/calidad/mediciones/esc-01-linea-base.md).
 
-En integración continua las pruebas se ejecutan **contra MySQL** en cada `push`, junto con la
-verificación de enlaces y la compilación del frontend
-([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+En integración continua, en cada `push` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
+las pruebas **contra MySQL** con cobertura, la verificación de enlaces y del contrato OpenAPI,
+la compilación del frontend, la construcción de las dos imágenes y el análisis de
+**SonarCloud**, que espera al *Quality Gate* y falla si no pasa. Render solo despliega un commit
+con la CI en verde.
 
 El recorrido completo —interfaz, lógica y persistencia— está cubierto por
 [`test/test_corte_vertical.py`](test/test_corte_vertical.py), y la puerta de entrada por
@@ -229,14 +266,17 @@ AS_202620_uniTeam/
 │   ├── application/         Casos de uso, puertos y bus de eventos
 │   ├── domain/              Entidades, flujo de estados y eventos de dominio
 │   ├── events/              Consumidores de eventos (auditoría)
-│   └── infrastructure/      Motor, tablas y repositorios (MySQL)
+│   ├── infrastructure/      Motor, tablas y repositorios (MySQL)
+│   └── observabilidad.py    Logs JSON y métricas
 ├── web/                     Aplicación Web (Next.js)
 │   ├── app/                 Páginas y estilos
 │   └── lib/                 Cliente de la API y sesión
 ├── test/                    Pruebas del backend
-├── docs/                    arc42, ADR, C4, aspectos, escenarios y registro de IA
-├── scripts/                 Emisor OIDC de desarrollo y verificación de enlaces
-└── compose.yaml             Arranque completo con un comando
+├── docs/                    arc42, ADR, C4, despliegue, aspectos, escenarios y registro de IA
+├── scripts/                 Emisor OIDC de desarrollo, medición y verificaciones de la CI
+├── compose.yaml             Arranque completo con un comando
+├── render.yaml              Infraestructura del despliegue (Render Blueprint)
+└── .env.example             Plantilla de variables de entorno; el .env real no se versiona
 ```
 
 Los límites de estas carpetas se corresponden con los contenedores y paquetes de los diagramas

@@ -10,7 +10,7 @@
 | **Proyecto** | UniTeam — plataforma colaborativa para equipos universitarios |
 | **Equipo** | Julio César Emiliani · Ian Novoa Carrillo · Juan José Bustamante · Daniel Isaac Manjarrés |
 | **Periodo** | Semestre 2026-20 |
-| **Estado** | Secciones 1, 2, 3, 4, 5, 6, 9, 10, 11 y 12 redactadas. Pendientes: 7 (despliegue) y 8 (conceptos transversales). |
+| **Estado** | Secciones 1, 2, 3, 4, 5, 6, 7, 9, 10, 11 y 12 redactadas. Pendiente: 8 (conceptos transversales). |
 
 ---
 
@@ -84,6 +84,8 @@ sección 9 —lo que el equipo elige.
 | T2 | El sistema se entrega para **navegador web y/o escritorio**. La aplicación móvil nativa queda fuera del alcance. | El equipo decidió no abordar móvil en este semestre; sostener un cliente móvil adicional excede la capacidad disponible. | Condiciona T1: cualquier opción de frontend debe cubrir web o escritorio. Fija además el entorno de los escenarios [ESC-01](../calidad/escenarios-calidad.md#esc-01) y [ESC-02](../calidad/escenarios-calidad.md#esc-02). |
 | T3 | El despliegue se hace sobre **infraestructura gratuita o cuentas de estudiante**. | No hay presupuesto (ver O3). | Recursos de cómputo y memoria limitados, y posible latencia de arranque en frío. Es la razón por la que [ESC-01](../calidad/escenarios-calidad.md#esc-01) acota su meta a 200 tareas y 30 usuarios concurrentes, y por la que [ESC-04](../calidad/escenarios-calidad.md#esc-04) no promete alta disponibilidad. |
 | T4 | La documentación vive **en el mismo repositorio**, en Markdown, con los diagramas como código (Mermaid). | Requisito del curso y condición para que la documentación evolucione junto con el código en lugar de quedar desactualizada en una herramienta aparte. | No se usan herramientas de diagramación propietarias ni binarios que no puedan revisarse en un *diff*. |
+| T5 | **Límite de costo: 0 USD al mes**, y cada pieza desplegada debe poder usarse **sin tarjeta de crédito**. | Concreta O3 para el despliegue: sin presupuesto no hay forma de pagar un excedente, y la política de costos del curso garantiza que ninguna cuenta personal de pago es obligatoria. | Cada decisión de plataforma registra su capa gratuita, si pide tarjeta y el punto en que deja de ser gratis ([ADR-007](../adr/0007-servir-la-aplicacion-web-como-sitio-estatico.md) a [ADR-010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md), [estimación de costo](../despliegue/costos.md)). Donde una pieza no pueda cumplirlo, la alternativa es el servidor del laboratorio. |
+| T6 | El sistema desplegado debe ser **accesible desde fuera de la red de la universidad**. | Requisito del curso: la evaluación se hace sobre el entorno desplegado, desde fuera. | Descarta un despliegue que solo responda en la red interna, y con él el servidor del laboratorio mientras no se confirme que es alcanzable desde Internet. |
 
 ## 2.2 Restricciones organizativas
 
@@ -466,7 +468,91 @@ inmediatamente al proyecto (ver prueba `test_un_miembro_recien_agregado_ya_ve_el
 
 # 7. Vista de despliegue
 
-*Pendiente.*
+UniTeam se ejecuta en **cuatro piezas, cada una decidida por separado**: dos las ejecuta Render
+a partir de este repositorio y dos son servicios gestionados de terceros. Ninguna tiene costo
+(restricción [T5](#21-restricciones-técnicas)). La infraestructura que el equipo ejecuta está
+descrita como código en [`render.yaml`](../../render.yaml); el procedimiento completo, incluida
+la reversión, está en la [guía de despliegue](../despliegue/guia.md).
+
+## 7.1 Infraestructura de producción
+
+```mermaid
+flowchart LR
+    usuario(["Estudiante<br/>navegador web"])
+
+    subgraph render ["Render · región Virginia"]
+        direction TB
+        cdn["<b>Aplicación Web</b><br/>sitio estático en CDN<br/><i>web/out · Next.js exportado</i>"]
+        api["<b>API</b><br/>servicio web Docker · plan Free<br/><i>imagen destino api · FastAPI</i><br/>/health · /metricas"]
+    end
+
+    subgraph aiven ["Aiven · costa este de EE. UU."]
+        bd[("<b>Base de datos</b><br/>MySQL 8 · plan Free<br/>1 GB")]
+    end
+
+    subgraph auth0 ["Auth0"]
+        idp["<b>Proveedor de identidad</b><br/>OIDC · plan Free<br/>Google como conexión social"]
+    end
+
+    gh["GitHub Actions<br/>CI + SonarCloud"]
+
+    usuario -- "HTTPS · ficheros" --> cdn
+    usuario -- "HTTPS · REST/JSON + Bearer" --> api
+    usuario -- "HTTPS · PKCE" --> idp
+    api -- "MySQL sobre TLS<br/>certificado verificado" --> bd
+    api -- "HTTPS · JWKS" --> idp
+    gh -. "checksPass:<br/>despliega si la CI está en verde" .-> render
+```
+
+## 7.2 Una caja por pieza
+
+| Pieza (C4 nivel 2) | Dónde se ejecuta | Forma | Por qué ahí | Escenario que lo decide | Decisión |
+|--------------------|-----------------|-------|-------------|-------------------------|----------|
+| **Aplicación Web** | Render, sitio estático | Servicio gestionado (CDN) | No hace nada en el servidor: todo ocurre en el navegador. Sin proceso no hay arranque en frío ni horas de instancia. | [ESC-01](../calidad/escenarios-calidad.md#esc-01), [ESC-02](../calidad/escenarios-calidad.md#esc-02) | [ADR-007](../adr/0007-servir-la-aplicacion-web-como-sitio-estatico.md) |
+| **API** | Render, servicio web Docker, plan Free | Contenedor | Guarda estado en memoria (caché del JWKS, ventana de ESC-01) y un *pool* de conexiones a MySQL: la descalifica como función. | [ESC-01](../calidad/escenarios-calidad.md#esc-01), [ESC-03](../calidad/escenarios-calidad.md#esc-03) | [ADR-008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md) |
+| **Base de datos** | Aiven for MySQL, plan Free | Servicio gestionado | Única pieza con estado duradero; el disco de los servicios gratuitos de Render es efímero. | [ESC-04](../calidad/escenarios-calidad.md#esc-04) | [ADR-009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md) |
+| **Proveedor de identidad** | Auth0, plan Free | Servicio gestionado | Emite JWT para una audiencia y acepta PKCE sin secreto, que es lo que la API ya verifica. | [ESC-03](../calidad/escenarios-calidad.md#esc-03) | [ADR-010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) |
+| Ficheros | — | — | UniTeam no guarda ficheros de usuario. | — | — |
+| Trabajos programados | — | — | No hay tareas periódicas; el progreso se calcula al consultarlo. | — | — |
+
+## 7.3 Entornos
+
+| Entorno | Cómo se levanta | Base de datos | Identidad | Para qué |
+|---------|----------------|---------------|-----------|----------|
+| Local | `docker compose up` ([`compose.yaml`](../../compose.yaml)) | MySQL 8.4 en contenedor | Emisor OIDC de desarrollo (imagen `idp-dev`) | Desarrollo y demostración sin cuentas |
+| Integración continua | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | MySQL 8.4 como servicio del corredor | Emisor de desarrollo en un hilo | Pruebas, análisis estático, construcción de imágenes |
+| Producción | Render Blueprint ([`render.yaml`](../../render.yaml)) | Aiven for MySQL | Auth0 | Uso real y evaluación |
+
+La API es **la misma imagen** en los tres: solo cambian las variables de entorno. El emisor de
+desarrollo vive en otra imagen (`idp-dev`) y la CI comprueba que no aparece en la de la API.
+
+## 7.4 Operación
+
+| Señal | Dónde | Qué responde |
+|-------|-------|--------------|
+| **Health check** | `GET /health` | Si el proceso responde **y** alcanza la base de datos (200 o 503). Render no enruta tráfico a una instancia que no lo supere. |
+| **Logs estructurados** | Salida estándar → *Render → Logs* | Una línea JSON por petición con `id_peticion`, `metodo`, `ruta` (plantilla, sin identificadores), `estado` y `duracion_ms`. Sin datos personales ([L1](#23-restricciones-legales)). |
+| **Métrica de ESC-01** | `GET /metricas/esc-01` | p50, p95 y p99 del tablero en las últimas 1 000 consultas, frente al umbral de 2 s, con `cumple: true/false`. |
+| **Métricas Prometheus** | `GET /metricas` | `uniteam_tablero_latencia_segundos` (ESC-01), `uniteam_accesos_denegados_total` (ESC-03), peticiones y duraciones por ruta. |
+
+La métrica mide el tiempo **dentro de la API**. ESC-01 es de extremo a extremo; la parte de red
+y navegador se mide con [`scripts/medir_esc01.py`](../../scripts/medir_esc01.py) contra la URL
+desplegada.
+
+## 7.5 Secretos
+
+Ninguna credencial del entorno de producción está en el repositorio. `render.yaml` declara las
+variables secretas con `sync: false` —sin valor— y Render las guarda en su configuración; el
+certificado de la base de datos es un *Secret File*; el token de SonarCloud es un secreto de
+GitHub Actions. [`.env.example`](../../.env.example) documenta todas las variables. Detalle en la
+[guía](../despliegue/guia.md#7-secretos).
+
+## 7.6 Costo
+
+**0 USD al mes** al volumen supuesto. El primer límite que se alcanza no es de volumen sino de
+calidad: la API gratuita se duerme tras 15 minutos y su arranque en frío incumple ESC-01 en la
+primera visita; evitarlo cuesta 7 USD/mes. Cálculo, supuestos y puntos de ruptura en la
+[estimación de costo](../despliegue/costos.md).
 
 # 8. Conceptos transversales
 
@@ -486,6 +572,10 @@ enlaza a ellas.
 | [0004](../adr/0004-usar-mysql-como-base-de-datos.md) | Usar MySQL como base de datos. | Aceptada |
 | [0005](../adr/0005-delegar-la-autenticacion-en-un-proveedor-oidc.md) | Delegar la autenticación en un proveedor OIDC. | Aceptada |
 | [0006](../adr/0006-estilo-sincrono-con-eventos-en-proceso.md) | Mantener el modelo sincrónico con eventos en proceso. | Aceptada |
+| [0007](../adr/0007-servir-la-aplicacion-web-como-sitio-estatico.md) | Servir la Aplicación Web como sitio estático en Render. | Aceptada |
+| [0008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md) | Desplegar la API como contenedor en Render. | Aceptada |
+| [0009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md) | Usar Aiven for MySQL como base de datos gestionada. | Aceptada |
+| [0010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) | Usar Auth0 como proveedor de identidad del despliegue. | Aceptada |
 
 ---
 
@@ -539,9 +629,11 @@ Riesgos identificados hasta la fecha. La lista crece a medida que avanza el dise
 | ID | Riesgo o deuda | Origen | Mitigación |
 |----|---------------|--------|-----------|
 | R-01 | El stack aún no está decidido; empezar a construir sin resolverlo generaría retrabajo. | T1 | Resolver ADR-001 antes de la primera implementación. Mantener el diseño independiente del framework hasta entonces. |
-| R-02 | La infraestructura gratuita puede impedir cumplir la latencia de ESC-01 por arranque en frío. | T3 | Medir temprano con la prueba de carga de ESC-01; si no se cumple, renegociar la meta o el entorno de despliegue, dejando constancia. |
+| R-02 | **Materializado.** La API gratuita de Render se duerme tras 15 min sin tráfico y tarda ~1 min en despertar: la primera consulta incumple ESC-01. | T3, T5 | Aceptado y medido: `/metricas/esc-01` muestra el p95 en uso continuo. Evitarlo cuesta 7 USD/mes ([ADR-008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md), [costos](../despliegue/costos.md#4-puntos-de-ruptura)). |
 | R-03 | El control de acceso atraviesa todos los endpoints; un error de diseño se propaga a todo el sistema. | ESC-03 | Pruebas automatizadas de acceso en integración continua, con un caso negativo por endpoint. |
 | R-04 | Deuda técnica aceptada de forma consciente por la presión de las entregas semanales. | O1, O2 | Registrarla en esta sección cuando se contraiga, en lugar de sobre-diseñar por anticipado. |
+| R-05 | La base de datos gratuita de Aiven se apaga por inactividad y no tiene SLA: no sostiene el 99 % mensual de ESC-04. | T5 | `/health` devuelve 503 y Render no enruta tráfico; se enciende desde la consola. Pasar a un plan de pago si ESC-04 se exige ([ADR-009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md)). |
+| R-06 | Las fuentes no coinciden en si Render pide tarjeta al registrarse, lo que chocaría con T5. | T5 | Se anota al crear la cuenta ([guía, paso 1](../despliegue/guia.md#1-cuentas)). Si la pide, la alternativa sin tarjeta es el servidor del laboratorio con `docker compose up`. |
 
 # 12. Glosario
 

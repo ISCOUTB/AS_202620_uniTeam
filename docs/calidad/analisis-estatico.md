@@ -133,18 +133,31 @@ Esas van en los secretos de GitHub Actions o en variables de entorno del desplie
 
 Si en algún momento UniTeam se despliega de verdad, este veredicto caduca y hay que revisarlo.
 
+**Revisión del 2026-09-27, con el despliegue ya existente.** El veredicto se mantiene para lo
+local, y se añade lo que el despliegue exige:
+
+- El entorno desplegado **no usa estos archivos**. Sus credenciales viven en la configuración de
+  Render —`render.yaml` las declara con `sync: false`, sin valor— y el certificado de la base de
+  datos es un *Secret File* ([guía, §7](../despliegue/guia.md#7-secretos)).
+- `compose.yaml` ya no escribe las contraseñas: las lee de un `.env` no versionado, con
+  [`.env.example`](../../.env.example) como plantilla, y solo si falta usa valores de
+  desarrollo. Los puertos se publican en `127.0.0.1`, no en todas las interfaces, y la comprobación
+  de salud de MySQL ya no lleva la contraseña en la línea de órdenes.
+- La CI sigue usando credenciales fijas para su MySQL efímero: existe solo durante el trabajo y
+  no es alcanzable desde fuera del corredor.
+
 ---
 
 ## Deuda conocida que el análisis estático no señala
 
 Encontrada al revisar los hallazgos, y anotada aquí para no perderla:
 
-- **La imagen de la API incluye el emisor OIDC de desarrollo** (`scripts/emisor_dev.py`) y las
-  dependencias de prueba (`pytest`, `httpx`). El `Dockerfile` copia `scripts/` entero y
-  `requirements.txt` no separa lo que hace falta para ejecutar de lo que hace falta para probar.
-  No es explotable hoy —el emisor solo arranca si alguien lo invoca—, pero una imagen de
-  producción no debería poder firmar tokens sin comprobar contraseñas. Se separará cuando exista
-  un despliegue que defender.
+- ~~**La imagen de la API incluye el emisor OIDC de desarrollo.**~~ **Resuelto el 2026-09-27.**
+  El `Dockerfile` tiene dos destinos: `api`, que es lo que se despliega y no lleva `scripts/`, e
+  `idp-dev`, solo para `docker compose`. La CI comprueba en cada push que el emisor no aparece
+  en la imagen de la API. La imagen sigue llevando las dependencias de prueba (`pytest`,
+  `httpx`, `pytest-cov`), porque `requirements.txt` no separa ejecución de pruebas: es deuda
+  menor, sin código ejecutable que un atacante pueda invocar.
 - **No hay migraciones de esquema.** Las tablas se crean al arrancar. Sirve para el prototipo;
   no sirve para una base de datos con datos que conservar.
 

@@ -28,6 +28,7 @@ env/
 # Testing
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 
 # Sistema operativo
@@ -35,3 +36,8 @@ Thumbs.db
 .DS_Store
 # Base de datos local de desarrollo (SQLite)
 *.db
+
+# Variables de entorno locales: nunca se versionan (plantilla en .env.example)
+.env
+.env.*
+!.env.example

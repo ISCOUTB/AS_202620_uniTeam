@@ -16,6 +16,16 @@ class Ajustes:
     def crear_esquema_al_arrancar(self) -> bool:
         return os.getenv("CREAR_ESQUEMA", "1") == "1"
 
+    @property
+    def entorno(self) -> str:
+        """Nombre del entorno, solo informativo: aparece en /health y en los logs."""
+        return os.getenv("ENTORNO", "desarrollo")
+
+    @property
+    def revision(self) -> str:
+        """Commit desplegado. Render lo inyecta como RENDER_GIT_COMMIT."""
+        return (os.getenv("REVISION") or os.getenv("RENDER_GIT_COMMIT") or "local")[:12]
+
     # -- Proveedor de identidad (ADR 0005) --------------------------------
     @property
     def oidc_emisor(self) -> str:

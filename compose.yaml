@@ -2,23 +2,31 @@
 #
 #     docker compose up
 #
-# Levanta MySQL (ADR 0004) y la API, y espera a que la base de datos responda
-# antes de arrancar la aplicacion.
+# Levanta MySQL (ADR 0004), el emisor OIDC de desarrollo, la API y la
+# Aplicación Web, y espera a que la base de datos responda antes de arrancar
+# la API.
+#
+# Secretos: todos los valores sensibles salen de variables de entorno, que
+# Compose lee de un archivo `.env` junto a este (nunca versionado; plantilla en
+# `.env.example`). Si no existe, se usan los valores de desarrollo de abajo,
+# que solo sirven para un contenedor local que se crea y se destruye aquí: así
+# `docker compose up` sigue funcionando sin ningún paso previo. El despliegue
+# no usa este archivo, sino render.yaml, donde los secretos no tienen valor
+# por defecto (docs/despliegue/guia.md).
 services:
-  # Estas credenciales son de un contenedor local que se crea y se destruye
-  # con `docker compose`: no abren nada y no hay despliegue que proteger.
-  # El razonamiento completo esta en docs/calidad/analisis-estatico.md.
   db:
     image: mysql:8.4
     environment:
-      MYSQL_ROOT_PASSWORD: uniteam
-      MYSQL_DATABASE: uniteam
-      MYSQL_USER: uniteam
-      MYSQL_PASSWORD: uniteam
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-uniteam-local}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-uniteam}
+      MYSQL_USER: ${MYSQL_USER:-uniteam}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-uniteam-local}
+      # Lo usa la comprobación de salud sin escribirlo en la línea de órdenes.
+      MYSQL_PWD: ${MYSQL_PASSWORD:-uniteam-local}
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uuniteam", "-puniteam"]
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\""]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -26,30 +34,35 @@ services:
     volumes:
       - datos_mysql:/var/lib/mysql
 
-  # Emisor OIDC de desarrollo. Sustituye al proveedor institucional para poder
-  # trabajar en local sin cuentas externas. NUNCA debe usarse en producción:
-  # no comprueba contraseñas, firma un token con el nombre que se le pida.
+  # Emisor OIDC de desarrollo. Sustituye al proveedor real para poder trabajar
+  # en local sin cuentas externas. NUNCA debe usarse en producción: no
+  # comprueba contraseñas, firma un token con el nombre que se le pida. Por
+  # eso vive en su propia imagen (destino idp-dev) y no en la de la API.
   idp:
-    build: .
-    command: ["python", "scripts/emisor_dev.py"]
+    build:
+      context: .
+      target: idp-dev
     environment:
       PUERTO: "9000"
       EMISOR: http://localhost:9000
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
 
   api:
-    build: .
+    build:
+      context: .
+      target: api
     environment:
-      DATABASE_URL: mysql+pymysql://uniteam:uniteam@db:3306/uniteam
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-uniteam}:${MYSQL_PASSWORD:-uniteam-local}@db:3306/${MYSQL_DATABASE:-uniteam}
       ORIGENES_PERMITIDOS: http://localhost:3000
+      ENTORNO: local
       # El emisor es la URL que ve el navegador, porque es la que va en el
       # token; el JWKS se descarga por la red interna de Docker.
       OIDC_EMISOR: http://localhost:9000
       OIDC_JWKS_URL: http://idp:9000/jwks
       OIDC_AUDIENCIA: uniteam-web
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -65,7 +78,7 @@ services:
         NEXT_PUBLIC_OIDC_EMISOR: http://localhost:9000
         NEXT_PUBLIC_OIDC_CLIENTE: uniteam-web
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     depends_on:
       - api
 

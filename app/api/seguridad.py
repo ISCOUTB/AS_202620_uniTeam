@@ -81,6 +81,18 @@ def _cliente_jwks() -> PyJWKClient:
         return cliente
 
 
+def _emisores_aceptados() -> list[str]:
+    """El emisor configurado, con y sin barra final.
+
+    La configuración guarda el emisor sin barra para poder componer URLs,
+    pero hay proveedores que la incluyen en el claim `iss` —Auth0 emite
+    `https://<tenant>.auth0.com/`— y PyJWT compara cadenas exactas. Ambas
+    formas designan el mismo emisor; cualquier otro se sigue rechazando.
+    """
+    emisor = ajustes.oidc_emisor
+    return [emisor, f"{emisor}/"]
+
+
 def reiniciar_cache() -> None:
     """Olvida las claves cacheadas. Lo usan las pruebas entre emisores."""
     with _candado:
@@ -96,7 +108,7 @@ def identidad_del_token(token: str) -> str:
             clave,
             algorithms=_ALGORITMOS,
             audience=ajustes.oidc_audiencia,
-            issuer=ajustes.oidc_emisor,
+            issuer=_emisores_aceptados(),
             options={"require": ["exp", "iss", "aud", "sub"]},
         )
     except ConfiguracionInvalida:

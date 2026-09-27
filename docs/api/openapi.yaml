@@ -4,6 +4,8 @@ info:
   description: Gestión colaborativa de tareas para equipos universitarios.
   version: "0.2.0"
 servers:
+  - url: https://uniteam-api.onrender.com
+    description: Producción (Render). URL definitiva en docs/despliegue/guia.md
   - url: http://localhost:8000
     description: Servidor local de desarrollo
 paths:
@@ -39,6 +41,62 @@ paths:
                 properties:
                   status:
                     type: string
+  /health:
+    get:
+      summary: Health check con comprobación de la base de datos
+      description: >
+        200 si el proceso responde y alcanza la base de datos; 503 si no. Lo
+        consulta Render para decidir si una instancia recibe tráfico. No exige
+        credencial.
+      operationId: salud
+      tags:
+        - sistema
+      responses:
+        "200":
+          description: Disponible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Salud"
+        "503":
+          description: La base de datos no responde
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Salud"
+  /metricas:
+    get:
+      summary: Métricas en formato de exposición de Prometheus
+      description: >
+        Incluye uniteam_tablero_latencia_segundos (ESC-01) y
+        uniteam_accesos_denegados_total (ESC-03). Las rutas aparecen como
+        plantilla, sin identificadores ni datos personales.
+      operationId: metricas
+      tags:
+        - sistema
+      responses:
+        "200":
+          description: Texto en formato Prometheus 0.0.4
+          content:
+            text/plain:
+              schema:
+                type: string
+  /metricas/esc-01:
+    get:
+      summary: Latencia del tablero frente al umbral de ESC-01
+      description: >
+        Percentiles de las últimas 1000 consultas del tablero atendidas con
+        200, medidos dentro de la API, y si cumplen p95 ≤ 2 s y p99 ≤ 4 s.
+      operationId: metrica_esc01
+      tags:
+        - sistema
+      responses:
+        "200":
+          description: Resumen del escenario
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResumenESC01"
   /proyectos:
     get:
       summary: Listar proyectos propios
@@ -334,6 +392,59 @@ components:
         type: string
         format: uuid
   schemas:
+    Salud:
+      type: object
+      required: [estado, base_de_datos, version, revision, entorno]
+      properties:
+        estado:
+          type: string
+          enum: [ok, degradado]
+        base_de_datos:
+          type: string
+          enum: [ok, caida]
+        latencia_bd_ms:
+          type: number
+        version:
+          type: string
+        revision:
+          type: string
+          description: Commit desplegado (12 caracteres)
+        entorno:
+          type: string
+    ResumenESC01:
+      type: object
+      required: [escenario, umbral_p95_s, umbral_p99_s, muestras, cumple]
+      properties:
+        escenario:
+          type: string
+          example: ESC-01
+        descripcion:
+          type: string
+        umbral_p95_s:
+          type: number
+          example: 2.0
+        umbral_p99_s:
+          type: number
+          example: 4.0
+        ventana:
+          type: integer
+        muestras:
+          type: integer
+        p50_s:
+          type: number
+          nullable: true
+        p95_s:
+          type: number
+          nullable: true
+        p99_s:
+          type: number
+          nullable: true
+        cumple:
+          type: boolean
+          nullable: true
+          description: null mientras no haya muestras
+        alcance:
+          type: string
     CrearProyecto:
       type: object
       required: [nombre]
