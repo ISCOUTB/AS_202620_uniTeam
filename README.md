@@ -25,9 +25,10 @@ Tecnológica de Bolívar.
 
 Se entra con una cuenta de Google o con un correo. En Chrome o Edge se puede **instalar como
 aplicación de escritorio** desde el icono de instalación de la barra de direcciones. En el
-tablero, `N` crea una tarea y `/` busca. De 06:00 a 23:59, hora de Colombia, un sondeo
-externo mantiene la API despierta ([ADR-011](docs/adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md));
-fuera de esa franja, la primera petición tarda alrededor de un minuto.
+tablero, `N` crea una tarea y `/` busca. Está prevista una mitigación con sondeo externo de
+06:00 a 23:59, hora de Colombia ([ADR-011](docs/adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md)),
+pero su ejecución no está verificada: una comprobación reciente observó la API despertando
+dentro de esa franja. Consulta el [registro operativo](docs/despliegue/guia.md#mantener-la-api-despierta).
 
 Dónde se ejecuta cada pieza y por qué: [arc42 §7](docs/arc42/arc42-uniteam.md#7-vista-de-despliegue).
 Cómo recrear el entorno desde cero: [guía de despliegue](docs/despliegue/guia.md). Cuánto cuesta:
@@ -104,6 +105,8 @@ persistencia queda detrás de repositorios.
 | [Árbol de utilidad](docs/calidad/arbol-utilidad.md) · [Interesados](docs/calidad/interesados.md) | Priorización por impacto y riesgo, y de dónde sale. |
 | [Tabla de aspectos](docs/aspectos.md) | Trazabilidad de aspecto a evidencia, eslabón por eslabón. |
 | [Análisis estático](docs/calidad/analisis-estatico.md) | Qué se corrigió de lo que reporta SonarCloud, y por qué lo demás no se corrige. |
+| [Evidencia S8 actualizada](docs/calidad/evidencia-s8-actualizada.md) | Estado comprobado, criterios parciales y acciones externas pendientes. |
+| [Comparación de despliegue de la API](docs/despliegue/comparacion-api.md) | Plan reproducible del taller: Render Free frente al servidor del laboratorio. |
 | [Uso de IA](docs/ia.md) | Qué se pidió, qué se aceptó y qué se rechazó, con su motivo. |
 | [Ficha del problema](docs/ficha.md) | Problema, usuarios y alcance del prototipo. |
 

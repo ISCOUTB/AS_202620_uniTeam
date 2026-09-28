@@ -3,6 +3,10 @@
 Cómo se recrea el entorno desplegado de UniTeam desde cero, cómo se comprueba que funciona y
 cómo se revierte. Está escrita para que la siga alguien que no estuvo cuando se hizo.
 
+Plan comparativo del taller aplicado para la pieza API: [Render Free frente al servidor del
+laboratorio](comparacion-api.md), con procedimiento de medición de ESC-01 y registro de
+resultados.
+
 | Pieza | Dónde se ejecuta | Cómo se describe | Decisión |
 |-------|-----------------|------------------|----------|
 | Aplicación Web | Render, sitio estático (CDN) | [`render.yaml`](../../render.yaml) | [ADR-007](../adr/0007-servir-la-aplicacion-web-como-sitio-estatico.md) |
@@ -36,7 +40,8 @@ También se lanza a mano con *Run workflow*.
 
 ## 1. Cuentas
 
-Todas se crean sin tarjeta, salvo que Render la pida (ver abajo).
+Las tres cuentas usadas para el despliegue se crearon sin tarjeta; la comprobación quedó
+registrada aquí y en el [taller comparativo de la API](comparacion-api.md).
 
 | Servicio | Para qué | Quién tiene acceso |
 |----------|----------|--------------------|
@@ -55,8 +60,10 @@ tarjeta. Es un dato que exigen las ADR y que la documentación de Render no deja
 | Auth0 | **No** | 2026-09-27 | Julio César Emiliani Ramos, al crear la cuenta |
 
 Ninguno de los tres pidió tarjeta: la restricción [T5](../arc42/arc42-uniteam.md#21-restricciones-técnicas)
-se cumple para todas las piezas. Si en el futuro alguno la exigiera, la alternativa sin tarjeta
-es la misma imagen en el servidor del laboratorio con `docker compose up`.
+se cumple para todas las piezas. Esta comprobación posterior resuelve las notas de verificación
+pendiente que quedaron en los ADR-007 y ADR-008, sin cambiar las decisiones aceptadas. Si en el
+futuro algún proveedor exigiera tarjeta, la alternativa sin tarjeta es la misma imagen en el
+servidor del laboratorio con `docker compose up`.
 
 ## 2. Aiven: base de datos
 
@@ -159,6 +166,7 @@ petición.
 |---------------|------|-----------|
 | 2026-09-28 00:25 | Navegador, desde Cartagena | Inicio de sesión con Google a través de Auth0; el correo llega en el token y la API lista los proyectos del usuario. Flujo completo: interfaz → API → Aiven. |
 | 2026-09-28 00:39 | [Workflow `despliegue.yml`, run 36362991640](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/runs/36362991640), corredor de GitHub | Sitio 200 (0,18 s) · `/callback/` 200 · `/health` 200 con base de datos `ok` · `/metricas/esc-01` 200 · `/metricas` 200 · API sin token 401. Revisión desplegada `f053ac255fe1`. |
+| 2026-09-28 03:40 | Navegador externo y posterior consulta segura desde el entorno local | Render mostró inicialmente la pantalla de arranque; después `/health` respondió 200 en 0,75 s (BD 199,63 ms), revisión `f053ac255fe1`. El endpoint `/metricas/esc-01` respondió 200 con `muestras=0`. |
 
 **Observación de la primera comprobación.** `/health` mide **200 ms de latencia hasta la base de
 datos** por consulta, y la primera consulta real del tablero tardó 0,90 s dentro de la API: casi
@@ -171,6 +179,14 @@ primero es comprobar en la consola de Aiven que el servicio está en la misma re
 
 Decidido en el [ADR-011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md). En
 [cron-job.org](https://cron-job.org), una cuenta gratuita y sin tarjeta:
+
+**Estado de operación: no verificado.** En una comprobación externa el 2026-09-27 a las 22:40,
+hora de Colombia, Render mostró la API despertando, aunque esa hora cae dentro de la franja
+prevista. Una petición posterior devolvió health 200, pero no demuestra que el cron se esté
+ejecutando. Revisar en cron-job.org el historial de ejecuciones exitosas antes de afirmar que la
+mitigación funciona. El workflow [`despliegue.yml`](../../.github/workflows/despliegue.yml),
+que corre cada seis horas, es una comprobación de disponibilidad y **no** reemplaza el ping cada
+minuto.
 
 1. *Create cronjob* → **URL:** `https://uniteam-api.onrender.com/health`.
 2. **Execution schedule:** cada minuto, **de 06:00 a 23:59**, zona horaria
@@ -220,6 +236,8 @@ desplegar. Borrarlo de un commit no basta: sigue en el historial.
    **Nunca** en un chat, un commit o un documento.
 4. En el siguiente push, el trabajo «Análisis estático (SonarCloud)» de la CI ejecuta el
    análisis con la cobertura de las pruebas y **espera al Quality Gate**: si falla, la CI falla.
+   Si `SONAR_TOKEN` no está configurado, el trabajo también falla; no se permite integrar un
+   cambio omitiendo el análisis.
 
 Panel público: <https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam>
 

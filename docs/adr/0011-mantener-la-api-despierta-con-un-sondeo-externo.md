@@ -24,7 +24,7 @@ Con el sistema en uso real, el equipo revisa esa decisión.
 | | A. Sondeo externo a `/health` (**elegida**) | B. Plan Starter de Render | C. Aceptar el arranque en frío (decisión anterior) |
 |---|---|---|---|
 | Qué es | Un servicio de cron gratuito (cron-job.org) consulta `GET /health` con la frecuencia que se configure | Instancia de pago que no se duerme | No hacer nada |
-| ESC-01 en la primera visita | Se cumple dentro de la franja sondeada | Se cumple siempre | No se cumple |
+| ESC-01 en la primera visita | Se cumpliría dentro de la franja si el sondeo se ejecuta puntualmente | Se cumple siempre | No se cumple |
 | Base de datos | `/health` hace `SELECT 1`: Aiven tampoco se apaga | Hace falta otra solución | Puede apagarse |
 | Costo | 0 USD | 7 USD/mes | 0 USD |
 | Tarjeta | No | Sí | No |
@@ -36,9 +36,10 @@ y ESC-01 intentan proteger.
 
 ## Decisión
 
-Un trabajo en **cron-job.org** consulta `https://uniteam-api.onrender.com/health` **cada
-minuto**. Se consulta `/health` y no `/activo` porque `/health` también toca la base de datos, y
-así mantiene despierto a Aiven.
+La configuración escogida es un trabajo en **cron-job.org** que consulta
+`https://uniteam-api.onrender.com/health` **cada minuto**. Se consulta `/health` y no `/activo`
+porque `/health` también toca la base de datos. Esta ADR registra la decisión; la guía lleva el
+estado de la configuración efectiva y su evidencia de ejecución.
 
 **Franja recomendada: de 06:00 a 23:59, hora de Colombia.** No por la frecuencia —despierta es
 despierta, sondee cada minuto o cada diez—, sino por las horas de instancia:
@@ -54,8 +55,11 @@ nada: fuera de ella no hay usuarios.
 
 ## Consecuencias
 
-- **ESC-01 se cumple en la primera visita** dentro de la franja. La métrica `/metricas/esc-01`
-  no mezcla los sondeos: solo cuenta las consultas del tablero.
+- **Efecto esperado, no garantía:** si el trabajo está activo y sus ejecuciones son exitosas,
+  reduce los arranques en frío dentro de la franja. `/metricas/esc-01` no mezcla los sondeos:
+  solo cuenta las consultas del tablero. La comprobación externa del 2026-09-27 observó la API
+  despertando a las 22:40 Colombia; la guía registra que el historial del cron está pendiente
+  de verificar.
 - **Registro limpio.** Un sondeo por minuto son 1 440 peticiones al día. Las respuestas
   correctas de `/health` y `/activo` ya no se escriben a nivel INFO (`app/observabilidad.py`),
   aunque siguen contando en `/metricas`.

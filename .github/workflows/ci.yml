@@ -158,10 +158,11 @@ jobs:
         with:
           name: cobertura
 
-      - name: Avisar si falta el token
+      - name: Exigir el secreto SONAR_TOKEN
         if: env.SONAR_TOKEN == ''
         run: |
-          echo "::warning::Falta el secreto SONAR_TOKEN: el análisis de SonarCloud no se ejecutó. Ver docs/despliegue/guia.md."
+          echo "::error::Falta el secreto SONAR_TOKEN; no se puede omitir el análisis estático requerido. Ver docs/despliegue/guia.md."
+          exit 1
 
       # qualitygate.wait hace que el trabajo falle si el Quality Gate falla,
       # así que un Quality Gate rojo bloquea la integración igual que una
