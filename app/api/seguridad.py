@@ -21,6 +21,7 @@ from fastapi import Header, HTTPException, status
 from jwt import PyJWKClient
 
 from app.config import ajustes
+from app.domain.modelos import normalizar_usuario
 
 _ALGORITMOS = ["RS256"]
 _candado = threading.Lock()
@@ -127,7 +128,7 @@ def identidad_del_token(token: str) -> str:
             detail="El token no identifica a ningún usuario.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return str(usuario)
+    return normalizar_usuario(str(usuario))
 
 
 def usuario_actual(authorization: Optional[str] = Header(default=None)) -> str:

@@ -22,6 +22,11 @@ class Ajustes:
         return os.getenv("ENTORNO", "desarrollo")
 
     @property
+    def zona_horaria(self) -> str:
+        """Zona de los usuarios, para decidir qué tarea está vencida."""
+        return os.getenv("ZONA_HORARIA", "America/Bogota")
+
+    @property
     def revision(self) -> str:
         """Commit desplegado. Render lo inyecta como RENDER_GIT_COMMIT."""
         return (os.getenv("REVISION") or os.getenv("RENDER_GIT_COMMIT") or "local")[:12]

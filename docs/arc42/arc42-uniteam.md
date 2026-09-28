@@ -576,6 +576,7 @@ enlaza a ellas.
 | [0008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md) | Desplegar la API como contenedor en Render. | Aceptada |
 | [0009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md) | Usar Aiven for MySQL como base de datos gestionada. | Aceptada |
 | [0010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) | Usar Auth0 como proveedor de identidad del despliegue. | Aceptada |
+| [0011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md) | Mantener la API despierta con un sondeo externo en la franja de uso. Reemplaza en parte a 0008. | Aceptada |
 
 ---
 
@@ -629,7 +630,7 @@ Riesgos identificados hasta la fecha. La lista crece a medida que avanza el dise
 | ID | Riesgo o deuda | Origen | Mitigación |
 |----|---------------|--------|-----------|
 | R-01 | El stack aún no está decidido; empezar a construir sin resolverlo generaría retrabajo. | T1 | Resolver ADR-001 antes de la primera implementación. Mantener el diseño independiente del framework hasta entonces. |
-| R-02 | **Materializado.** La API gratuita de Render se duerme tras 15 min sin tráfico y tarda ~1 min en despertar: la primera consulta incumple ESC-01. | T3, T5 | Aceptado y medido: `/metricas/esc-01` muestra el p95 en uso continuo. Evitarlo cuesta 7 USD/mes ([ADR-008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md), [costos](../despliegue/costos.md#4-puntos-de-ruptura)). |
+| R-02 | **Materializado.** La API gratuita de Render se duerme tras 15 min sin tráfico y tarda ~1 min en despertar: la primera consulta incumple ESC-01. | T3, T5 | Aceptado y medido: `/metricas/esc-01` muestra el p95 en uso continuo. Evitarlo cuesta 7 USD/mes ([ADR-008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md), [costos](../despliegue/costos.md#4-puntos-de-ruptura)). **Mitigado el 2026-09-28:** sondeo externo a `/health` de 06:00 a 23:59 ([ADR-011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md)); fuera de esa franja se mantiene el arranque en frío. |
 | R-03 | El control de acceso atraviesa todos los endpoints; un error de diseño se propaga a todo el sistema. | ESC-03 | Pruebas automatizadas de acceso en integración continua, con un caso negativo por endpoint. |
 | R-04 | Deuda técnica aceptada de forma consciente por la presión de las entregas semanales. | O1, O2 | Registrarla en esta sección cuando se contraiga, en lugar de sobre-diseñar por anticipado. |
 | R-05 | La base de datos gratuita de Aiven se apaga por inactividad y no tiene SLA: no sostiene el 99 % mensual de ESC-04. | T5 | `/health` devuelve 503 y Render no enruta tráfico; se enciende desde la consola. Pasar a un plan de pago si ESC-04 se exige ([ADR-009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md)). |

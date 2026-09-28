@@ -53,6 +53,23 @@ def registrar_consumidores(
             resultado="permitido",
         )
 
+    def auditar(operacion: str):
+        """Consumidor que audita una operación permitida sobre una tarea."""
+
+        def consumidor(evento) -> None:
+            RepositorioAuditoriaSQL(sesion).registrar(
+                usuario=evento.usuario,
+                recurso=f"tarea:{evento.tarea_id}",
+                operacion=operacion,
+                resultado="permitido",
+            )
+
+        return consumidor
+
     bus.suscribir(eventos.AccesoDenegado, auditar_acceso_denegado)
     bus.suscribir(eventos.TareaCreada, auditar_tarea_creada)
     bus.suscribir(eventos.EstadoCambiado, auditar_estado_cambiado)
+    # La asignación publicaba su evento pero nadie lo auditaba.
+    bus.suscribir(eventos.TareaAsignada, auditar("asignar_tarea"))
+    bus.suscribir(eventos.TareaEditada, auditar("editar_tarea"))
+    bus.suscribir(eventos.TareaEliminada, auditar("eliminar_tarea"))

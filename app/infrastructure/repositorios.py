@@ -1,10 +1,12 @@
 """Adaptadores de persistencia: implementan los puertos con SQLAlchemy."""
 from datetime import date, datetime, timezone
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
+from app.config import ajustes
 from app.domain.modelos import (
     EstadoTarea,
     Miembro,
@@ -20,6 +22,19 @@ from app.infrastructure.tablas import (
     ProyectoTabla,
     TareaTabla,
 )
+
+
+def _ahora_utc() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def hoy_local() -> date:
+    """La fecha de hoy donde están los usuarios, no donde está el servidor.
+
+    El servidor corre en UTC: a partir de las 19:00 en Colombia ya es mañana
+    allí, y una tarea que vence hoy contaba como vencida.
+    """
+    return _ahora_utc().astimezone(ZoneInfo(ajustes.zona_horaria)).date()
 
 
 class RepositorioProyectosSQL:
@@ -119,6 +134,12 @@ class RepositorioTareasSQL:
         fila.fecha_limite = tarea.fecha_limite
         self._s.flush()
 
+    def eliminar(self, tarea_id: str) -> None:
+        fila = self._s.get(TareaTabla, tarea_id)
+        if fila is not None:
+            self._s.delete(fila)
+            self._s.flush()
+
     def listar_por_proyecto(
         self,
         proyecto_id: str,
@@ -164,7 +185,7 @@ class RepositorioTareasSQL:
             .where(
                 TareaTabla.proyecto_id == proyecto_id,
                 TareaTabla.fecha_limite.is_not(None),
-                TareaTabla.fecha_limite < date.today(),
+                TareaTabla.fecha_limite < hoy_local(),
                 TareaTabla.estado != EstadoTarea.COMPLETADA.value,
             )
         )

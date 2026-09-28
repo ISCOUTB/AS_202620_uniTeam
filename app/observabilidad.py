@@ -123,6 +123,7 @@ ACCESOS_DENEGADOS = Counter(
 )
 
 RUTA_TABLERO = "/proyectos/{proyecto_id}/tareas"
+_RUTAS_DE_SONDEO = frozenset({"/health", "/activo"})
 
 
 def exponer_metricas() -> Response:
@@ -221,7 +222,15 @@ class ObservarPeticiones(BaseHTTPMiddleware):
                 TABLERO.observe(duracion)
                 ESC01.observar(duracion)
 
-            nivel = logging.ERROR if estado >= 500 else logging.INFO
+            if estado >= 500:
+                nivel = logging.ERROR
+            elif plantilla in _RUTAS_DE_SONDEO and estado < 400:
+                # Render consulta /health sin parar y el ping de mantenimiento
+                # lo hace cada minuto: miles de líneas al día que no dicen nada.
+                # Se siguen contando en las métricas; solo no se registran.
+                nivel = logging.DEBUG
+            else:
+                nivel = logging.INFO
             registro_peticiones.log(
                 nivel,
                 "%s %s -> %s",

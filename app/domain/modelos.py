@@ -32,6 +32,17 @@ TRANSICIONES: dict[EstadoTarea, tuple[EstadoTarea, ...]] = {
 }
 
 
+def normalizar_usuario(usuario: str) -> str:
+    """Forma canónica de una identidad: sin espacios y en minúsculas.
+
+    Los miembros se identifican por correo, y un correo no distingue
+    mayúsculas en la práctica: «Bruno@UTB.edu.co» y «bruno@utb.edu.co» son la
+    misma persona. Sin esta regla, añadir a alguien con otra capitalización
+    lo dejaba fuera de su propio proyecto (ESC-03 le negaba el acceso).
+    """
+    return usuario.strip().lower()
+
+
 class RolMiembro(str, Enum):
     INTEGRANTE = "integrante"
     LIDER = "lider"
@@ -51,6 +62,10 @@ class Proyecto:
 
     def es_miembro(self, usuario: str) -> bool:
         return any(m.usuario == usuario for m in self.miembros)
+
+    def puede_eliminar(self, usuario: str, tarea: "Tarea") -> bool:
+        """Elimina una tarea quien la creó o el líder del proyecto."""
+        return tarea.creada_por == usuario or self.es_lider(usuario)
 
     def es_lider(self, usuario: str) -> bool:
         return any(
@@ -84,6 +99,30 @@ class Tarea:
 
     def asignar(self, usuario: str) -> None:
         self.responsable = usuario
+
+    def editar(
+        self,
+        titulo: Optional[str] = None,
+        prioridad: Optional[Prioridad] = None,
+        fecha_limite: Optional[date] = None,
+        quitar_fecha_limite: bool = False,
+    ) -> list[str]:
+        """Cambia los datos descriptivos. El estado y el responsable no: tienen
+        sus propias reglas y sus propios eventos. Devuelve los campos cambiados."""
+        cambiados = []
+        if titulo is not None and titulo != self.titulo:
+            self.titulo = titulo
+            cambiados.append("titulo")
+        if prioridad is not None and prioridad != self.prioridad:
+            self.prioridad = prioridad
+            cambiados.append("prioridad")
+        if quitar_fecha_limite and self.fecha_limite is not None:
+            self.fecha_limite = None
+            cambiados.append("fecha_limite")
+        elif fecha_limite is not None and fecha_limite != self.fecha_limite:
+            self.fecha_limite = fecha_limite
+            cambiados.append("fecha_limite")
+        return cambiados
 
 
 @dataclass

@@ -167,6 +167,20 @@ todo es ida y vuelta a Aiven, porque la consulta del tablero hace varias. Cumple
 primero es comprobar en la consola de Aiven que el servicio está en la misma región que la API
 (Render Virginia) y, si no, recrearlo allí; lo segundo, reducir las consultas por petición.
 
+### Mantener la API despierta
+
+Decidido en el [ADR-011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md). En
+[cron-job.org](https://cron-job.org), una cuenta gratuita y sin tarjeta:
+
+1. *Create cronjob* → **URL:** `https://uniteam-api.onrender.com/health`.
+2. **Execution schedule:** cada minuto, **de 06:00 a 23:59**, zona horaria
+   **America/Bogota**. Las 24 horas también funcionan, pero dejan solo 6 h de margen sobre las
+   750 h gratuitas; si se agotan, Render suspende la API hasta el mes siguiente.
+3. Guardar. Para revertir, desactivar el trabajo.
+
+Los sondeos correctos no aparecen en los logs; se ven en `/metricas`, bajo
+`uniteam_peticiones_total{ruta="/health"}`.
+
 ## 6. Reversión
 
 | Qué falla | Qué se hace | Tiempo |

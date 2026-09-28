@@ -40,6 +40,21 @@ class EstadoCambiado(EventoDominio):
 
 
 @dataclass(frozen=True)
+class TareaEditada(EventoDominio):
+    tarea_id: str = ""
+    proyecto_id: str = ""
+    campos: tuple[str, ...] = ()
+    usuario: str = ""
+
+
+@dataclass(frozen=True)
+class TareaEliminada(EventoDominio):
+    tarea_id: str = ""
+    proyecto_id: str = ""
+    usuario: str = ""
+
+
+@dataclass(frozen=True)
 class AccesoDenegado(EventoDominio):
     """Intento de acceso a un proyecto del que el usuario no es miembro.
 

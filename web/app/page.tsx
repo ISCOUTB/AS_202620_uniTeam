@@ -2,29 +2,42 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { api, ErrorApi, type Proyecto } from "@/lib/api";
+import { useAvisos } from "@/lib/avisos";
+import { pareceCorreo, useLento } from "@/lib/lento";
 import { useSesion } from "@/lib/sesion";
+import { GrupoAvatares } from "./componentes/avatar";
+import { Portada } from "./componentes/portada";
+
+function mensaje(e: unknown, porDefecto: string): string {
+  return e instanceof ErrorApi ? e.message : porDefecto;
+}
 
 export default function PaginaProyectos() {
-  const { token, cargado } = useSesion();
-  const [proyectos, establecerProyectos] = useState<Proyecto[]>([]);
+  const { token, usuario, cargado } = useSesion();
+  const { avisar } = useAvisos();
+  const router = useRouter();
+
+  const [proyectos, establecerProyectos] = useState<Proyecto[] | null>(null);
   const [error, establecerError] = useState<string | null>(null);
-  const [cargando, establecerCargando] = useState(false);
+  const [creando, establecerCreando] = useState(false);
+  const [formularioAbierto, establecerFormulario] = useState(false);
   const [nombre, establecerNombre] = useState("");
   const [miembros, establecerMiembros] = useState("");
+  const lento = useLento(token !== null && proyectos === null && !error);
+
+  useEffect(() => {
+    document.title = "Mis proyectos · UniTeam";
+  }, []);
 
   const recargar = useCallback(async () => {
     if (!token) return;
-    establecerCargando(true);
     try {
       establecerProyectos(await api.listarProyectos(token));
       establecerError(null);
     } catch (e) {
-      establecerError(
-        e instanceof ErrorApi ? e.message : "No se pudo contactar con la API.",
-      );
-    } finally {
-      establecerCargando(false);
+      establecerError(mensaje(e, "No se pudo contactar con la API."));
     }
   }, [token]);
 
@@ -32,108 +45,130 @@ export default function PaginaProyectos() {
     void recargar();
   }, [recargar]);
 
+  const lista = miembros
+    .split(/[,;\s]+/)
+    .map((m) => m.trim().toLowerCase())
+    .filter(Boolean);
+  const invalidos = lista.filter((m) => !pareceCorreo(m));
+
   async function crear(evento: React.FormEvent) {
     evento.preventDefault();
-    if (!token || !nombre.trim()) return;
-    const lista = miembros
-      .split(",")
-      .map((m) => m.trim())
-      .filter(Boolean);
+    if (!token || !nombre.trim() || invalidos.length > 0 || creando) return;
+    establecerCreando(true);
     try {
-      await api.crearProyecto(token, nombre.trim(), lista);
-      establecerNombre("");
-      establecerMiembros("");
-      await recargar();
+      const { id } = await api.crearProyecto(token, nombre.trim(), lista);
+      avisar(`Proyecto «${nombre.trim()}» creado.`);
+      router.push(`/proyecto/?id=${encodeURIComponent(id)}`);
     } catch (e) {
-      establecerError(
-        e instanceof ErrorApi ? e.message : "No se pudo crear el proyecto.",
-      );
+      avisar(mensaje(e, "No se pudo crear el proyecto."), "error");
+      establecerCreando(false);
     }
   }
 
   if (!cargado) return null;
-
-  if (!token) {
-    return (
-      <>
-        <h1>Tus proyectos</h1>
-        <p className="subtitulo">
-          Inicia sesión para ver los proyectos de los que eres miembro.
-        </p>
-        <div className="aviso">
-          UniTeam no guarda contraseñas: delega la autenticación en el proveedor
-          de identidad. La API verifica el token que este emite antes de atender
-          cualquier petición.
-        </div>
-      </>
-    );
-  }
+  if (!token) return <Portada />;
 
   return (
     <>
-      <h1>Tus proyectos</h1>
-      <p className="subtitulo">
-        Solo aparecen los proyectos de los que eres miembro.
-      </p>
+      <div className="encabezado-pagina">
+        <div>
+          <h1>Mis proyectos</h1>
+          <p className="subtitulo">Solo ves los proyectos de los que eres miembro.</p>
+        </div>
+        {!formularioAbierto && (
+          <button onClick={() => establecerFormulario(true)}>+ Nuevo proyecto</button>
+        )}
+      </div>
 
       {error && <div className="aviso error">{error}</div>}
 
-      <section className="tarjeta" style={{ marginBottom: 24 }}>
-        <form onSubmit={crear}>
-          <div className="fila">
-            <div style={{ flex: "2 1 220px" }}>
-              <label className="etiqueta" htmlFor="nombre">
-                Nombre del proyecto
+      {formularioAbierto && (
+        <section className="tarjeta formulario">
+          <form onSubmit={crear}>
+            <h2>Nuevo proyecto</h2>
+            <div className="campos">
+              <label className="campo">
+                <span className="etiqueta">Nombre</span>
+                <input
+                  value={nombre}
+                  onChange={(e) => establecerNombre(e.target.value)}
+                  placeholder="Proyecto de Arquitectura"
+                  maxLength={200}
+                  autoFocus
+                  required
+                />
               </label>
-              <input
-                id="nombre"
-                value={nombre}
-                onChange={(e) => establecerNombre(e.target.value)}
-                placeholder="Proyecto de Arquitectura"
-                style={{ width: "100%" }}
-                required
-              />
-            </div>
-            <div style={{ flex: "2 1 220px" }}>
-              <label className="etiqueta" htmlFor="miembros">
-                Integrantes, separados por comas
+              <label className="campo ancho">
+                <span className="etiqueta">Integrantes (correos, separados por comas)</span>
+                <input
+                  value={miembros}
+                  onChange={(e) => establecerMiembros(e.target.value)}
+                  placeholder="bruno@utb.edu.co, carla@utb.edu.co"
+                  aria-invalid={invalidos.length > 0}
+                />
+                {invalidos.length > 0 ? (
+                  <span className="ayuda error">
+                    No parece un correo: {invalidos.join(", ")}. Los integrantes entran con su correo.
+                  </span>
+                ) : (
+                  <span className="ayuda">Tú quedas como líder. Puedes añadir más integrantes después.</span>
+                )}
               </label>
-              <input
-                id="miembros"
-                value={miembros}
-                onChange={(e) => establecerMiembros(e.target.value)}
-                placeholder="bruno, carla"
-                style={{ width: "100%" }}
-              />
             </div>
-            <button type="submit" style={{ alignSelf: "flex-end" }}>
-              Crear proyecto
-            </button>
-          </div>
-        </form>
-      </section>
+            <div className="acciones">
+              <button type="button" className="secundario" onClick={() => establecerFormulario(false)}>
+                Cancelar
+              </button>
+              <button type="submit" disabled={creando || !nombre.trim() || invalidos.length > 0}>
+                {creando ? "Creando…" : "Crear proyecto"}
+              </button>
+            </div>
+          </form>
+        </section>
+      )}
 
-      {cargando && proyectos.length === 0 ? (
-        <p className="vacio">Cargando…</p>
-      ) : proyectos.length === 0 ? (
-        <p className="vacio">
-          Todavía no perteneces a ningún proyecto. Crea el primero arriba.
-        </p>
+      {proyectos === null && !error ? (
+        <>
+          <div className="rejilla rejilla-proyectos">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="tarjeta esqueleto" style={{ height: 112 }} />
+            ))}
+          </div>
+          {lento && (
+            <p className="vacio">El servidor está despertando; la primera carga del día tarda un poco más.</p>
+          )}
+        </>
+      ) : proyectos && proyectos.length === 0 ? (
+        <div className="vacio-grande">
+          <h2>Todavía no tienes proyectos</h2>
+          <p>Crea el primero e invita a tu equipo con su correo.</p>
+          {!formularioAbierto && (
+            <button onClick={() => establecerFormulario(true)}>Crear mi primer proyecto</button>
+          )}
+        </div>
       ) : (
         <div className="rejilla rejilla-proyectos">
-          {proyectos.map((p) => (
-            <Link key={p.id} href={`/proyecto/?id=${encodeURIComponent(p.id)}`} className="tarjeta">
-              <strong>{p.nombre}</strong>
-              <div className="fila" style={{ marginTop: 10 }}>
-                {p.miembros.map((m) => (
-                  <span key={m.usuario} className="pastilla">
-                    {m.usuario}
-                    {m.rol === "lider" ? " · líder" : ""}
+          {proyectos?.map((p) => {
+            const lider = p.miembros.find((m) => m.rol === "lider")?.usuario === usuario;
+            return (
+              <Link
+                key={p.id}
+                href={`/proyecto/?id=${encodeURIComponent(p.id)}`}
+                className="tarjeta tarjeta-proyecto"
+              >
+                <div className="fila separado">
+                  <strong className="titulo-proyecto">{p.nombre}</strong>
+                  {lider && <span className="insignia">Líder</span>}
+                </div>
+                <div className="fila separado pie-tarjeta">
+                  <GrupoAvatares usuarios={p.miembros.map((m) => m.usuario)} />
+                  <span className="suave">
+                    {p.miembros.length} integrante{p.miembros.length === 1 ? "" : "s"}
                   </span>
-                ))}
-              </div>
-            </Link>
-          ))}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </>

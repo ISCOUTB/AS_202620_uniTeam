@@ -26,7 +26,7 @@ for p in required_paths:
 required_schemas = [
     "CrearProyecto", "CrearTarea", "AsignarTarea", "CambiarEstado",
     "TareaSalida", "ProyectoSalida", "ProyectoDetalle",
-    "MiembroSalida", "ProgresoSalida", "AgregarMiembro",
+    "MiembroSalida", "ProgresoSalida", "AgregarMiembro", "EditarTarea",
 ]
 for s in required_schemas:
     assert s in schemas, f"Falta esquema: {s}"

@@ -71,7 +71,10 @@ Las tareas se ordenan por `creada_en` (ascendente) y desempatan por `id` (ascend
 | Método | Ruta | Auth | Descripción |
 |--------|------|------|-------------|
 | `GET` | `/` | No | Estado del servicio |
-| `GET` | `/activo` | No | Estado del servicio |
+| `GET` | `/activo` | No | Vivacidad: el proceso responde |
+| `GET` | `/health` | No | Disponibilidad: el proceso responde y alcanza la base de datos (200 o 503) |
+| `GET` | `/metricas` | No | Métricas en formato Prometheus |
+| `GET` | `/metricas/esc-01` | No | p95 del tablero frente al umbral de ESC-01 |
 
 ### Proyectos
 
@@ -334,6 +337,49 @@ Las tareas se ordenan por `creada_en` (ascendente) y desempatan por `id` (ascend
 | `403` | No pertenece al proyecto |
 | `409` | Transición de estado inválida |
 
+#### Editar tarea
+
+| | |
+|---|---|
+| **Método** | `PATCH` |
+| **Ruta** | `/proyectos/{proyecto_id}/tareas/{tarea_id}` |
+| **Auth** | Sí (pertenencia: cualquier miembro) |
+| **Código éxito** | `200` |
+
+**Cuerpo de entrada** (al menos un campo; los ausentes no cambian):
+
+| Campo | Tipo | Requerido |
+|-------|------|-----------|
+| `titulo` | string | No — `1 ≤ longitud ≤ 300`, sin espacios sobrantes |
+| `prioridad` | string | No — `"baja"`, `"media"`, `"alta"` |
+| `fecha_limite` | string/null | No — `YYYY-MM-DD`; `null` la quita |
+
+**Errores:**
+
+| Código | Condición |
+|--------|-----------|
+| `401` | Sin token |
+| `403` | No pertenece al proyecto |
+| `404` | La tarea no existe en el proyecto |
+| `422` | Cuerpo vacío, título en blanco o prioridad nula |
+
+#### Eliminar tarea
+
+| | |
+|---|---|
+| **Método** | `DELETE` |
+| **Ruta** | `/proyectos/{proyecto_id}/tareas/{tarea_id}` |
+| **Auth** | Sí (quien creó la tarea o el líder del proyecto) |
+| **Código éxito** | `204` sin cuerpo |
+
+**Errores:**
+
+| Código | Condición |
+|--------|-----------|
+| `401` | Sin token |
+| `403` | No pertenece al proyecto, o es miembro pero ni creó la tarea ni es líder. Queda auditado |
+| `404` | La tarea no existe en el proyecto |
+
 ### Progreso
 
 #### Consultar progreso
@@ -396,12 +442,17 @@ pendiente ──→ en_progreso ──→ completada
 
 ## Esquemas
 
+**Identidades.** Todo identificador de usuario —en el token, en `miembros`, `usuario`,
+`responsable` o el filtro `responsable`— se normaliza sin espacios y en minúsculas:
+`Bruno@UTB.edu.co` y `bruno@utb.edu.co` son el mismo miembro. Los textos (`nombre`, `titulo`)
+se guardan sin espacios al principio ni al final.
+
 ### CrearProyecto
 
 | Campo | Tipo | Restricciones |
 |-------|------|---------------|
 | `nombre` | string | `1 ≤ longitud ≤ 200` |
-| `miembros` | string[] | Opcional, default `[]` |
+| `miembros` | string[] | Opcional, default `[]`. Máximo 50; cada uno `1 ≤ longitud ≤ 120` |
 
 ### CrearTarea
 

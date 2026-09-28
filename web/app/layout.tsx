@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { BarraUsuario } from "./barra-usuario";
+import { Logo } from "./componentes/logo";
+import { ProveedorAvisos } from "@/lib/avisos";
 import { ProveedorSesion } from "@/lib/sesion";
 
 export const metadata: Metadata = {
@@ -17,15 +19,21 @@ export default function RootLayout({
     <html lang="es">
       <body>
         <ProveedorSesion>
-          <header className="cabecera">
-            <div className="cabecera-interior">
-              <a className="marca" href="/">
-                UniTeam <span>Gestión de tareas de equipo</span>
-              </a>
-              <BarraUsuario />
-            </div>
-          </header>
-          <main className="contenido">{children}</main>
+          <ProveedorAvisos>
+            <header className="cabecera">
+              <div className="cabecera-interior">
+                <a className="marca" href="/">
+                  <Logo />
+                  <span className="marca-nombre">UniTeam</span>
+                </a>
+                <BarraUsuario />
+              </div>
+            </header>
+            <main className="contenido">{children}</main>
+            <footer className="pie">
+              UniTeam · Arquitecturas de Software 2026-20 · Universidad Tecnológica de Bolívar
+            </footer>
+          </ProveedorAvisos>
         </ProveedorSesion>
       </body>
     </html>

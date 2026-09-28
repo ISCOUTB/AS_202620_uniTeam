@@ -21,6 +21,7 @@ const CLAVE_ESTADO = "uniteam.estado";
 interface Descubrimiento {
   authorization_endpoint: string;
   token_endpoint: string;
+  end_session_endpoint?: string;
 }
 
 let descubrimiento: Promise<Descubrimiento> | null = null;
@@ -144,6 +145,30 @@ export function cerrarSesion(): void {
     sessionStorage.removeItem(CLAVE_TOKEN);
   } catch {
     /* almacenamiento no disponible */
+  }
+}
+
+/**
+ * Cierra también la sesión en el proveedor (RP-Initiated Logout de OIDC).
+ *
+ * Borrar solo el token local no basta: el proveedor recuerda al usuario, y el
+ * siguiente «Iniciar sesión» entra sin preguntar con la misma cuenta, así que
+ * no había forma de cambiar de usuario. Si el proveedor no publica
+ * `end_session_endpoint` —el emisor de desarrollo no lo hace—, se queda en el
+ * cierre local.
+ */
+export async function cerrarSesionEnProveedor(): Promise<void> {
+  cerrarSesion();
+  try {
+    const { end_session_endpoint } = await descubrir();
+    if (!end_session_endpoint) return;
+    const parametros = new URLSearchParams({
+      client_id: CLIENTE,
+      post_logout_redirect_uri: window.location.origin,
+    });
+    window.location.assign(`${end_session_endpoint}?${parametros}`);
+  } catch {
+    /* sin proveedor alcanzable, el cierre local ya está hecho */
   }
 }
 

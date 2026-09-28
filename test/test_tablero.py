@@ -5,6 +5,8 @@ para ESC-01. Estas pruebas comprueban que existen y se comportan.
 """
 from datetime import date, timedelta
 
+from app.infrastructure.repositorios import hoy_local
+
 
 def _proyecto_con_tareas(cliente, cab, n=5, lider="ana"):
     proyecto_id = cliente.post(
@@ -103,8 +105,11 @@ def test_el_progreso_cuenta_las_tareas_vencidas(cliente, cab):
         "/proyectos", json={"nombre": "Arquitectura", "miembros": []}, headers=cabeceras
     ).json()["id"]
 
-    ayer = (date.today() - timedelta(days=1)).isoformat()
-    manana = (date.today() + timedelta(days=1)).isoformat()
+    # «Hoy» es el de los usuarios, no el del servidor: con date.today() esta
+    # prueba fallaba de 19:00 a 24:00 en Colombia, cuando en UTC ya es mañana.
+    hoy = hoy_local()
+    ayer = (hoy - timedelta(days=1)).isoformat()
+    manana = (hoy + timedelta(days=1)).isoformat()
     for titulo, limite in [("Vencida", ayer), ("A tiempo", manana), ("Sin fecha", None)]:
         cliente.post(
             f"/proyectos/{proyecto_id}/tareas",

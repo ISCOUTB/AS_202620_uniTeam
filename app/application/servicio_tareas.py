@@ -111,12 +111,18 @@ class ServicioTareas:
         self._autorizar(usuario, proyecto_id, "consultar_progreso")
         return self._tareas.resumir_progreso(proyecto_id)
 
-    def obtener_tarea(self, usuario: str, proyecto_id: str, tarea_id: str) -> Tarea:
-        self._autorizar(usuario, proyecto_id, "obtener_tarea")
+    def _tarea_del_proyecto(self, proyecto_id: str, tarea_id: str) -> Tarea:
+        """La tarea, solo si pertenece al proyecto. Sin volver a autorizar:
+        quien llama ya lo hizo. Autorizar dos veces eran dos viajes más a la
+        base de datos por operación, ~200 ms cada uno en el despliegue."""
         tarea = self._tareas.obtener(tarea_id)
         if tarea is None or tarea.proyecto_id != proyecto_id:
             raise RecursoNoEncontrado("La tarea no existe en este proyecto.")
         return tarea
+
+    def obtener_tarea(self, usuario: str, proyecto_id: str, tarea_id: str) -> Tarea:
+        self._autorizar(usuario, proyecto_id, "obtener_tarea")
+        return self._tarea_del_proyecto(proyecto_id, tarea_id)
 
     def asignar_tarea(
         self, usuario: str, proyecto_id: str, tarea_id: str, responsable: str
@@ -126,7 +132,7 @@ class ServicioTareas:
             raise AccesoDenegado(
                 "No se puede asignar la tarea a alguien ajeno al proyecto."
             )
-        tarea = self.obtener_tarea(usuario, proyecto_id, tarea_id)
+        tarea = self._tarea_del_proyecto(proyecto_id, tarea_id)
         tarea.asignar(responsable)
         self._tareas.guardar(tarea)
         self._bus.publicar(
@@ -143,7 +149,7 @@ class ServicioTareas:
         self, usuario: str, proyecto_id: str, tarea_id: str, nuevo: EstadoTarea
     ) -> Tarea:
         self._autorizar(usuario, proyecto_id, "cambiar_estado")
-        tarea = self.obtener_tarea(usuario, proyecto_id, tarea_id)
+        tarea = self._tarea_del_proyecto(proyecto_id, tarea_id)
         tarea.cambiar_estado(nuevo)
         self._tareas.guardar(tarea)
         self._bus.publicar(
@@ -155,3 +161,57 @@ class ServicioTareas:
             )
         )
         return tarea
+
+    def editar_tarea(
+        self,
+        usuario: str,
+        proyecto_id: str,
+        tarea_id: str,
+        titulo: Optional[str] = None,
+        prioridad: Optional[Prioridad] = None,
+        fecha_limite: Optional[date] = None,
+        quitar_fecha_limite: bool = False,
+    ) -> Tarea:
+        """Cambia título, prioridad o fecha límite. Cualquier miembro puede:
+        el tablero es de todo el equipo."""
+        self._autorizar(usuario, proyecto_id, "editar_tarea")
+        tarea = self._tarea_del_proyecto(proyecto_id, tarea_id)
+        cambiados = tarea.editar(titulo, prioridad, fecha_limite, quitar_fecha_limite)
+        if cambiados:
+            self._tareas.guardar(tarea)
+            self._bus.publicar(
+                eventos.TareaEditada(
+                    tarea_id=tarea_id,
+                    proyecto_id=proyecto_id,
+                    campos=tuple(cambiados),
+                    usuario=usuario,
+                )
+            )
+        return tarea
+
+    def eliminar_tarea(self, usuario: str, proyecto_id: str, tarea_id: str) -> None:
+        """Solo quien creó la tarea o el líder del proyecto.
+
+        Un miembro cualquiera puede editar, pero no borrar el trabajo de otro:
+        borrar no se deshace. El intento denegado se audita como cualquier
+        otro acceso denegado (ESC-03).
+        """
+        proyecto = self._autorizar(usuario, proyecto_id, "eliminar_tarea")
+        tarea = self._tarea_del_proyecto(proyecto_id, tarea_id)
+        if not proyecto.puede_eliminar(usuario, tarea):
+            self._bus.publicar(
+                eventos.AccesoDenegado(
+                    usuario=usuario,
+                    recurso=f"tarea:{tarea_id}",
+                    operacion="eliminar_tarea",
+                )
+            )
+            raise AccesoDenegado(
+                "Solo quien creó la tarea o el líder del proyecto puede eliminarla."
+            )
+        self._tareas.eliminar(tarea_id)
+        self._bus.publicar(
+            eventos.TareaEliminada(
+                tarea_id=tarea_id, proyecto_id=proyecto_id, usuario=usuario
+            )
+        )

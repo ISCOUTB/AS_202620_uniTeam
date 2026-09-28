@@ -49,6 +49,16 @@ export class ErrorApi extends Error {
   }
 }
 
+/**
+ * Qué hacer cuando la API responde 401: el token caducó o dejó de valer. La
+ * sesión se registra aquí para cerrarse sola en lugar de dejar la pantalla
+ * mostrando «Token inválido: Signature has expired».
+ */
+let alCaducar: (() => void) | null = null;
+export function alCaducarSesion(accion: (() => void) | null): void {
+  alCaducar = accion;
+}
+
 async function pedir<T>(
   ruta: string,
   token: string,
@@ -64,6 +74,11 @@ async function pedir<T>(
     },
     cache: "no-store",
   });
+
+  if (respuesta.status === 401) {
+    alCaducar?.();
+    throw new ErrorApi(401, "Tu sesión ha caducado. Vuelve a iniciar sesión.");
+  }
 
   if (!respuesta.ok) {
     let detalle = `Error ${respuesta.status}`;
@@ -103,14 +118,12 @@ export const api = {
     id: string,
     filtros: { estado?: EstadoTarea; responsable?: string } = {},
   ) => {
-    const parametros = new URLSearchParams();
+    // 200 es el tope de la API y el tamaño de proyecto de ESC-01. Sin él, la
+    // API devolvía 50 y el tablero ocultaba el resto sin avisar.
+    const parametros = new URLSearchParams({ limite: "200" });
     if (filtros.estado) parametros.set("estado", filtros.estado);
     if (filtros.responsable) parametros.set("responsable", filtros.responsable);
-    const consulta = parametros.toString();
-    return pedir<Tarea[]>(
-      `/proyectos/${id}/tareas${consulta ? `?${consulta}` : ""}`,
-      token,
-    );
+    return pedir<Tarea[]>(`/proyectos/${id}/tareas?${parametros}`, token);
   },
 
   crearTarea: (
@@ -139,6 +152,26 @@ export const api = {
       body: JSON.stringify({ estado }),
     }),
 
+  editarTarea: (
+    token: string,
+    id: string,
+    tareaId: string,
+    cambios: { titulo?: string; prioridad?: Prioridad; fecha_limite?: string | null },
+  ) =>
+    pedir<Tarea>(`/proyectos/${id}/tareas/${tareaId}`, token, {
+      method: "PATCH",
+      body: JSON.stringify(cambios),
+    }),
+
+  eliminarTarea: (token: string, id: string, tareaId: string) =>
+    pedir<void>(`/proyectos/${id}/tareas/${tareaId}`, token, { method: "DELETE" }),
+
+  asignarTarea: (token: string, id: string, tareaId: string, responsable: string) =>
+    pedir<Tarea>(`/proyectos/${id}/tareas/${tareaId}/responsable`, token, {
+      method: "PUT",
+      body: JSON.stringify({ responsable }),
+    }),
+
   progreso: (token: string, id: string) =>
     pedir<Progreso>(`/proyectos/${id}/progreso`, token),
 };
@@ -150,8 +183,20 @@ export const TRANSICIONES: Record<EstadoTarea, EstadoTarea[]> = {
   completada: ["en_progreso"],
 };
 
+export const ESTADOS: EstadoTarea[] = ["pendiente", "en_progreso", "completada"];
+export const PRIORIDADES: Prioridad[] = ["alta", "media", "baja"];
+
 export const ETIQUETA_ESTADO: Record<EstadoTarea, string> = {
   pendiente: "Pendiente",
   en_progreso: "En progreso",
   completada: "Completada",
 };
+
+export const ETIQUETA_PRIORIDAD: Record<Prioridad, string> = {
+  alta: "Alta",
+  media: "Media",
+  baja: "Baja",
+};
+
+/** Orden de prioridad para ordenar tarjetas: alta primero. */
+export const PESO_PRIORIDAD: Record<Prioridad, number> = { alta: 0, media: 1, baja: 2 };

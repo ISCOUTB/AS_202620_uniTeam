@@ -1,18 +1,19 @@
 """Endpoints de tareas: la capa de interfaz del corte vertical."""
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Response, status
 
 from app.api.dependencias import obtener_servicio, usuario_actual
 from app.api.esquemas import (
     AsignarTarea,
     CambiarEstado,
     CrearTarea,
+    EditarTarea,
     ProgresoSalida,
     TareaSalida,
 )
 from app.application.servicio_tareas import ServicioTareas
-from app.domain.modelos import EstadoTarea, Tarea
+from app.domain.modelos import EstadoTarea, Tarea, normalizar_usuario
 
 router = APIRouter(prefix="/proyectos/{proyecto_id}/tareas", tags=["tareas"])
 
@@ -68,7 +69,7 @@ def consultar_tablero(
         usuario,
         proyecto_id,
         estado=estado,
-        responsable=responsable,
+        responsable=normalizar_usuario(responsable) if responsable else None,
         limite=limite,
         desplazamiento=desplazamiento,
     )
@@ -110,3 +111,37 @@ def cambiar_estado(
     return _salida(
         servicio.cambiar_estado(usuario, proyecto_id, tarea_id, datos.estado)
     )
+
+
+@router.patch("/{tarea_id}", response_model=TareaSalida)
+def editar_tarea(
+    proyecto_id: str,
+    tarea_id: str,
+    datos: EditarTarea,
+    usuario: str = Depends(usuario_actual),
+    servicio: ServicioTareas = Depends(obtener_servicio),
+) -> TareaSalida:
+    """Edita título, prioridad o fecha límite. `fecha_limite: null` la quita."""
+    return _salida(
+        servicio.editar_tarea(
+            usuario,
+            proyecto_id,
+            tarea_id,
+            titulo=datos.titulo,
+            prioridad=datos.prioridad,
+            fecha_limite=datos.fecha_limite,
+            quitar_fecha_limite=datos.quitar_fecha_limite,
+        )
+    )
+
+
+@router.delete("/{tarea_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_tarea(
+    proyecto_id: str,
+    tarea_id: str,
+    usuario: str = Depends(usuario_actual),
+    servicio: ServicioTareas = Depends(obtener_servicio),
+) -> Response:
+    """Elimina la tarea. Solo quien la creó o el líder del proyecto."""
+    servicio.eliminar_tarea(usuario, proyecto_id, tarea_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)

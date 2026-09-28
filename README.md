@@ -21,10 +21,11 @@ Tecnológica de Bolívar.
 | Métrica de ESC-01 | <https://uniteam-api.onrender.com/metricas/esc-01> |
 | Comprobación desde Internet | [workflow `despliegue.yml`](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/workflows/despliegue.yml), cada 6 h: hora, código y tiempo de cada URL |
 | Análisis estático | [SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam) |
+| Última revisión de código | [2026-09-28](docs/calidad/revision-2026-09-28.md): defectos corregidos, funciones nuevas y pendientes |
 
-Se entra con una cuenta de Google. La primera petición tras 15 minutos sin uso tarda alrededor
-de un minuto: la API gratuita se duerme y despierta
-([ADR-008](docs/adr/0008-desplegar-la-api-como-contenedor-en-render.md#consecuencias)).
+Se entra con una cuenta de Google o con un correo. De 06:00 a 23:59, hora de Colombia, un sondeo
+externo mantiene la API despierta ([ADR-011](docs/adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md));
+fuera de esa franja, la primera petición tarda alrededor de un minuto.
 
 Dónde se ejecuta cada pieza y por qué: [arc42 §7](docs/arc42/arc42-uniteam.md#7-vista-de-despliegue).
 Cómo recrear el entorno desde cero: [guía de despliegue](docs/despliegue/guia.md). Cuánto cuesta:
@@ -122,6 +123,8 @@ Toda operación sobre un proyecto exige pertenecer a él.
 | `GET` | `/proyectos/{id}/tareas/{tarea}` | Detalle de una tarea. |
 | `PUT` | `/proyectos/{id}/tareas/{tarea}/responsable` | Asigna la tarea a un miembro. |
 | `PUT` | `/proyectos/{id}/tareas/{tarea}/estado` | Mueve la tarea de estado. |
+| `PATCH` | `/proyectos/{id}/tareas/{tarea}` | Edita título, prioridad o fecha límite. Cualquier miembro. |
+| `DELETE` | `/proyectos/{id}/tareas/{tarea}` | Elimina la tarea. Solo quien la creó o el líder. |
 
 Todas las peticiones necesitan un token. Sin él, la API responde `401`.
 
@@ -228,7 +231,7 @@ Las variables `NEXT_PUBLIC_*` se hornean al compilar el frontend, no al arrancar
 ## Pruebas
 
 ```bash
-pytest -v                                    # 74 pruebas
+pytest -v                                    # 97 pruebas
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
 ```

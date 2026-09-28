@@ -291,6 +291,63 @@ paths:
           $ref: "#/components/responses/Prohibido"
         "404":
           $ref: "#/components/responses/NoEncontrado"
+    patch:
+      summary: Editar tarea
+      description: >
+        Edición parcial de título, prioridad y fecha límite. Un campo ausente
+        no cambia; `fecha_limite: null` la quita. Estado y responsable tienen
+        sus propias rutas. Cualquier miembro del proyecto puede editar.
+      operationId: editar_tarea
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+        - $ref: "#/components/parameters/tarea_id"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EditarTarea"
+      responses:
+        "200":
+          description: Tarea editada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TareaSalida"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
+        "422":
+          $ref: "#/components/responses/NoProcesable"
+    delete:
+      summary: Eliminar tarea
+      description: >
+        Solo quien creó la tarea o el líder del proyecto. El intento de otro
+        miembro responde 403 y queda auditado.
+      operationId: eliminar_tarea
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/proyecto_id"
+        - $ref: "#/components/parameters/tarea_id"
+      responses:
+        "204":
+          description: Tarea eliminada
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
+        "403":
+          $ref: "#/components/responses/Prohibido"
+        "404":
+          $ref: "#/components/responses/NoEncontrado"
   /proyectos/{proyecto_id}/tareas/{tarea_id}/responsable:
     put:
       summary: Asignar responsable
@@ -495,6 +552,23 @@ components:
       properties:
         responsable:
           type: string
+    EditarTarea:
+      type: object
+      minProperties: 1
+      description: Al menos un campo. Los identificadores de usuario se normalizan a minúsculas.
+      properties:
+        titulo:
+          type: string
+          minLength: 1
+          maxLength: 300
+        prioridad:
+          type: string
+          enum: [baja, media, alta]
+        fecha_limite:
+          type: string
+          format: date
+          nullable: true
+          description: null quita la fecha límite
     CambiarEstado:
       type: object
       required: [estado]
