@@ -359,7 +359,9 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
 
 .kanban {
   display: grid;
-  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  /* Tantas columnas como estados publique la API. */
+  grid-template-columns: repeat(var(--columnas, 3), minmax(250px, 1fr));
+  overflow-x: auto;
   gap: 14px;
   align-items: start;
 }
@@ -377,8 +379,8 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
 .columna header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 4px; }
 .columna header h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-suave); }
 .columna header h2::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--texto-suave); }
-.columna-en_progreso header h2::before { background: var(--acento); }
-.columna-completada header h2::before { background: var(--exito); }
+.columna-intermedio header h2::before { background: var(--acento); }
+.columna-final header h2::before { background: var(--exito); }
 .contador { font-size: 12px; font-weight: 700; color: var(--texto-suave); background: var(--superficie); border: 1px solid var(--borde); border-radius: 999px; padding: 0 8px; }
 .vacio-columna { color: var(--texto-suave); font-size: 13px; text-align: center; margin: 18px 0; }
 

@@ -28,8 +28,8 @@ export function formatearDia(iso: string): string {
 export type Vencimiento = "vencida" | "hoy" | "pronto" | "a_tiempo";
 
 /** Situación de una fecha límite respecto a hoy. «Pronto» son los 3 días siguientes. */
-export function vencimiento(fecha: string, completada: boolean): Vencimiento | null {
-  if (completada) return null;
+export function vencimiento(fecha: string, terminada: boolean): Vencimiento | null {
+  if (terminada) return null;
   const hoy = hoyLocal();
   if (fecha < hoy) return "vencida";
   if (fecha === hoy) return "hoy";

@@ -1,18 +1,13 @@
 "use client";
 
-import {
-  ETIQUETA_ESTADO,
-  ETIQUETA_PRIORIDAD,
-  TRANSICIONES,
-  type EstadoTarea,
-  type Miembro,
-  type Tarea,
-} from "@/lib/api";
+import { ETIQUETA_PRIORIDAD, type EstadoTarea, type Miembro, type Tarea } from "@/lib/api";
+import type { Flujo } from "@/lib/flujo";
 import { ETIQUETA_VENCIMIENTO, formatearDia, nombreCorto, vencimiento } from "@/lib/formato";
 import { Avatar } from "../componentes/avatar";
 
 interface Props {
   tarea: Tarea;
+  flujo: Flujo;
   miembros: Miembro[];
   ocupada: boolean;
   puedeEliminar: boolean;
@@ -25,6 +20,7 @@ interface Props {
 /** Una tarea en su columna del tablero, con sus acciones a mano. */
 export function TarjetaTarea({
   tarea,
+  flujo,
   miembros,
   ocupada,
   puedeEliminar,
@@ -34,7 +30,7 @@ export function TarjetaTarea({
   alEliminar,
 }: Props) {
   const situacion = tarea.fecha_limite
-    ? vencimiento(tarea.fecha_limite, tarea.estado === "completada")
+    ? vencimiento(tarea.fecha_limite, flujo.esFinal(tarea.estado))
     : null;
 
   return (
@@ -59,7 +55,7 @@ export function TarjetaTarea({
         </div>
       </div>
 
-      <h3 className={tarea.estado === "completada" ? "hecha" : undefined}>{tarea.titulo}</h3>
+      <h3 className={flujo.esFinal(tarea.estado) ? "hecha" : undefined}>{tarea.titulo}</h3>
 
       <div className="fila meta">
         {tarea.fecha_limite && (
@@ -88,25 +84,24 @@ export function TarjetaTarea({
           </select>
         </label>
         <div className="fila">
-          {TRANSICIONES[tarea.estado].map((destino) => (
-            <button
-              key={destino}
-              className="secundario pequeno"
-              onClick={() => alMover(destino)}
-              disabled={ocupada}
-              title={`Mover a ${ETIQUETA_ESTADO[destino]}`}
-            >
-              {orden(destino) < orden(tarea.estado) ? "← " : ""}
-              {ETIQUETA_ESTADO[destino]}
-              {orden(destino) > orden(tarea.estado) ? " →" : ""}
-            </button>
-          ))}
+          {flujo.siguientes(tarea.estado).map((destino) => {
+            const atras = flujo.orden(destino) < flujo.orden(tarea.estado);
+            return (
+              <button
+                key={destino}
+                className="secundario pequeno"
+                onClick={() => alMover(destino)}
+                disabled={ocupada}
+                title={`Mover a ${flujo.etiqueta(destino)}`}
+              >
+                {atras ? "← " : ""}
+                {flujo.etiqueta(destino)}
+                {atras ? "" : " →"}
+              </button>
+            );
+          })}
         </div>
       </div>
     </article>
   );
-}
-
-function orden(estado: EstadoTarea): number {
-  return ["pendiente", "en_progreso", "completada"].indexOf(estado);
 }

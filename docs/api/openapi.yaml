@@ -97,6 +97,24 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResumenESC01"
+  /flujo-estados:
+    get:
+      summary: Flujo de estados de las tareas
+      description: >
+        Estados en el orden de las columnas del tablero, con su etiqueta, si son
+        el inicial o el final, y a qué estados se puede pasar desde cada uno. Lo
+        define el dominio (ADR 0012); la Aplicación Web no conoce los estados de
+        otra forma. No exige credencial.
+      operationId: flujo_estados
+      tags:
+        - tareas
+      responses:
+        "200":
+          description: Flujo de estados
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlujoEstados"
   /proyectos:
     get:
       summary: Listar proyectos propios
@@ -449,6 +467,32 @@ components:
         type: string
         format: uuid
   schemas:
+    FlujoEstados:
+      type: object
+      required: [estados]
+      properties:
+        estados:
+          type: array
+          items:
+            $ref: "#/components/schemas/EstadoFlujo"
+    EstadoFlujo:
+      type: object
+      required: [id, etiqueta, inicial, final, siguientes]
+      properties:
+        id:
+          type: string
+          example: pendiente
+        etiqueta:
+          type: string
+          example: Pendiente
+        inicial:
+          type: boolean
+        final:
+          type: boolean
+        siguientes:
+          type: array
+          items:
+            type: string
     Salud:
       type: object
       required: [estado, base_de_datos, version, revision, entorno]

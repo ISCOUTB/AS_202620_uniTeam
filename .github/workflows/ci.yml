@@ -72,7 +72,7 @@ jobs:
           pytest -v
           test/test_corte_vertical.py test/test_tablero.py test/test_proyectos.py
           test/test_autenticacion.py test/test_operacion.py
-          test/test_edicion_tareas.py test/test_robustez.py
+          test/test_edicion_tareas.py test/test_robustez.py test/test_flujo_estados.py
           --cov=app --cov-append --cov-report=xml --cov-report=term
 
       - name: Guardar el informe de cobertura

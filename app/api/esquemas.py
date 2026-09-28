@@ -103,3 +103,15 @@ class ProgresoSalida(BaseModel):
     sin_responsable: int
     vencidas: int
     porcentaje_completado: float
+
+
+class EstadoFlujo(BaseModel):
+    id: str
+    etiqueta: str
+    inicial: bool
+    final: bool
+    siguientes: list[str]
+
+
+class FlujoEstados(BaseModel):
+    estados: list[EstadoFlujo]

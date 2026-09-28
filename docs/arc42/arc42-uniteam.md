@@ -577,6 +577,7 @@ enlaza a ellas.
 | [0009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md) | Usar Aiven for MySQL como base de datos gestionada. | Aceptada |
 | [0010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) | Usar Auth0 como proveedor de identidad del despliegue. | Aceptada |
 | [0011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md) | Mantener la API despierta con un sondeo externo en la franja de uso. Reemplaza en parte a 0008. | Aceptada |
+| [0012](../adr/0012-publicar-el-flujo-de-estados-desde-el-dominio.md) | Publicar el flujo de estados desde el dominio; la Aplicación Web no los duplica. | Aceptada |
 
 ---
 

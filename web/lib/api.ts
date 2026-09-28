@@ -9,7 +9,8 @@ export const API =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export type Prioridad = "baja" | "media" | "alta";
-export type EstadoTarea = "pendiente" | "en_progreso" | "completada";
+/** Identificador de estado. Cuáles existen lo dice la API (GET /flujo-estados). */
+export type EstadoTarea = string;
 export type RolMiembro = "integrante" | "lider";
 
 export interface Miembro {
@@ -41,6 +42,14 @@ export interface Progreso {
   sin_responsable: number;
   vencidas: number;
   porcentaje_completado: number;
+}
+
+export interface EstadoFlujo {
+  id: EstadoTarea;
+  etiqueta: string;
+  inicial: boolean;
+  final: boolean;
+  siguientes: EstadoTarea[];
 }
 
 export class ErrorApi extends Error {
@@ -92,6 +101,26 @@ async function pedir<T>(
   }
 
   return respuesta.status === 204 ? (undefined as T) : respuesta.json();
+}
+
+let flujo: Promise<EstadoFlujo[]> | null = null;
+
+/**
+ * Flujo de estados, tal como lo define el dominio (ADR 0012). Se pide una vez
+ * por carga de la aplicación: no cambia mientras la API no se redespliegue.
+ */
+export function obtenerFlujo(): Promise<EstadoFlujo[]> {
+  flujo ??= fetch(`${API}/flujo-estados`, { cache: "no-store" })
+    .then((r) => {
+      if (!r.ok) throw new ErrorApi(r.status, "No se pudo leer el flujo de estados.");
+      return r.json() as Promise<{ estados: EstadoFlujo[] }>;
+    })
+    .then((cuerpo) => cuerpo.estados)
+    .catch((e) => {
+      flujo = null;
+      throw e;
+    });
+  return flujo;
 }
 
 export const api = {
@@ -176,21 +205,7 @@ export const api = {
     pedir<Progreso>(`/proyectos/${id}/progreso`, token),
 };
 
-/** Estados a los que se puede pasar desde cada estado (espeja el dominio). */
-export const TRANSICIONES: Record<EstadoTarea, EstadoTarea[]> = {
-  pendiente: ["en_progreso"],
-  en_progreso: ["pendiente", "completada"],
-  completada: ["en_progreso"],
-};
-
-export const ESTADOS: EstadoTarea[] = ["pendiente", "en_progreso", "completada"];
 export const PRIORIDADES: Prioridad[] = ["alta", "media", "baja"];
-
-export const ETIQUETA_ESTADO: Record<EstadoTarea, string> = {
-  pendiente: "Pendiente",
-  en_progreso: "En progreso",
-  completada: "Completada",
-};
 
 export const ETIQUETA_PRIORIDAD: Record<Prioridad, string> = {
   alta: "Alta",

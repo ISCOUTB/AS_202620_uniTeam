@@ -5,7 +5,7 @@ import { useSesion } from "@/lib/sesion";
 const VENTAJAS = [
   {
     titulo: "Todo el trabajo en un tablero",
-    texto: "Pendiente, en progreso y completada: el equipo ve de un vistazo en qué punto está cada tarea.",
+    texto: "Cada tarea en la columna de su estado: el equipo ve de un vistazo en qué punto está el trabajo.",
   },
   {
     titulo: "Cada tarea tiene responsable",

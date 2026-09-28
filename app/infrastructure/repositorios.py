@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.config import ajustes
 from app.domain.modelos import (
+    ESTADO_FINAL,
     EstadoTarea,
     Miembro,
     Prioridad,
@@ -186,7 +187,7 @@ class RepositorioTareasSQL:
                 TareaTabla.proyecto_id == proyecto_id,
                 TareaTabla.fecha_limite.is_not(None),
                 TareaTabla.fecha_limite < hoy_local(),
-                TareaTabla.estado != EstadoTarea.COMPLETADA.value,
+                TareaTabla.estado != ESTADO_FINAL.value,
             )
         )
         return ResumenProgreso(

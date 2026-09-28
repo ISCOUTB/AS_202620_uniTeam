@@ -6,9 +6,8 @@ import { useSearchParams } from "next/navigation";
 import {
   api,
   ErrorApi,
-  ESTADOS,
-  ETIQUETA_ESTADO,
   ETIQUETA_PRIORIDAD,
+  obtenerFlujo,
   PESO_PRIORIDAD,
   PRIORIDADES,
   type EstadoTarea,
@@ -18,6 +17,7 @@ import {
   type Tarea,
 } from "@/lib/api";
 import { useAvisos } from "@/lib/avisos";
+import { Flujo } from "@/lib/flujo";
 import { nombreCorto } from "@/lib/formato";
 import { useLento } from "@/lib/lento";
 import { useSesion } from "@/lib/sesion";
@@ -51,6 +51,7 @@ export function Tablero() {
   const [proyecto, establecerProyecto] = useState<Proyecto | null>(null);
   const [tareas, establecerTareas] = useState<Tarea[] | null>(null);
   const [progreso, establecerProgreso] = useState<Progreso | null>(null);
+  const [flujo, establecerFlujo] = useState<Flujo | null>(null);
   const [error, establecerError] = useState<string | null>(null);
 
   const [texto, establecerTexto] = useState("");
@@ -76,11 +77,13 @@ export function Tablero() {
   const recargar = useCallback(async () => {
     if (!token || !id) return;
     try {
-      const [p, t, r] = await Promise.all([
+      const [p, t, r, f] = await Promise.all([
         api.obtenerProyecto(token, id),
         api.listarTareas(token, id),
         api.progreso(token, id),
+        obtenerFlujo(),
       ]);
+      establecerFlujo(new Flujo(f));
       establecerProyecto(p);
       establecerTareas(t);
       establecerProgreso(r);
@@ -226,7 +229,7 @@ export function Tablero() {
     );
   }
 
-  if (!proyecto || !tareas) {
+  if (!proyecto || !tareas || !flujo) {
     return (
       <>
         <p className="migas">
@@ -234,8 +237,8 @@ export function Tablero() {
         </p>
         <div className="tarjeta esqueleto" style={{ height: 120, marginBottom: 20 }} />
         <div className="kanban">
-          {ESTADOS.map((e) => (
-            <div key={e} className="columna esqueleto" style={{ height: 280 }} />
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="columna esqueleto" style={{ height: 280 }} />
           ))}
         </div>
         {lento && (
@@ -274,7 +277,7 @@ export function Tablero() {
           <div className="progreso-cabecera">
             <strong>{progreso.porcentaje_completado}% completado</strong>
             <span className="suave">
-              {progreso.por_estado.completada ?? 0} de {progreso.total} tareas
+              {progreso.por_estado[flujo.final?.id ?? ""] ?? 0} de {progreso.total} tareas
             </span>
           </div>
           <div className="barra" role="progressbar" aria-valuenow={progreso.porcentaje_completado} aria-valuemin={0} aria-valuemax={100}>
@@ -286,8 +289,10 @@ export function Tablero() {
               <div className="nombre">Tareas</div>
             </div>
             <div className="metrica">
-              <div className="valor">{progreso.por_estado.en_progreso ?? 0}</div>
-              <div className="nombre">En progreso</div>
+              <div className="valor">
+                {flujo.enCurso.reduce((suma, e) => suma + (progreso.por_estado[e.id] ?? 0), 0)}
+              </div>
+              <div className="nombre">En curso</div>
             </div>
             <div className={`metrica${progreso.sin_responsable > 0 ? " atencion" : ""}`}>
               <div className="valor">{progreso.sin_responsable}</div>
@@ -356,13 +361,13 @@ export function Tablero() {
           <button onClick={() => establecerDialogo({ modo: "crear" })}>Crear la primera tarea</button>
         </div>
       ) : (
-        <div className="kanban">
-          {ESTADOS.map((estado) => {
+        <div className="kanban" style={{ "--columnas": flujo.estados.length } as React.CSSProperties}>
+          {flujo.estados.map(({ id: estado, etiqueta }) => {
             const columna = visibles.filter((t) => t.estado === estado);
             return (
-              <section key={estado} className={`columna columna-${estado}`} aria-label={ETIQUETA_ESTADO[estado]}>
+              <section key={estado} className={`columna columna-${flujo.tipo(estado)}`} aria-label={etiqueta}>
                 <header>
-                  <h2>{ETIQUETA_ESTADO[estado]}</h2>
+                  <h2>{etiqueta}</h2>
                   <span className="contador">{columna.length}</span>
                 </header>
                 {columna.length === 0 ? (
@@ -372,6 +377,7 @@ export function Tablero() {
                     <TarjetaTarea
                       key={t.id}
                       tarea={t}
+                      flujo={flujo}
                       miembros={proyecto.miembros}
                       ocupada={ocupadas.has(t.id)}
                       puedeEliminar={esLider || t.creada_por === usuario}

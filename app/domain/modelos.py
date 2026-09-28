@@ -24,12 +24,26 @@ class EstadoTarea(str, Enum):
 
 
 # El flujo de estados vive en un único sitio a propósito: ESC-05 mide el costo
-# de añadir un estado nuevo, y esta tabla es el punto donde se añade.
+# de añadir un estado nuevo, y este bloque es el punto donde se añade. La API
+# lo publica en GET /flujo-estados y la Aplicación Web lo lee de ahí, así que
+# ningún otro componente conoce los estados (ADR 0012). El orden del enum es el
+# orden de las columnas del tablero.
 TRANSICIONES: dict[EstadoTarea, tuple[EstadoTarea, ...]] = {
     EstadoTarea.PENDIENTE: (EstadoTarea.EN_PROGRESO,),
     EstadoTarea.EN_PROGRESO: (EstadoTarea.PENDIENTE, EstadoTarea.COMPLETADA),
     EstadoTarea.COMPLETADA: (EstadoTarea.EN_PROGRESO,),
 }
+
+ETIQUETAS_ESTADO: dict[EstadoTarea, str] = {
+    EstadoTarea.PENDIENTE: "Pendiente",
+    EstadoTarea.EN_PROGRESO: "En progreso",
+    EstadoTarea.COMPLETADA: "Completada",
+}
+
+# Dónde nace una tarea y dónde se da por terminada: la que está en el estado
+# final no vence y cuenta para el porcentaje de avance.
+ESTADO_INICIAL = EstadoTarea.PENDIENTE
+ESTADO_FINAL = EstadoTarea.COMPLETADA
 
 
 def normalizar_usuario(usuario: str) -> str:
@@ -85,7 +99,7 @@ class Tarea:
     titulo: str
     creada_por: str
     prioridad: Prioridad = Prioridad.MEDIA
-    estado: EstadoTarea = EstadoTarea.PENDIENTE
+    estado: EstadoTarea = field(default_factory=lambda: ESTADO_INICIAL)
     responsable: Optional[str] = None
     fecha_limite: Optional[date] = None
     creada_en: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
@@ -142,5 +156,5 @@ class ResumenProgreso:
     def porcentaje_completado(self) -> float:
         if self.total == 0:
             return 0.0
-        completadas = self.por_estado.get(EstadoTarea.COMPLETADA.value, 0)
+        completadas = self.por_estado.get(ESTADO_FINAL.value, 0)
         return round(completadas * 100 / self.total, 1)
