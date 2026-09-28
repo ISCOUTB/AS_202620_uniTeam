@@ -50,12 +50,13 @@ tarjeta. Es un dato que exigen las ADR y que la documentación de Render no deja
 
 | Proveedor | ¿Pidió tarjeta? | Fecha | Quién lo comprobó |
 |-----------|-----------------|-------|-------------------|
-| Render | _por anotar_ | | |
-| Aiven | _por anotar_ | | |
-| Auth0 | _por anotar_ | | |
+| Render | **No** | 2026-09-27 | Julio César Emiliani Ramos, al crear la cuenta |
+| Aiven | **No** | 2026-09-27 | Julio César Emiliani Ramos, al crear la cuenta |
+| Auth0 | **No** | 2026-09-27 | Julio César Emiliani Ramos, al crear la cuenta |
 
-Si Render pide tarjeta, la alternativa sin tarjeta es la misma imagen en el servidor del
-laboratorio con `docker compose up`, que la guía del curso garantiza.
+Ninguno de los tres pidió tarjeta: la restricción [T5](../arc42/arc42-uniteam.md#21-restricciones-técnicas)
+se cumple para todas las piezas. Si en el futuro alguno la exigiera, la alternativa sin tarjeta
+es la misma imagen en el servidor del laboratorio con `docker compose up`.
 
 ## 2. Aiven: base de datos
 
@@ -151,6 +152,20 @@ siguientes, no.
 Luego, en el navegador: abrir el sitio, **Iniciar sesión**, entrar con Google, crear un
 proyecto y una tarea. Los logs de esa sesión se ven en *uniteam-api → Logs*, una línea JSON por
 petición.
+
+### Registro de comprobaciones
+
+| Momento (UTC) | Cómo | Resultado |
+|---------------|------|-----------|
+| 2026-09-28 00:25 | Navegador, desde Cartagena | Inicio de sesión con Google a través de Auth0; el correo llega en el token y la API lista los proyectos del usuario. Flujo completo: interfaz → API → Aiven. |
+| 2026-09-28 00:39 | [Workflow `despliegue.yml`, run 36362991640](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/runs/36362991640), corredor de GitHub | Sitio 200 (0,18 s) · `/callback/` 200 · `/health` 200 con base de datos `ok` · `/metricas/esc-01` 200 · `/metricas` 200 · API sin token 401. Revisión desplegada `f053ac255fe1`. |
+
+**Observación de la primera comprobación.** `/health` mide **200 ms de latencia hasta la base de
+datos** por consulta, y la primera consulta real del tablero tardó 0,90 s dentro de la API: casi
+todo es ida y vuelta a Aiven, porque la consulta del tablero hace varias. Cumple ESC-01 (p95 ≤
+2 s), pero con menos margen que la línea base local de 762 ms. Si el margen se estrecha, lo
+primero es comprobar en la consola de Aiven que el servicio está en la misma región que la API
+(Render Virginia) y, si no, recrearlo allí; lo segundo, reducir las consultas por petición.
 
 ## 6. Reversión
 

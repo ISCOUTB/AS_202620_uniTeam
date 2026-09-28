@@ -633,7 +633,8 @@ Riesgos identificados hasta la fecha. La lista crece a medida que avanza el dise
 | R-03 | El control de acceso atraviesa todos los endpoints; un error de diseño se propaga a todo el sistema. | ESC-03 | Pruebas automatizadas de acceso en integración continua, con un caso negativo por endpoint. |
 | R-04 | Deuda técnica aceptada de forma consciente por la presión de las entregas semanales. | O1, O2 | Registrarla en esta sección cuando se contraiga, en lugar de sobre-diseñar por anticipado. |
 | R-05 | La base de datos gratuita de Aiven se apaga por inactividad y no tiene SLA: no sostiene el 99 % mensual de ESC-04. | T5 | `/health` devuelve 503 y Render no enruta tráfico; se enciende desde la consola. Pasar a un plan de pago si ESC-04 se exige ([ADR-009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md)). |
-| R-06 | Las fuentes no coinciden en si Render pide tarjeta al registrarse, lo que chocaría con T5. | T5 | Se anota al crear la cuenta ([guía, paso 1](../despliegue/guia.md#1-cuentas)). Si la pide, la alternativa sin tarjeta es el servidor del laboratorio con `docker compose up`. |
+| R-06 | ~~Las fuentes no coinciden en si Render pide tarjeta al registrarse, lo que chocaría con T5.~~ **Cerrado el 2026-09-27:** ni Render, ni Aiven, ni Auth0 pidieron tarjeta al crear las cuentas. | T5 | Verificado y anotado en la [guía, paso 1](../despliegue/guia.md#1-cuentas). |
+| R-07 | La latencia de la API a la base de datos desplegada es de ~200 ms por consulta: la consulta del tablero tarda ~0,9 s dentro de la API frente a 0,76 s de p95 en local. Cumple ESC-01, con menos margen. | ESC-01 | Vigilar `/metricas/esc-01`. Comprobar que Aiven está en la región de la API; reducir las consultas por petición si el p95 se acerca a 2 s ([guía](../despliegue/guia.md#registro-de-comprobaciones)). |
 
 # 12. Glosario
 

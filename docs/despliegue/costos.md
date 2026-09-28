@@ -78,7 +78,7 @@ es «¿cabe en lo gratis?» sino «¿cuánto vale que la primera consulta del d�
 
 | Configuración | Costo mensual | ESC-01 en la 1.ª visita | ESC-04 (99 %) | Tarjeta |
 |---------------|---------------|-------------------------|---------------|---------|
-| **Elegida:** Render Free + Aiven Free + Auth0 Free | **0 USD** | No | No | Por verificar en Render |
+| **Elegida:** Render Free + Aiven Free + Auth0 Free | **0 USD** | No | No | **No** (verificado al crear las tres cuentas) |
 | Mínima que cumple ESC-01: API en Render Starter | **7 USD** | Sí | No | Sí |
 | La anterior + base de datos en Aiven Developer | **12 USD** | Sí | Mejor, sin garantía | Sí |
 | Servidor del laboratorio con `docker compose up` | **0 USD** | Sí, no se duerme | Depende del laboratorio | No |
