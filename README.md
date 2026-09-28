@@ -19,6 +19,7 @@ Tecnológica de Bolívar.
 | API | <https://uniteam-api.onrender.com> · [contrato OpenAPI](docs/api/openapi.yaml) |
 | Health check | <https://uniteam-api.onrender.com/health> |
 | Métrica de ESC-01 | <https://uniteam-api.onrender.com/metricas/esc-01> |
+| Comprobación desde Internet | [workflow `despliegue.yml`](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/workflows/despliegue.yml), cada 6 h: hora, código y tiempo de cada URL |
 | Análisis estático | [SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam) |
 
 Se entra con una cuenta de Google. La primera petición tras 15 minutos sin uso tarda alrededor

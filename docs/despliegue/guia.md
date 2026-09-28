@@ -14,14 +14,23 @@ cómo se revierte. Está escrita para que la siga alguien que no estuvo cuando s
 
 | | URL |
 |---|---|
-| Aplicación Web | `https://uniteam-web.onrender.com` <!-- sustituir por la URL real tras el primer despliegue --> |
+| Aplicación Web | `https://uniteam-web.onrender.com` |
 | API | `https://uniteam-api.onrender.com` |
 | Health check | `https://uniteam-api.onrender.com/health` |
 | Métrica de ESC-01 | `https://uniteam-api.onrender.com/metricas/esc-01` |
 | Métricas (Prometheus) | `https://uniteam-api.onrender.com/metricas` |
 
-Render añade un sufijo al nombre si `uniteam-api` o `uniteam-web` ya están cogidos; las URL
-reales son las que muestre la consola, y son las que deben quedar en esta tabla.
+Desplegado el 2026-09-27. Proveedor de identidad: el *tenant* de Auth0
+`dev-6nhlg2x2gaqmcsmv.us.auth0.com`. Base de datos: Aiven for MySQL, servicio
+`mysql-30e7be73-uniteam`. Ninguno de estos nombres es secreto; las credenciales viven en
+Render (§7).
+
+**Comprobación continua desde Internet.** El workflow
+[`despliegue.yml`](../../.github/workflows/despliegue.yml) consulta el sitio, el health check,
+la métrica de ESC-01 y el 401 sin token cada 6 horas desde los corredores de GitHub —fuera de
+la red de la universidad— y deja en el resumen de cada ejecución la hora, el código y el tiempo
+de respuesta: [historial de comprobaciones](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/workflows/despliegue.yml).
+También se lanza a mano con *Run workflow*.
 
 ---
 
@@ -132,6 +141,8 @@ curl -sS "$URL_API/metricas/esc-01"   # p95 del tablero frente al umbral de 2 s
 curl -sS "$URL_API/metricas" | grep ^uniteam_
 curl -sS -o /dev/null -w 'sin token=%{http_code}\n' "$URL_API/proyectos"   # 401
 ```
+
+Lo mismo, automatizado y con la hora registrada, lo hace el workflow `despliegue.yml`.
 
 La primera petición tras 15 minutos sin tráfico tarda alrededor de un minuto: la API despierta
 ([ADR-008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md#consecuencias)). Las

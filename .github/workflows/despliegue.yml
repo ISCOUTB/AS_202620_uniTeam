@@ -1,0 +1,73 @@
+name: Comprobación del despliegue
+
+# Comprueba el entorno desplegado desde fuera: los corredores de GitHub están
+# en Internet, no en la red de la universidad. Cada ejecución deja en su
+# resumen la hora, el código de respuesta y el tiempo de cada URL, que es la
+# evidencia que pide la S8 y que un evaluador puede consultar sin credenciales.
+#
+# No sirve para mantener la API despierta: cada 6 horas no lo consigue, y no
+# se pretende (ADR 0008).
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: read
+
+env:
+  URL_WEB: https://uniteam-web.onrender.com
+  URL_API: https://uniteam-api.onrender.com
+
+jobs:
+  comprobar:
+    name: Sitio, health check y métrica desde Internet
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Comprobar
+        run: |
+          set -u
+          fallos=0
+          momento=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
+
+          # La primera petición puede despertar la API (~1 min en la capa
+          # gratuita): se le da margen y se mide aparte.
+          despertar=$(curl -sS -o /dev/null -w '%{http_code} %{time_total}' --max-time 150 "$URL_API/health" || true)
+
+          medir() {  # $1 = nombre, $2 = URL, $3 = código esperado
+            read -r codigo tiempo < <(curl -sS -o /dev/null -w '%{http_code} %{time_total}\n' --max-time 60 "$2" || true)
+            estado="✅"; [ "$codigo" = "$3" ] || { estado="❌"; fallos=$((fallos + 1)); }
+            echo "| $1 | \`$2\` | $codigo (esperado $3) | ${tiempo} s | $estado |" >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          {
+            echo "## Comprobación del despliegue · $momento"
+            echo
+            echo "Primera petición a /health (puede incluir el arranque en frío): **$despertar** (código, segundos)"
+            echo
+            echo "| Qué | URL | Código | Tiempo | |"
+            echo "|---|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          medir "Aplicación Web" "$URL_WEB/" 200
+          medir "Callback OIDC" "$URL_WEB/callback/" 200
+          medir "Health check" "$URL_API/health" 200
+          medir "Métrica ESC-01" "$URL_API/metricas/esc-01" 200
+          medir "Métricas Prometheus" "$URL_API/metricas" 200
+          medir "API sin token" "$URL_API/proyectos" 401
+
+          {
+            echo
+            echo "### /health"
+            echo '```json'
+            curl -sS --max-time 60 "$URL_API/health" || true; echo
+            echo '```'
+            echo "### /metricas/esc-01"
+            echo '```json'
+            curl -sS --max-time 60 "$URL_API/metricas/esc-01" || true; echo
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          [ "$fallos" -eq 0 ] || { echo "::error::$fallos comprobaciones fallaron"; exit 1; }
