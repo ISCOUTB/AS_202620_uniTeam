@@ -6,7 +6,7 @@
  * cualquier secreto que se le entregara sería público.
  */
 
-const EMISOR = (process.env.NEXT_PUBLIC_OIDC_EMISOR ?? "http://localhost:9000").replace(/\/$/, "");
+export const EMISOR = (process.env.NEXT_PUBLIC_OIDC_EMISOR ?? "http://localhost:9000").trim().replace(/\/$/, "");
 const CLIENTE = process.env.NEXT_PUBLIC_OIDC_CLIENTE ?? "uniteam-web";
 // Algunos proveedores (Auth0) solo emiten un token de acceso en formato JWT,
 // verificable por la API, si se les pide para una audiencia concreta.
@@ -30,6 +30,12 @@ function descubrir(): Promise<Descubrimiento> {
     .then((r) => {
       if (!r.ok) throw new Error(`El emisor respondió ${r.status}`);
       return r.json();
+    }, () => {
+      // fetch solo rechaza sin respuesta: red caída, CORS o contenido mixto.
+      throw new Error(
+        "No hay respuesta. Revisa que la URL sea correcta y que el sitio esté en " +
+          "«Allowed Web Origins» del proveedor.",
+      );
     })
     .catch((e) => {
       descubrimiento = null;

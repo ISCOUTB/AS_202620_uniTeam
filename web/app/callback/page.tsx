@@ -17,7 +17,12 @@ function Canje() {
     const fallo = parametros.get("error");
 
     if (fallo) {
-      establecerError(`El proveedor de identidad devolvió: ${fallo}`);
+      // OIDC acompaña el código de error con una descripción legible
+      // (RFC 6749 §4.1.2.1); sin ella no hay forma de saber qué rechazó.
+      const detalle = parametros.get("error_description");
+      establecerError(
+        `El proveedor de identidad devolvió: ${fallo}${detalle ? ` — ${detalle}` : ""}`,
+      );
       return;
     }
     if (!codigo || !estado) {

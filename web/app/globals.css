@@ -169,3 +169,6 @@ button.secundario:hover:not(:disabled) { background: var(--fondo); }
 .aviso.error { border-left-color: var(--peligro); color: var(--peligro); }
 
 .vacio { color: var(--texto-suave); text-align: center; padding: 32px 0; }
+
+/* Error de inicio de sesión en la barra superior: visible, sin romper la cabecera. */
+.cabecera .error { color: var(--peligro); font-size: 13px; max-width: 460px; line-height: 1.3; }
