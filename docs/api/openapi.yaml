@@ -224,7 +224,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [pendiente, en_progreso, completada]
+            enum: [pendiente, en_progreso, en_revision, completada]
         - name: responsable
           in: query
           schema:
@@ -619,7 +619,7 @@ components:
       properties:
         estado:
           type: string
-          enum: [pendiente, en_progreso, completada]
+          enum: [pendiente, en_progreso, en_revision, completada]
     ProyectoSalida:
       type: object
       required: [id, nombre, miembros]
@@ -668,7 +668,7 @@ components:
           enum: [baja, media, alta]
         estado:
           type: string
-          enum: [pendiente, en_progreso, completada]
+          enum: [pendiente, en_progreso, en_revision, completada]
         responsable:
           type: string
           nullable: true

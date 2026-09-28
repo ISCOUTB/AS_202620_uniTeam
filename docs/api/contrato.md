@@ -328,7 +328,7 @@ Las tareas se ordenan por `creada_en` (ascendente) y desempatan por `id` (ascend
 
 | Campo | Tipo | Requerido |
 |-------|------|-----------|
-| `estado` | string | Sí — `"pendiente"`, `"en_progreso"`, `"completada"` |
+| `estado` | string | Sí — uno de los que publica `GET /flujo-estados`: hoy `"pendiente"`, `"en_progreso"`, `"en_revision"`, `"completada"` |
 
 **Errores:**
 
@@ -424,14 +424,36 @@ Las tareas se ordenan por `creada_en` (ascendente) y desempatan por `id` (ascend
 
 ## Flujo de estados de tarea
 
-```
-pendiente ──→ en_progreso ──→ completada
-    ↑                          │
-    └──────────────────────────┘
+Lo define el dominio y lo publica `GET /flujo-estados` ([ADR 0012](../adr/0012-publicar-el-flujo-de-estados-desde-el-dominio.md)):
+esa respuesta manda sobre esta tabla.
+
+```mermaid
+stateDiagram-v2
+    [*] --> pendiente
+    pendiente --> en_progreso
+    en_progreso --> pendiente
+    en_progreso --> en_revision
+    en_progreso --> completada
+    en_revision --> en_progreso
+    en_revision --> completada
+    completada --> en_progreso
 ```
 
 | Desde | Hacia | Permitido |
 |-------|-------|-----------|
+| `pendiente` | `en_progreso` | Sí |
+| `pendiente` | `en_revision`, `completada` | No → `409` |
+| `en_progreso` | `pendiente`, `en_revision`, `completada` | Sí |
+| `en_revision` | `en_progreso`, `completada` | Sí |
+| `en_revision` | `pendiente` | No → `409` |
+| `completada` | `en_progreso` | Sí |
+| `completada` | `pendiente`, `en_revision` | No → `409` |
+
+**Compatibilidad.** `en_revision` se añadió el 2026-09-28 sin retirar ninguna transición:
+`en_progreso → completada` sigue permitida. Un cliente que valide `estado` contra una lista
+cerrada debe aceptar valores nuevos; los estados válidos son los que publica `/flujo-estados`.
+
+-------|-------|-----------|
 | `pendiente` | `en_progreso` | Sí |
 | `pendiente` | `completada` | No → `409` |
 | `en_progreso` | `pendiente` | Sí |

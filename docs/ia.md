@@ -55,6 +55,7 @@ propusieron.
 | D-018 | 2026-09-28 | **Permisos de edición y eliminación de tareas:** cualquier miembro edita; solo quien creó la tarea o el líder la elimina, porque borrar no se deshace. Ambas operaciones se auditan. | Equipo | [Contrato de la API](api/contrato.md), [revisión](calidad/revision-2026-09-28.md) |
 | D-019 | 2026-09-28 | **Las identidades no distinguen mayúsculas:** todo correo se normaliza sin espacios y en minúsculas, en el token y en la entrada. | Equipo | [Contrato de la API](api/contrato.md#esquemas) |
 | D-020 | 2026-09-28 | **La API publica el flujo de estados y la Aplicación Web deja de duplicarlo.** Táctica de modificabilidad para ESC-05; una prueba falla si el frontend vuelve a escribir estados a mano. | Equipo | [ADR 0012](adr/0012-publicar-el-flujo-de-estados-desde-el-dominio.md) |
+| D-021 | 2026-09-28 | **Añadir el estado «En revisión»** entre «En progreso» y «Completada», sin retirar la transición directa a «Completada» para no romper a los clientes existentes. Es el estímulo de ESC-05 y se usa para medirlo. | Equipo | [Medición de ESC-05](calidad/mediciones/esc-05-en-revision.md) |
 
 ## Bitácora de uso de IA
 
@@ -122,3 +123,4 @@ propone más de lo que se acepta.
 | 2026-09-28 | Interfaz rehecha: tablero Kanban, edición, eliminación y reasignación de tareas, panel de integrantes, portada, notificaciones, búsqueda y filtros, avisos de vencimiento, modo oscuro, favicon y diseño responsive. | `web/` | D-018 | Sí, revisado por el equipo |
 | 2026-09-28 | Corrección: el tablero mostraba como mucho 50 tareas sin avisar, un token caducado no cerraba la sesión y cerrar sesión no permitía cambiar de cuenta en Auth0. | `web/lib/api.ts`, `web/lib/sesion.tsx`, `web/lib/oidc.ts` | — | Detectado en la revisión asistida por IA |
 | 2026-09-28 | `GET /flujo-estados` y la Aplicación Web construye columnas, etiquetas, flechas y colores a partir de él. Guardia en la CI contra estados escritos a mano. | `app/domain/modelos.py`, `app/api/rutas_flujo.py`, `web/lib/flujo.ts`, `web/app/proyecto/` | D-020 | Sí, revisado por el equipo |
+| 2026-09-28 | Estado «En revisión» en el flujo de las tareas. Solo cambió el dominio; la cuarta columna del tablero aparece sin tocar la Aplicación Web. Primera medición de ESC-05: cumple. | `app/domain/modelos.py` | D-021 | Sí, con la salvedad de esfuerzo anotada en la ficha |

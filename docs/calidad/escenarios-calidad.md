@@ -136,6 +136,11 @@ semestre con un equipo de dedicación parcial.
 **Cómo se verifica.** Cuando el cambio se ejecute realmente, se cronometra el esfuerzo y se
 cuentan los componentes tocados en el commit correspondiente.
 
+**Estado:** medido el 2026-09-28. **Cumple las cuatro medidas**: 1 componente modificado —el
+dominio de la API—, 0 cambios incompatibles, la suite existente en verde sin tocarla, y el cambio
+hecho en minutos, con la salvedad de que lo ejecutó un asistente de IA. Detalle y salvedades en
+[la ficha de la medición](mediciones/esc-05-en-revision.md).
+
 ---
 
 ## Resumen

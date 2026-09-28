@@ -77,3 +77,54 @@ def test_la_aplicacion_web_no_escribe_estados_a_mano():
                 if patron.search(linea):
                     hallazgos.append(f"{fichero.relative_to(RAIZ)}:{n}: {linea.strip()}")
     assert not hallazgos, "Estados escritos a mano en la Aplicación Web:\n" + "\n".join(hallazgos)
+
+
+# -- ESC-05: el estado «En revisión» -------------------------------------------
+
+
+def _tarea_en_progreso(cliente, cab):
+    proyecto = cliente.post("/proyectos", json={"nombre": "P", "miembros": []}, headers=cab("ana")).json()["id"]
+    tarea = cliente.post(f"/proyectos/{proyecto}/tareas", json={"titulo": "Informe"}, headers=cab("ana")).json()["id"]
+    ruta = f"/proyectos/{proyecto}/tareas/{tarea}/estado"
+    assert cliente.put(ruta, json={"estado": "en_progreso"}, headers=cab("ana")).status_code == 200
+    return proyecto, ruta
+
+
+def test_una_tarea_pasa_por_revision_antes_de_completarse(cliente, cab):
+    proyecto, ruta = _tarea_en_progreso(cliente, cab)
+    revision = cliente.put(ruta, json={"estado": "en_revision"}, headers=cab("ana"))
+    assert revision.status_code == 200 and revision.json()["estado"] == "en_revision"
+    assert cliente.put(ruta, json={"estado": "completada"}, headers=cab("ana")).status_code == 200
+    progreso = cliente.get(f"/proyectos/{proyecto}/progreso", headers=cab("ana")).json()
+    assert progreso["porcentaje_completado"] == 100.0
+
+
+def test_la_revision_puede_devolver_la_tarea(cliente, cab):
+    _, ruta = _tarea_en_progreso(cliente, cab)
+    cliente.put(ruta, json={"estado": "en_revision"}, headers=cab("ana"))
+    assert cliente.put(ruta, json={"estado": "en_progreso"}, headers=cab("ana")).status_code == 200
+
+
+def test_completar_sin_revision_sigue_permitido(cliente, cab):
+    """Compatibilidad: los clientes que ya pasaban de en_progreso a completada
+    no se rompen al añadir el estado (ESC-05: 0 cambios incompatibles)."""
+    _, ruta = _tarea_en_progreso(cliente, cab)
+    assert cliente.put(ruta, json={"estado": "completada"}, headers=cab("ana")).status_code == 200
+
+
+def test_no_se_llega_a_revision_desde_pendiente(cliente, cab):
+    proyecto = cliente.post("/proyectos", json={"nombre": "P", "miembros": []}, headers=cab("ana")).json()["id"]
+    tarea = cliente.post(f"/proyectos/{proyecto}/tareas", json={"titulo": "X"}, headers=cab("ana")).json()["id"]
+    respuesta = cliente.put(
+        f"/proyectos/{proyecto}/tareas/{tarea}/estado", json={"estado": "en_revision"}, headers=cab("ana")
+    )
+    assert respuesta.status_code == 409
+
+
+def test_el_tablero_filtra_por_el_estado_nuevo(cliente, cab):
+    proyecto, ruta = _tarea_en_progreso(cliente, cab)
+    cliente.put(ruta, json={"estado": "en_revision"}, headers=cab("ana"))
+    en_revision = cliente.get(
+        f"/proyectos/{proyecto}/tareas", params={"estado": "en_revision"}, headers=cab("ana")
+    ).json()
+    assert len(en_revision) == 1

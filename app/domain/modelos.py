@@ -20,6 +20,7 @@ class Prioridad(str, Enum):
 class EstadoTarea(str, Enum):
     PENDIENTE = "pendiente"
     EN_PROGRESO = "en_progreso"
+    EN_REVISION = "en_revision"
     COMPLETADA = "completada"
 
 
@@ -30,13 +31,21 @@ class EstadoTarea(str, Enum):
 # orden de las columnas del tablero.
 TRANSICIONES: dict[EstadoTarea, tuple[EstadoTarea, ...]] = {
     EstadoTarea.PENDIENTE: (EstadoTarea.EN_PROGRESO,),
-    EstadoTarea.EN_PROGRESO: (EstadoTarea.PENDIENTE, EstadoTarea.COMPLETADA),
+    # Completar sin pasar por revisión sigue permitido: quitar esa transición
+    # rompería a los clientes que ya la usan (ESC-05: 0 cambios incompatibles).
+    EstadoTarea.EN_PROGRESO: (
+        EstadoTarea.PENDIENTE,
+        EstadoTarea.EN_REVISION,
+        EstadoTarea.COMPLETADA,
+    ),
+    EstadoTarea.EN_REVISION: (EstadoTarea.EN_PROGRESO, EstadoTarea.COMPLETADA),
     EstadoTarea.COMPLETADA: (EstadoTarea.EN_PROGRESO,),
 }
 
 ETIQUETAS_ESTADO: dict[EstadoTarea, str] = {
     EstadoTarea.PENDIENTE: "Pendiente",
     EstadoTarea.EN_PROGRESO: "En progreso",
+    EstadoTarea.EN_REVISION: "En revisión",
     EstadoTarea.COMPLETADA: "Completada",
 }
 
