@@ -8,16 +8,22 @@ import uuid
 from typing import Optional
 
 from app.application.bus import BusEventos
-from app.application.puertos import RepositorioProyectos
+from app.application.puertos import RepositorioProyectos, RepositorioTareas
 from app.domain import eventos
 from app.domain.errores import AccesoDenegado
-from app.domain.modelos import Miembro, Proyecto, RolMiembro
+from app.domain.modelos import Miembro, Proyecto, ResumenCorto, RolMiembro
 
 
 class ServicioProyectos:
-    def __init__(self, proyectos: RepositorioProyectos, bus: BusEventos) -> None:
+    def __init__(
+        self,
+        proyectos: RepositorioProyectos,
+        bus: BusEventos,
+        tareas: Optional[RepositorioTareas] = None,
+    ) -> None:
         self._proyectos = proyectos
         self._bus = bus
+        self._tareas = tareas
 
     def crear(self, usuario: str, nombre: str, miembros: list[str]) -> Proyecto:
         """Crea un proyecto. Quien lo crea queda como líder."""
@@ -32,6 +38,15 @@ class ServicioProyectos:
     def listar_mios(self, usuario: str) -> list[Proyecto]:
         """Proyectos de los que el usuario es miembro. Nunca devuelve ajenos."""
         return self._proyectos.listar_por_usuario(usuario)
+
+    def listar_mios_con_resumen(self, usuario: str) -> list[tuple[Proyecto, ResumenCorto]]:
+        """Los mismos proyectos, cada uno con su resumen de avance, en dos
+        consultas agregadas en total y no una por proyecto."""
+        proyectos = self.listar_mios(usuario)
+        if self._tareas is None:
+            return [(p, ResumenCorto()) for p in proyectos]
+        resumenes = self._tareas.resumir_proyectos([p.id for p in proyectos])
+        return [(p, resumenes[p.id]) for p in proyectos]
 
     def obtener(self, usuario: str, proyecto_id: str) -> Proyecto:
         return self._autorizar(usuario, proyecto_id, "obtener_proyecto")

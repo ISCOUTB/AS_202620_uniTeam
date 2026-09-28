@@ -36,6 +36,20 @@ export interface Tarea {
   creada_en: string;
 }
 
+export interface ResumenProyecto {
+  total: number;
+  terminadas: number;
+  vencidas: number;
+}
+
+export interface ProyectoConResumen extends Proyecto {
+  resumen: ResumenProyecto;
+}
+
+export interface MiTarea extends Tarea {
+  proyecto_nombre: string;
+}
+
 export interface Progreso {
   total: number;
   por_estado: Record<string, number>;
@@ -125,7 +139,10 @@ export function obtenerFlujo(): Promise<EstadoFlujo[]> {
 
 export const api = {
   listarProyectos: (token: string) =>
-    pedir<Proyecto[]>("/proyectos", token),
+    pedir<ProyectoConResumen[]>("/proyectos", token),
+
+  misTareas: (token: string, incluirTerminadas = false) =>
+    pedir<MiTarea[]>(`/mis-tareas${incluirTerminadas ? "?incluir_terminadas=true" : ""}`, token),
 
   obtenerProyecto: (token: string, id: string) =>
     pedir<Proyecto>(`/proyectos/${id}`, token),
@@ -192,8 +209,9 @@ export const api = {
       body: JSON.stringify(cambios),
     }),
 
-  eliminarTarea: (token: string, id: string, tareaId: string) =>
-    pedir<void>(`/proyectos/${id}/tareas/${tareaId}`, token, { method: "DELETE" }),
+  /** `keepalive`: el borrado diferido puede lanzarse mientras se cierra la página. */
+  eliminarTarea: (token: string, id: string, tareaId: string, keepalive = false) =>
+    pedir<void>(`/proyectos/${id}/tareas/${tareaId}`, token, { method: "DELETE", keepalive }),
 
   asignarTarea: (token: string, id: string, tareaId: string, responsable: string) =>
     pedir<Tarea>(`/proyectos/${id}/tareas/${tareaId}/responsable`, token, {

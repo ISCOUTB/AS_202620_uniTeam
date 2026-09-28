@@ -97,6 +97,22 @@ class ProyectoDetalle(BaseModel):
     miembros: list[MiembroSalida]
 
 
+class ResumenProyecto(BaseModel):
+    total: int
+    terminadas: int
+    vencidas: int
+
+
+class ProyectoConResumen(ProyectoDetalle):
+    """Un proyecto de la lista, con lo necesario para dibujar su avance."""
+
+    resumen: ResumenProyecto
+
+
+class MiTareaSalida(TareaSalida):
+    proyecto_nombre: str
+
+
 class ProgresoSalida(BaseModel):
     total: int
     por_estado: dict[str, int]

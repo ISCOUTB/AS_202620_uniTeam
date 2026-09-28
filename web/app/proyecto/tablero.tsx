@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -62,6 +62,12 @@ export function Tablero() {
   const [dialogo, establecerDialogo] = useState<Dialogo>(null);
   const [guardando, establecerGuardando] = useState(false);
   const [verMiembros, establecerVerMiembros] = useState(false);
+  const [arrastrada, establecerArrastrada] = useState<Tarea | null>(null);
+  const [rapida, establecerRapida] = useState("");
+  const [creandoRapida, establecerCreandoRapida] = useState(false);
+  const busqueda = useRef<HTMLInputElement>(null);
+  /** Borrados en espera de «Deshacer»: el DELETE sale cuando vence el plazo. */
+  const borrados = useRef(new Map<string, { temporizador: number; ejecutar: (alSalir?: boolean) => void }>());
 
   const lento = useLento(token !== null && tareas === null && !error);
 
@@ -145,19 +151,97 @@ export function Tablero() {
       }
     });
 
-  const eliminar = (tarea: Tarea) =>
-    sobreTarea(tarea.id, async () => {
-      if (!token) return;
-      if (!window.confirm(`¿Eliminar la tarea «${tarea.titulo}»? No se puede deshacer.`)) return;
-      try {
-        await api.eliminarTarea(token, id, tarea.id);
-        establecerTareas((lista) => lista?.filter((t) => t.id !== tarea.id) ?? lista);
-        avisar("Tarea eliminada.");
-        void recargarProgreso();
-      } catch (e) {
-        avisar(mensaje(e, "No se pudo eliminar la tarea."), "error");
+  /**
+   * Eliminar con «Deshacer», como Gmail o Todoist: la tarjeta desaparece al
+   * instante y el borrado real sale a los 6 s si nadie se arrepiente. Borrar
+   * deja de ser un error irrecuperable (ESC-02) sin preguntar «¿seguro?».
+   */
+  function eliminar(tarea: Tarea) {
+    if (!token) return;
+    establecerTareas((lista) => lista?.filter((t) => t.id !== tarea.id) ?? lista);
+
+    const restaurar = () =>
+      establecerTareas((lista) => (lista && !lista.some((t) => t.id === tarea.id) ? [...lista, tarea] : lista));
+
+    const ejecutar = (alSalir = false) => {
+      borrados.current.delete(tarea.id);
+      api
+        .eliminarTarea(token, id, tarea.id, alSalir)
+        .then(() => void recargarProgreso())
+        .catch((e) => {
+          restaurar();
+          avisar(mensaje(e, "No se pudo eliminar la tarea."), "error");
+        });
+    };
+
+    const temporizador = window.setTimeout(() => ejecutar(), 6000);
+    borrados.current.set(tarea.id, { temporizador, ejecutar });
+    avisar(
+      `«${tarea.titulo}» eliminada.`,
+      "info",
+      {
+        etiqueta: "Deshacer",
+        alPulsar: () => {
+          window.clearTimeout(temporizador);
+          borrados.current.delete(tarea.id);
+          restaurar();
+        },
+      },
+      6000,
+    );
+  }
+
+  // Si se sale de la página con borrados en espera, se ejecutan ya: salir no
+  // equivale a deshacer. `keepalive` deja terminar la petición al cerrar.
+  useEffect(() => {
+    const pendientes = borrados.current;
+    const vaciar = () => {
+      for (const { temporizador, ejecutar } of pendientes.values()) {
+        window.clearTimeout(temporizador);
+        ejecutar(true);
       }
-    });
+    };
+    window.addEventListener("pagehide", vaciar);
+    return () => {
+      window.removeEventListener("pagehide", vaciar);
+      vaciar();
+    };
+  }, []);
+
+  async function crearRapida(evento: React.FormEvent) {
+    evento.preventDefault();
+    const titulo = rapida.trim();
+    if (!token || !titulo || creandoRapida) return;
+    establecerCreandoRapida(true);
+    try {
+      const nueva = await api.crearTarea(token, id, { titulo, prioridad: "media" });
+      establecerTareas((lista) => [...(lista ?? []), nueva]);
+      establecerRapida("");
+      void recargarProgreso();
+    } catch (e) {
+      avisar(mensaje(e, "No se pudo crear la tarea."), "error");
+    } finally {
+      establecerCreandoRapida(false);
+    }
+  }
+
+  // Atajos de teclado, como en Linear: «N» nueva tarea, «/» buscar.
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      const destino = e.target as HTMLElement;
+      if (dialogo || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (destino.closest("input, textarea, select, [contenteditable]")) return;
+      if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        establecerDialogo({ modo: "crear" });
+      } else if (e.key === "/") {
+        e.preventDefault();
+        busqueda.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [dialogo]);
 
   async function guardar(datos: DatosTarea) {
     if (!token || !dialogo) return;
@@ -265,7 +349,9 @@ export function Tablero() {
             </button>
           </div>
         </div>
-        <button onClick={() => establecerDialogo({ modo: "crear" })}>+ Nueva tarea</button>
+        <button onClick={() => establecerDialogo({ modo: "crear" })} title="Atajo: N">
+          + Nueva tarea
+        </button>
       </div>
 
       {error && <div className="aviso error">{error}</div>}
@@ -314,10 +400,11 @@ export function Tablero() {
 
       <div className="filtros">
         <input
+          ref={busqueda}
           type="search"
           value={texto}
           onChange={(e) => establecerTexto(e.target.value)}
-          placeholder="Buscar tareas…"
+          placeholder="Buscar tareas…  ( / )"
           aria-label="Buscar tareas por título"
         />
         <select value={filtroResponsable} onChange={(e) => establecerFiltroResponsable(e.target.value)} aria-label="Filtrar por responsable">
@@ -364,8 +451,27 @@ export function Tablero() {
         <div className="kanban" style={{ "--columnas": flujo.estados.length } as React.CSSProperties}>
           {flujo.estados.map(({ id: estado, etiqueta }) => {
             const columna = visibles.filter((t) => t.estado === estado);
+            // Mientras se arrastra, cada columna dice si admite la tarea: solo
+            // las transiciones que el flujo permite.
+            const admite = !!arrastrada && flujo.siguientes(arrastrada.estado).includes(estado);
+            const zona = !arrastrada ? "" : admite ? " destino-valido" : arrastrada.estado === estado ? "" : " destino-invalido";
             return (
-              <section key={estado} className={`columna columna-${flujo.tipo(estado)}`} aria-label={etiqueta}>
+              <section
+                key={estado}
+                className={`columna columna-${flujo.tipo(estado)}${zona}`}
+                aria-label={etiqueta}
+                onDragOver={(e) => {
+                  if (admite) {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                  }
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (arrastrada && admite) void mover(arrastrada, estado);
+                  establecerArrastrada(null);
+                }}
+              >
                 <header>
                   <h2>{etiqueta}</h2>
                   <span className="contador">{columna.length}</span>
@@ -384,9 +490,23 @@ export function Tablero() {
                       alMover={(destino) => void mover(t, destino)}
                       alAsignar={(r) => void asignar(t, r)}
                       alEditar={() => establecerDialogo({ modo: "editar", tarea: t })}
-                      alEliminar={() => void eliminar(t)}
+                      alEliminar={() => eliminar(t)}
+                      alEmpezarArrastre={() => establecerArrastrada(t)}
+                      alTerminarArrastre={() => establecerArrastrada(null)}
                     />
                   ))
+                )}
+                {flujo.tipo(estado) === "inicial" && (
+                  <form onSubmit={crearRapida} className="alta-rapida">
+                    <input
+                      value={rapida}
+                      onChange={(e) => establecerRapida(e.target.value)}
+                      placeholder="+ Añadir una tarea"
+                      aria-label="Título de la nueva tarea"
+                      maxLength={300}
+                      disabled={creandoRapida}
+                    />
+                  </form>
                 )}
               </section>
             );

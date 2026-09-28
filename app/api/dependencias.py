@@ -48,4 +48,8 @@ def obtener_servicio_proyectos(
 ) -> ServicioProyectos:
     bus = BusEventos()
     registrar_consumidores(bus, sesion, SesionLocal)
-    return ServicioProyectos(proyectos=RepositorioProyectosSQL(sesion), bus=bus)
+    return ServicioProyectos(
+        proyectos=RepositorioProyectosSQL(sesion),
+        bus=bus,
+        tareas=RepositorioTareasSQL(sesion),
+    )

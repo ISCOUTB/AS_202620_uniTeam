@@ -1,0 +1,19 @@
+{
+  "name": "UniTeam — Gestión de tareas de equipo",
+  "short_name": "UniTeam",
+  "description": "Gestión colaborativa de tareas para equipos universitarios.",
+  "lang": "es",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fa",
+  "theme_color": "#1168bd",
+  "icons": [
+    { "src": "/icono-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icono-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icono-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Mis tareas", "url": "/mis-tareas/", "icons": [{ "src": "/icono-192.png", "sizes": "192x192" }] }
+  ]
+}

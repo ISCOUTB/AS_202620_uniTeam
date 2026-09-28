@@ -167,3 +167,20 @@ class ResumenProgreso:
             return 0.0
         completadas = self.por_estado.get(ESTADO_FINAL.value, 0)
         return round(completadas * 100 / self.total, 1)
+
+
+@dataclass
+class ResumenCorto:
+    """Lo que cabe en la tarjeta de un proyecto: cuánto hay y cuánto falta."""
+
+    total: int = 0
+    terminadas: int = 0
+    vencidas: int = 0
+
+
+@dataclass
+class TareaConProyecto:
+    """Una tarea en una vista que cruza proyectos, como «Mis tareas»."""
+
+    tarea: Tarea
+    proyecto_nombre: str

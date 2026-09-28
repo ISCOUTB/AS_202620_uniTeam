@@ -75,6 +75,7 @@ Las tareas se ordenan por `creada_en` (ascendente) y desempatan por `id` (ascend
 | `GET` | `/health` | No | Disponibilidad: el proceso responde y alcanza la base de datos (200 o 503) |
 | `GET` | `/metricas` | No | Métricas en formato Prometheus |
 | `GET` | `/metricas/esc-01` | No | p95 del tablero frente al umbral de ESC-01 |
+| `GET` | `/mis-tareas` | Sí | Tareas asignadas al usuario en todos sus proyectos; `?incluir_terminadas=true` incluye las del estado final |
 | `GET` | `/flujo-estados` | No | Estados, etiquetas, orden y transiciones permitidas ([ADR 0012](../adr/0012-publicar-el-flujo-de-estados-desde-el-dominio.md)) |
 
 ### Proyectos

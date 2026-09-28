@@ -23,7 +23,9 @@ Tecnológica de Bolívar.
 | Análisis estático | [SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam) |
 | Última revisión de código | [2026-09-28](docs/calidad/revision-2026-09-28.md): defectos corregidos, funciones nuevas y pendientes |
 
-Se entra con una cuenta de Google o con un correo. De 06:00 a 23:59, hora de Colombia, un sondeo
+Se entra con una cuenta de Google o con un correo. En Chrome o Edge se puede **instalar como
+aplicación de escritorio** desde el icono de instalación de la barra de direcciones. En el
+tablero, `N` crea una tarea y `/` busca. De 06:00 a 23:59, hora de Colombia, un sondeo
 externo mantiene la API despierta ([ADR-011](docs/adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md));
 fuera de esa franja, la primera petición tarda alrededor de un minuto.
 
@@ -125,6 +127,8 @@ Toda operación sobre un proyecto exige pertenecer a él.
 | `PUT` | `/proyectos/{id}/tareas/{tarea}/estado` | Mueve la tarea de estado. |
 | `PATCH` | `/proyectos/{id}/tareas/{tarea}` | Edita título, prioridad o fecha límite. Cualquier miembro. |
 | `DELETE` | `/proyectos/{id}/tareas/{tarea}` | Elimina la tarea. Solo quien la creó o el líder. |
+| `GET` | `/mis-tareas` | Lo asignado al usuario en todos sus proyectos, de lo más urgente a lo menos. |
+| `GET` | `/flujo-estados` | Estados, etiquetas y transiciones. La Aplicación Web no los conoce de otra forma. |
 
 Todas las peticiones necesitan un token. Sin él, la API responde `401`.
 
@@ -231,7 +235,7 @@ Las variables `NEXT_PUBLIC_*` se hornean al compilar el frontend, no al arrancar
 ## Pruebas
 
 ```bash
-pytest -v                                    # 97 pruebas
+pytest -v                                    # 118 pruebas
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
 ```

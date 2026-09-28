@@ -2,7 +2,7 @@
 
 import { ETIQUETA_PRIORIDAD, type EstadoTarea, type Miembro, type Tarea } from "@/lib/api";
 import type { Flujo } from "@/lib/flujo";
-import { ETIQUETA_VENCIMIENTO, formatearDia, nombreCorto, vencimiento } from "@/lib/formato";
+import { diasHasta, fechaRelativa, formatearDia, nombreCorto, vencimiento } from "@/lib/formato";
 import { Avatar } from "../componentes/avatar";
 
 interface Props {
@@ -15,6 +15,8 @@ interface Props {
   alAsignar: (responsable: string) => void;
   alEditar: () => void;
   alEliminar: () => void;
+  alEmpezarArrastre: () => void;
+  alTerminarArrastre: () => void;
 }
 
 /** Una tarea en su columna del tablero, con sus acciones a mano. */
@@ -28,13 +30,24 @@ export function TarjetaTarea({
   alAsignar,
   alEditar,
   alEliminar,
+  alEmpezarArrastre,
+  alTerminarArrastre,
 }: Props) {
   const situacion = tarea.fecha_limite
     ? vencimiento(tarea.fecha_limite, flujo.esFinal(tarea.estado))
     : null;
 
   return (
-    <article className={`tarjeta-tarea prioridad-${tarea.prioridad}${ocupada ? " ocupada" : ""}`}>
+    <article
+      className={`tarjeta-tarea prioridad-${tarea.prioridad}${ocupada ? " ocupada" : ""}`}
+      draggable={!ocupada}
+      onDragStart={(e) => {
+        e.dataTransfer.setData("text/plain", tarea.id);
+        e.dataTransfer.effectAllowed = "move";
+        alEmpezarArrastre();
+      }}
+      onDragEnd={alTerminarArrastre}
+    >
       <div className="fila separado">
         <span className={`pastilla ${tarea.prioridad}`}>{ETIQUETA_PRIORIDAD[tarea.prioridad]}</span>
         <div className="fila acciones-icono">
@@ -59,9 +72,8 @@ export function TarjetaTarea({
 
       <div className="fila meta">
         {tarea.fecha_limite && (
-          <span className={`fecha ${situacion ?? ""}`} title={situacion ? ETIQUETA_VENCIMIENTO[situacion] : undefined}>
-            📅 {formatearDia(tarea.fecha_limite)}
-            {situacion && situacion !== "a_tiempo" && <strong> · {ETIQUETA_VENCIMIENTO[situacion]}</strong>}
+          <span className={`fecha ${situacion ?? ""}`} title={formatearDia(tarea.fecha_limite)}>
+            📅 {textoFecha(tarea.fecha_limite, situacion === "vencida")}
           </span>
         )}
       </div>
@@ -104,4 +116,12 @@ export function TarjetaTarea({
       </div>
     </article>
   );
+}
+
+/** «Vence mañana», «Venció hace 2 días»; lo lejano, con la fecha: «30 nov 2026». */
+function textoFecha(fecha: string, vencida: boolean): string {
+  const dias = diasHasta(fecha);
+  if (Math.abs(dias) > 14) return formatearDia(fecha);
+  const relativa = fechaRelativa(fecha);
+  return vencida ? `Venció ${relativa}` : `Vence ${relativa}`;
 }

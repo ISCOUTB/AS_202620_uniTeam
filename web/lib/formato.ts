@@ -39,13 +39,6 @@ export function vencimiento(fecha: string, terminada: boolean): Vencimiento | nu
   return fecha <= tope ? "pronto" : "a_tiempo";
 }
 
-export const ETIQUETA_VENCIMIENTO: Record<Vencimiento, string> = {
-  vencida: "Vencida",
-  hoy: "Vence hoy",
-  pronto: "Vence pronto",
-  a_tiempo: "",
-};
-
 /** Nombre corto para mostrar: la parte del correo antes de la arroba. */
 export function nombreCorto(usuario: string): string {
   return usuario.split("@")[0];
@@ -63,4 +56,18 @@ export function tono(usuario: string): number {
   let h = 0;
   for (const c of usuario) h = (h * 31 + c.charCodeAt(0)) % 360;
   return h;
+}
+
+const RELATIVA = new Intl.RelativeTimeFormat("es", { numeric: "auto" });
+
+/** Días desde hoy hasta la fecha: negativo si ya pasó. */
+export function diasHasta(fecha: string): number {
+  const [a, m, d] = fecha.split("-").map(Number);
+  const [ha, hm, hd] = hoyLocal().split("-").map(Number);
+  return Math.round((Date.UTC(a, m - 1, d) - Date.UTC(ha, hm - 1, hd)) / 86_400_000);
+}
+
+/** «hoy», «mañana», «en 3 días», «hace 2 días»: como lo diría una persona. */
+export function fechaRelativa(fecha: string): string {
+  return RELATIVA.format(diasHasta(fecha), "day");
 }

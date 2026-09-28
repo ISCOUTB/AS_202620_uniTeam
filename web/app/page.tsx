@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api, ErrorApi, type Proyecto } from "@/lib/api";
+import { api, ErrorApi, type ProyectoConResumen } from "@/lib/api";
 import { useAvisos } from "@/lib/avisos";
 import { pareceCorreo, useLento } from "@/lib/lento";
 import { useSesion } from "@/lib/sesion";
@@ -19,7 +19,7 @@ export default function PaginaProyectos() {
   const { avisar } = useAvisos();
   const router = useRouter();
 
-  const [proyectos, establecerProyectos] = useState<Proyecto[] | null>(null);
+  const [proyectos, establecerProyectos] = useState<ProyectoConResumen[] | null>(null);
   const [error, establecerError] = useState<string | null>(null);
   const [creando, establecerCreando] = useState(false);
   const [formularioAbierto, establecerFormulario] = useState(false);
@@ -159,6 +159,27 @@ export default function PaginaProyectos() {
                 <div className="fila separado">
                   <strong className="titulo-proyecto">{p.nombre}</strong>
                   {lider && <span className="insignia">Líder</span>}
+                </div>
+                <div className="avance-proyecto">
+                  <div className="fila separado suave">
+                    <span>
+                      {p.resumen.total === 0
+                        ? "Sin tareas todavía"
+                        : `${p.resumen.terminadas} de ${p.resumen.total} tareas terminadas`}
+                    </span>
+                    {p.resumen.vencidas > 0 && (
+                      <span className="vencidas-proyecto">
+                        {p.resumen.vencidas} vencida{p.resumen.vencidas === 1 ? "" : "s"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="barra fina">
+                    <div
+                      style={{
+                        width: `${p.resumen.total ? (p.resumen.terminadas * 100) / p.resumen.total : 0}%`,
+                      }}
+                    />
+                  </div>
                 </div>
                 <div className="fila separado pie-tarjeta">
                   <GrupoAvatares usuarios={p.miembros.map((m) => m.usuario)} />

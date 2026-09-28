@@ -9,6 +9,7 @@ from app.api.esquemas import (
     CambiarEstado,
     CrearTarea,
     EditarTarea,
+    MiTareaSalida,
     ProgresoSalida,
     TareaSalida,
 )
@@ -145,3 +146,21 @@ def eliminar_tarea(
     """Elimina la tarea. Solo quien la creó o el líder del proyecto."""
     servicio.eliminar_tarea(usuario, proyecto_id, tarea_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# Fuera del prefijo del proyecto: cruza todos los del usuario.
+mias = APIRouter(tags=["tareas"])
+
+
+@mias.get("/mis-tareas", response_model=list[MiTareaSalida])
+def mis_tareas(
+    incluir_terminadas: bool = False,
+    usuario: str = Depends(usuario_actual),
+    servicio: ServicioTareas = Depends(obtener_servicio),
+) -> list[MiTareaSalida]:
+    """Tareas asignadas al usuario en todos sus proyectos, las que tienen
+    fecha primero y de la más cercana a la más lejana. Hasta 200."""
+    return [
+        MiTareaSalida(**_salida(t.tarea).model_dump(), proyecto_nombre=t.proyecto_nombre)
+        for t in servicio.mis_tareas(usuario, incluir_terminadas)
+    ]

@@ -8,14 +8,22 @@ import { createContext, useCallback, useContext, useMemo, useState } from "react
  */
 
 type Tipo = "exito" | "error" | "info";
+
+/** Un botón dentro del aviso, como «Deshacer». */
+export interface AccionAviso {
+  etiqueta: string;
+  alPulsar: () => void;
+}
+
 interface Aviso {
   id: number;
   tipo: Tipo;
   texto: string;
+  accion?: AccionAviso;
 }
 
 interface Avisos {
-  avisar: (texto: string, tipo?: Tipo) => void;
+  avisar: (texto: string, tipo?: Tipo, accion?: AccionAviso, duracionMs?: number) => void;
 }
 
 const Contexto = createContext<Avisos | null>(null);
@@ -29,11 +37,11 @@ export function ProveedorAvisos({ children }: { children: React.ReactNode }) {
   }, []);
 
   const avisar = useCallback(
-    (texto: string, tipo: Tipo = "exito") => {
+    (texto: string, tipo: Tipo = "exito", accion?: AccionAviso, duracionMs?: number) => {
       const id = siguiente++;
       // Como mucho tres a la vez: más taparían el tablero.
-      establecer((lista) => [...lista.slice(-2), { id, tipo, texto }]);
-      window.setTimeout(() => cerrar(id), tipo === "error" ? 7000 : 3500);
+      establecer((lista) => [...lista.slice(-2), { id, tipo, texto, accion }]);
+      window.setTimeout(() => cerrar(id), duracionMs ?? (tipo === "error" ? 7000 : 3500));
     },
     [cerrar],
   );
@@ -47,6 +55,17 @@ export function ProveedorAvisos({ children }: { children: React.ReactNode }) {
         {avisos.map((a) => (
           <div key={a.id} className={`aviso-flotante ${a.tipo}`}>
             <span>{a.texto}</span>
+            {a.accion && (
+              <button
+                className="enlace accion-aviso"
+                onClick={() => {
+                  a.accion?.alPulsar();
+                  cerrar(a.id);
+                }}
+              >
+                {a.accion.etiqueta}
+              </button>
+            )}
             <button className="cerrar" aria-label="Cerrar aviso" onClick={() => cerrar(a.id)}>
               ×
             </button>

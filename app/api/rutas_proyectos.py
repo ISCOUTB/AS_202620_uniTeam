@@ -6,8 +6,10 @@ from app.api.esquemas import (
     AgregarMiembro,
     CrearProyecto,
     MiembroSalida,
+    ProyectoConResumen,
     ProyectoDetalle,
     ProyectoSalida,
+    ResumenProyecto,
 )
 from app.application.servicio_proyectos import ServicioProyectos
 from app.domain.modelos import Proyecto
@@ -38,13 +40,24 @@ def crear_proyecto(
     )
 
 
-@router.get("", response_model=list[ProyectoDetalle])
+@router.get("", response_model=list[ProyectoConResumen])
 def listar_mis_proyectos(
     usuario: str = Depends(usuario_actual),
     servicio: ServicioProyectos = Depends(obtener_servicio_proyectos),
-) -> list[ProyectoDetalle]:
-    """Proyectos de los que el usuario es miembro."""
-    return [_detalle(p) for p in servicio.listar_mios(usuario)]
+) -> list[ProyectoConResumen]:
+    """Proyectos de los que el usuario es miembro, con su avance.
+
+    `resumen` es un campo añadido: los clientes que solo leían id, nombre y
+    miembros siguen funcionando igual."""
+    return [
+        ProyectoConResumen(
+            **_detalle(p).model_dump(),
+            resumen=ResumenProyecto(
+                total=r.total, terminadas=r.terminadas, vencidas=r.vencidas
+            ),
+        )
+        for p, r in servicio.listar_mios_con_resumen(usuario)
+    ]
 
 
 @router.get("/{proyecto_id}", response_model=ProyectoDetalle)

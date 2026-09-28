@@ -12,7 +12,7 @@ from app.application.bus import BusEventos
 from app.application.puertos import RepositorioProyectos, RepositorioTareas
 from app.domain import eventos
 from app.domain.errores import AccesoDenegado, RecursoNoEncontrado
-from app.domain.modelos import EstadoTarea, Prioridad, ResumenProgreso, Tarea
+from app.domain.modelos import EstadoTarea, Prioridad, ResumenProgreso, Tarea, TareaConProyecto
 
 
 class ServicioTareas:
@@ -215,3 +215,11 @@ class ServicioTareas:
                 tarea_id=tarea_id, proyecto_id=proyecto_id, usuario=usuario
             )
         )
+
+    def mis_tareas(self, usuario: str, incluir_terminadas: bool = False) -> list[TareaConProyecto]:
+        """Lo que el usuario tiene asignado en todos sus proyectos.
+
+        No pasa por `_autorizar` porque no apunta a un proyecto concreto: la
+        consulta ya filtra por pertenencia, y un proyecto ajeno no puede
+        aparecer (ESC-03)."""
+        return self._tareas.asignadas_a(usuario, incluir_terminadas)

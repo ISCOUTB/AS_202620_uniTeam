@@ -13,9 +13,11 @@ from app.domain.modelos import (
     Miembro,
     Prioridad,
     Proyecto,
+    ResumenCorto,
     ResumenProgreso,
     RolMiembro,
     Tarea,
+    TareaConProyecto,
 )
 from app.infrastructure.tablas import (
     AuditoriaTabla,
@@ -163,6 +165,29 @@ class RepositorioTareasSQL:
         )
         return [self._a_dominio(f) for f in self._s.scalars(consulta).all()]
 
+    def resumir_proyectos(self, proyecto_ids: list[str]) -> dict[str, ResumenCorto]:
+        return resumir_proyectos(self._s, proyecto_ids)
+
+    def asignadas_a(self, usuario: str, incluir_terminadas: bool = False) -> list[TareaConProyecto]:
+        """Tareas cuyo responsable es el usuario, **solo** en proyectos de los que
+        es miembro: el filtro de pertenencia va en la consulta (ESC-03)."""
+        mis_proyectos = select(MiembroTabla.proyecto_id).where(MiembroTabla.usuario == usuario)
+        consulta = (
+            select(TareaTabla, ProyectoTabla.nombre)
+            .join(ProyectoTabla, ProyectoTabla.id == TareaTabla.proyecto_id)
+            .where(TareaTabla.responsable == usuario, TareaTabla.proyecto_id.in_(mis_proyectos))
+        )
+        if not incluir_terminadas:
+            consulta = consulta.where(TareaTabla.estado != ESTADO_FINAL.value)
+        # Primero lo que tiene fecha, de la más cercana a la más lejana.
+        consulta = consulta.order_by(
+            TareaTabla.fecha_limite.is_(None), TareaTabla.fecha_limite, TareaTabla.creada_en
+        ).limit(200)
+        return [
+            TareaConProyecto(tarea=self._a_dominio(fila), proyecto_nombre=nombre)
+            for fila, nombre in self._s.execute(consulta)
+        ]
+
     def resumir_progreso(self, proyecto_id: str) -> ResumenProgreso:
         """Cuenta en la base de datos, sin traer las tareas a memoria."""
         por_estado = dict(
@@ -196,6 +221,38 @@ class RepositorioTareasSQL:
             sin_responsable=int(sin_responsable or 0),
             vencidas=int(vencidas or 0),
         )
+
+
+def _resumenes_vacios(ids: list[str]) -> dict[str, ResumenCorto]:
+    return {i: ResumenCorto() for i in ids}
+
+
+def resumir_proyectos(sesion: Session, proyecto_ids: list[str]) -> dict[str, ResumenCorto]:
+    """Total, terminadas y vencidas de varios proyectos en dos consultas agregadas,
+    en vez de una petición de progreso por tarjeta."""
+    resumenes = _resumenes_vacios(proyecto_ids)
+    if not proyecto_ids:
+        return resumenes
+    for proyecto_id, estado, cuantas in sesion.execute(
+        select(TareaTabla.proyecto_id, TareaTabla.estado, func.count())
+        .where(TareaTabla.proyecto_id.in_(proyecto_ids))
+        .group_by(TareaTabla.proyecto_id, TareaTabla.estado)
+    ):
+        resumenes[proyecto_id].total += int(cuantas)
+        if estado == ESTADO_FINAL.value:
+            resumenes[proyecto_id].terminadas += int(cuantas)
+    for proyecto_id, cuantas in sesion.execute(
+        select(TareaTabla.proyecto_id, func.count())
+        .where(
+            TareaTabla.proyecto_id.in_(proyecto_ids),
+            TareaTabla.fecha_limite.is_not(None),
+            TareaTabla.fecha_limite < hoy_local(),
+            TareaTabla.estado != ESTADO_FINAL.value,
+        )
+        .group_by(TareaTabla.proyecto_id)
+    ):
+        resumenes[proyecto_id].vencidas = int(cuantas)
+    return resumenes
 
 
 class RepositorioAuditoriaSQL:

@@ -67,7 +67,17 @@ def test_la_aplicacion_web_no_escribe_estados_a_mano():
     Busca los identificadores de estado en el código de la Aplicación Web. Si
     aparece alguno, añadir un estado volvería a exigir cambiar dos contenedores.
     """
-    patron = re.compile(r"\b(" + "|".join(re.escape(e.value) for e in EstadoTarea) + r")\b")
+    # Detecta el estado usado como **código** —entre comillas, como propiedad
+    # (`.completada`), como clave (`pendiente:`) o como clase CSS
+    # (`columna-en_progreso`)—, no la palabra suelta en un texto: «No tienes
+    # nada pendiente» es castellano, no una copia del flujo.
+    ids = "|".join(re.escape(e.value) for e in EstadoTarea)
+    patron = re.compile(
+        rf"[\"'`]({ids})[\"'`]"  # "pendiente"
+        rf"|\.({ids})\b"  # por_estado.completada
+        rf"|\b({ids})\s*:"  # pendiente: [...]  /  completada: boolean
+        rf"|-({ids})\b"  # .columna-en_progreso
+    )
     hallazgos = []
     for carpeta in ("web/app", "web/lib"):
         for fichero in sorted((RAIZ / carpeta).rglob("*")):

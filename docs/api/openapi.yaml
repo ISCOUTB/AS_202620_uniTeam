@@ -97,6 +97,36 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ResumenESC01"
+  /mis-tareas:
+    get:
+      summary: Tareas asignadas al usuario en todos sus proyectos
+      description: >
+        Solo proyectos de los que el usuario es miembro. Primero las que tienen
+        fecha límite, de la más cercana a la más lejana. Hasta 200. Sin
+        `incluir_terminadas`, omite las que están en el estado final.
+      operationId: mis_tareas
+      tags:
+        - tareas
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: incluir_terminadas
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Tareas asignadas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MiTareaSalida"
+        "401":
+          $ref: "#/components/responses/NoAutenticado"
   /flujo-estados:
     get:
       summary: Flujo de estados de las tareas
@@ -131,7 +161,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/ProyectoDetalle"
+                  $ref: "#/components/schemas/ProyectoConResumen"
         "401":
           $ref: "#/components/responses/NoAutenticado"
     post:
@@ -467,6 +497,35 @@ components:
         type: string
         format: uuid
   schemas:
+    MiTareaSalida:
+      allOf:
+        - $ref: "#/components/schemas/TareaSalida"
+        - type: object
+          required: [proyecto_nombre]
+          properties:
+            proyecto_nombre:
+              type: string
+    ProyectoConResumen:
+      description: >
+        Proyecto de la lista con su avance. `resumen` se añadió el 2026-09-28;
+        los campos anteriores no cambian.
+      allOf:
+        - $ref: "#/components/schemas/ProyectoDetalle"
+        - type: object
+          required: [resumen]
+          properties:
+            resumen:
+              $ref: "#/components/schemas/ResumenProyecto"
+    ResumenProyecto:
+      type: object
+      required: [total, terminadas, vencidas]
+      properties:
+        total:
+          type: integer
+        terminadas:
+          type: integer
+        vencidas:
+          type: integer
     FlujoEstados:
       type: object
       required: [estados]

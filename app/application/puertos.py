@@ -4,7 +4,14 @@ Declararlos aquí permite que los casos de uso no dependan de SQLAlchemy.
 """
 from typing import Optional, Protocol
 
-from app.domain.modelos import EstadoTarea, Proyecto, ResumenProgreso, Tarea
+from app.domain.modelos import (
+    EstadoTarea,
+    Proyecto,
+    ResumenCorto,
+    ResumenProgreso,
+    Tarea,
+    TareaConProyecto,
+)
 
 
 class RepositorioProyectos(Protocol):
@@ -26,6 +33,8 @@ class RepositorioTareas(Protocol):
         desplazamiento: int = 0,
     ) -> list[Tarea]: ...
     def resumir_progreso(self, proyecto_id: str) -> ResumenProgreso: ...
+    def resumir_proyectos(self, proyecto_ids: list[str]) -> dict[str, ResumenCorto]: ...
+    def asignadas_a(self, usuario: str, incluir_terminadas: bool = False) -> list[TareaConProyecto]: ...
 
 
 class RepositorioAuditoria(Protocol):

@@ -333,7 +333,8 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 .tarjeta-proyecto:hover { text-decoration: none; border-color: var(--acento); box-shadow: var(--sombra-alta); transform: translateY(-1px); }
-.titulo-proyecto { font-size: 16px; }
+.titulo-proyecto { font-size: 16px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tarjeta-proyecto > .fila:first-child { flex-wrap: nowrap; }
 
 /* -- Resumen del proyecto ------------------------------------------------- */
 
@@ -466,10 +467,77 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
+/* -- Navegación ------------------------------------------------------------ */
+
+.cabecera-izquierda { gap: 28px; flex-wrap: nowrap; }
+.navegacion { display: flex; gap: 4px; }
+.navegacion a {
+  color: var(--texto-suave);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+.navegacion a:hover { text-decoration: none; background: var(--superficie-2); color: var(--texto); }
+.navegacion a.activa { color: var(--acento); background: var(--acento-suave); }
+
+/* -- Avance en la tarjeta de proyecto -------------------------------------- */
+
+.avance-proyecto { display: flex; flex-direction: column; gap: 6px; }
+.barra.fina { height: 5px; }
+.vencidas-proyecto { color: var(--peligro); font-weight: 600; }
+
+/* -- Mis tareas ------------------------------------------------------------ */
+
+.interruptor { font-size: 14px; color: var(--texto-suave); cursor: pointer; }
+.grupo-tareas { margin-bottom: 26px; }
+.grupo-tareas h2 { display: flex; align-items: center; gap: 8px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-suave); }
+.grupo-vencidas h2 { color: var(--peligro); }
+.grupo-hoy h2 { color: var(--aviso); }
+.lista-tareas { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.fila-tarea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--superficie);
+  border: 1px solid var(--borde);
+  border-left: 3px solid var(--borde-fuerte);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.fila-tarea.prioridad-alta { border-left-color: var(--peligro); }
+.fila-tarea.prioridad-media { border-left-color: var(--aviso); }
+.fila-tarea-principal { display: flex; flex-direction: column; min-width: 0; }
+.titulo-tarea { font-weight: 600; color: var(--texto); }
+.pastilla.estado { background: var(--acento-suave); color: var(--acento); }
+.fecha-relativa { font-size: 12px; color: var(--texto-suave); min-width: 90px; text-align: right; }
+
+/* -- Tablero: arrastrar, soltar y alta rápida ------------------------------ */
+
+.tarjeta-tarea[draggable="true"] { cursor: grab; }
+.tarjeta-tarea[draggable="true"]:active { cursor: grabbing; }
+.columna { transition: background 0.15s, border-color 0.15s, opacity 0.15s; }
+.columna.destino-valido { border: 2px dashed var(--acento); background: var(--acento-suave); }
+.columna.destino-invalido { opacity: 0.45; }
+
+.alta-rapida input {
+  width: 100%;
+  background: transparent;
+  border: 1px dashed var(--borde-fuerte);
+  color: var(--texto);
+}
+.alta-rapida input:focus { background: var(--superficie); border-style: solid; }
+
+.accion-aviso { font-size: 14px; font-weight: 700; margin-left: auto; }
+
 /* -- Pantallas estrechas -------------------------------------------------- */
 
 @media (max-width: 860px) {
   .kanban { grid-template-columns: 1fr; }
+  .cabecera-izquierda { gap: 12px; }
+  .marca-nombre { display: none; }
   .usuario-actual .usuario-correo { display: none; }
   .cabecera-interior, .contenido, .pie { padding-left: 16px; padding-right: 16px; }
 }
