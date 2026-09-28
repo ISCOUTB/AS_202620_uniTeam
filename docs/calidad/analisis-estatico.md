@@ -108,6 +108,10 @@ script. No forman parte de la aplicación desplegada.
 Se añadió de todos modos la misma comprobación de esquema que en el punto anterior, porque
 cuesta tres líneas y evita que una errata se convierta en una lectura de disco.
 
+**Revisión del 2026-09-28:** en `medir_esc01.py` el veredicto pasa a **corregido**; ver el
+[hallazgo 9](#9-destino-y-ruta-de-scriptsmedir_esc01py-tomados-de-la-línea-de-órdenes--corregido).
+`token_dev.py` sigue pendiente.
+
 ### 6. Credenciales de base de datos en el repositorio — **aceptado**
 
 **Dónde:** [`compose.yaml`](../../compose.yaml) y el servicio `mysql` de
@@ -143,8 +147,90 @@ local, y se añade lo que el despliegue exige:
   [`.env.example`](../../.env.example) como plantilla, y solo si falta usa valores de
   desarrollo. Los puertos se publican en `127.0.0.1`, no en todas las interfaces, y la comprobación
   de salud de MySQL ya no lleva la contraseña en la línea de órdenes.
-- La CI sigue usando credenciales fijas para su MySQL efímero: existe solo durante el trabajo y
-  no es alcanzable desde fuera del corredor.
+- ~~La CI sigue usando credenciales fijas para su MySQL efímero.~~ **Corregido el 2026-09-28**:
+  ver el [hallazgo 7](#7-contraseña-de-mysql-escrita-en-la-integración-continua--corregido).
+
+---
+
+## Revisión del 2026-09-28: hallazgos de SonarCloud
+
+SonarCloud señaló nueve hallazgos. Cinco se corrigen aquí y cuatro quedan
+[pendientes](#pendientes-de-decisión).
+
+### 7. Contraseña de MySQL escrita en la integración continua — **corregido**
+
+**Reglas:** S2068 (contraseña en el código) y S6697 (contraseña de MySQL en claro), ambas en el
+trabajo `pruebas` de [`ci.yml`](../../.github/workflows/ci.yml).
+
+El [hallazgo 6](#6-credenciales-de-base-de-datos-en-el-repositorio--aceptado) aceptó estas
+credenciales porque el MySQL de la CI es efímero y no se alcanza desde fuera del corredor. Ese
+razonamiento sigue siendo cierto, pero **el costo de no tenerlas es casi nulo**, así que el
+veredicto cambia:
+
+- El contenedor de servicio se sustituyó por un paso que arranca MySQL con una contraseña
+  generada en cada ejecución (`openssl rand -hex 24`), enmascarada en el registro con
+  `::add-mask::` antes de usarla, y con `MYSQL_RANDOM_ROOT_PASSWORD`: la de root no la conoce
+  nadie.
+- `DATABASE_URL` se construye en ese paso y pasa a los siguientes por `$GITHUB_ENV`.
+- La espera ya no usa `mysqladmin -p<contraseña>`: consulta por TCP con el usuario de las
+  pruebas y la contraseña en la variable `MYSQL_PWD`, fuera de la línea de órdenes. Por TCP,
+  porque durante la inicialización MySQL levanta un servidor temporal sin red. Si en 120 s no
+  responde, el paso falla y muestra el registro del contenedor.
+- El puerto se publica solo en `127.0.0.1`.
+
+`compose.yaml` no cambia: el [hallazgo 6](#6-credenciales-de-base-de-datos-en-el-repositorio--aceptado)
+y su revisión del 2026-09-27 siguen aplicando a lo local.
+
+### 8. Acción de terceros referenciada por etiqueta — **corregido**
+
+**Regla:** S7637, sobre `SonarSource/sonarqube-scan-action@v5` en el trabajo `sonarcloud`.
+
+Una etiqueta como `v5` es una referencia móvil: quien controle el repositorio de la acción puede
+moverla a otro código, y ese código se ejecutaría en la CI con acceso a `SONAR_TOKEN`. Un SHA de
+commit no se puede mover.
+
+Al revisarlo apareció algo más grave que la referencia: **la última `v5` (5.3.2) incluye un paso
+que avisa de que esa versión ya no tiene soporte y contiene una vulnerabilidad**, y pide pasar
+al menos a `v6`. El equipo eligió actualizar a **v8.2.2**, la última publicada, fijada por su SHA
+(`ba9859e…`) con la versión en un comentario. Los argumentos que usa UniTeam
+(`-Dsonar.qualitygate.wait` y `timeout`) no cambian entre versiones. Desde la v8 la acción
+verifica la firma del escáner que descarga, con `gpg`, que los corredores de GitHub ya traen.
+
+Las acciones de GitHub (`actions/checkout`, `actions/setup-python`…) siguen por etiqueta: S7637
+no las señala porque las publica la misma plataforma que ejecuta la CI.
+
+Un SHA fijo no se actualiza solo: para que no se quede atrás hace falta revisarlo a mano o
+activar Dependabot para `github-actions`.
+
+### 9. Destino y ruta de `scripts/medir_esc01.py` tomados de la línea de órdenes — **corregido**
+
+**Reglas:** S8703 (petición a una URL que llega de los argumentos) y S7044 (recorrido de la ruta
+de la API), ambas en `_peticion()`.
+
+El [hallazgo 5](#5-url-tomada-de-los-argumentos-de-línea-de-órdenes-ssrf--falso-positivo-con-refuerzo)
+lo trató como falso positivo porque quien escribe la URL es quien ejecuta el script. Sigue sin
+haber frontera de confianza, pero hay un riesgo real: **cada petición lleva el token del
+usuario**, y un `--url` con una errata se lo entrega a un servidor ajeno. Ahora:
+
+- **Destino:** la URL base se reconstruye a partir de constantes. Solo se admiten `http` o
+  `https`, un host de la lista `HOSTS_PERMITIDOS` (`localhost`, `127.0.0.1`, `::1` y la API
+  desplegada) y un puerto numérico. Se rechazan también la ruta, la consulta y las credenciales
+  en la URL.
+- **Ruta:** el identificador de proyecto, venga de `--proyecto` o de la respuesta de la API, debe
+  ser un UUID. Se convierte a su forma canónica y se codifica antes de entrar en la ruta, así que
+  valores como `../../metricas` no cambian el recurso consultado.
+
+Lo cubren las 27 pruebas de [`test/test_scripts.py`](../../test/test_scripts.py), ninguna de las
+cuales abre conexiones.
+
+### Pendientes de decisión
+
+Señalados por la misma revisión y todavía sin veredicto del equipo:
+
+| Regla | Dónde | Qué señala |
+|-------|-------|------------|
+| S5144 (×2), S8703 | [`scripts/token_dev.py`](../../scripts/token_dev.py) | Peticiones al emisor y a los *endpoints* que publica su documento de descubrimiento |
+| S6471 | [`web/Dockerfile`](../../web/Dockerfile) | La imagen de la Aplicación Web ejecuta nginx como root |
 
 ---
 

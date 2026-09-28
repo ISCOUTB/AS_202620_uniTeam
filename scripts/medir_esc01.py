@@ -22,6 +22,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
@@ -29,19 +30,50 @@ UMBRAL_P95 = 2.0
 UMBRAL_P99 = 4.0
 
 
-def _base_http(url: str) -> str:
-    """Normaliza la URL base y la acepta solo si es HTTP o HTTPS.
+# Servidores a los que el script puede apuntar: la API local y la desplegada.
+# Es un instrumento de medición de UniTeam y no tiene por qué hablar con nada más.
+HOSTS_PERMITIDOS = ("localhost", "127.0.0.1", "::1", "uniteam-api.onrender.com")
 
-    `urlopen` también habla `file://` y `ftp://`. La URL la escribe quien
-    ejecuta el script, no un usuario del sistema, pero comprobar el esquema
-    cuesta tres líneas y evita que una errata se convierta en una lectura de
-    disco.
+
+def _base_http(url: str) -> str:
+    """Devuelve la URL base de la API, reconstruida a partir de valores conocidos.
+
+    `urlopen` habla con cualquier servidor, y también `file://` y `ftp://`. La
+    URL la escribe quien ejecuta el script, pero el resultado se reconstruye
+    desde las constantes de este módulo —esquema y host de una lista cerrada,
+    puerto como entero— para que una errata no apunte la medición, y el token
+    que la acompaña, a otro sitio.
     """
-    url = url.rstrip("/")
-    esquema = urllib.parse.urlparse(url).scheme.lower()
-    if esquema not in ("http", "https"):
+    partes = urllib.parse.urlsplit(url.strip())
+    esquema = next((e for e in ("http", "https") if e == partes.scheme.lower()), None)
+    if esquema is None:
         raise SystemExit(f"La URL debe ser http o https: {url}")
-    return url
+    host = next((h for h in HOSTS_PERMITIDOS if h == partes.hostname), None)
+    if host is None:
+        raise SystemExit(
+            f"Host no permitido: {partes.hostname}. Se admite: {', '.join(HOSTS_PERMITIDOS)}"
+        )
+    if partes.path.strip("/") or partes.query or partes.fragment or partes.username:
+        raise SystemExit(f"La URL debe ser solo la base de la API, sin ruta ni credenciales: {url}")
+    try:
+        puerto = partes.port
+    except ValueError:
+        raise SystemExit(f"Puerto no válido: {url}") from None
+    anfitrion = f"[{host}]" if ":" in host else host
+    return f"{esquema}://{anfitrion}" + (f":{int(puerto)}" if puerto else "")
+
+
+def _id_de_proyecto(valor: object) -> str:
+    """Un identificador de proyecto es un UUID; cualquier otra cosa no entra en la ruta.
+
+    Sin esta comprobación, un `--proyecto` como `../../otra-ruta` —o una
+    respuesta inesperada de la API— cambiaría el recurso consultado.
+    """
+    try:
+        canonico = str(uuid.UUID(str(valor)))
+    except ValueError:
+        raise SystemExit(f"Identificador de proyecto no válido: {valor!r}") from None
+    return urllib.parse.quote(canonico, safe="")
 
 
 def _peticion(url: str, token: str, metodo: str = "GET", cuerpo: dict | None = None):
@@ -61,19 +93,20 @@ def preparar(base: str, token: str, tareas: int) -> str:
         "POST",
         {"nombre": f"Medición ESC-01 {datetime.now():%Y-%m-%d %H:%M}", "miembros": []},
     )
+    id_proyecto = _id_de_proyecto(proyecto["id"])
     for i in range(tareas):
         _peticion(
-            f"{base}/proyectos/{proyecto['id']}/tareas",
+            f"{base}/proyectos/{id_proyecto}/tareas",
             token,
             "POST",
             {"titulo": f"Tarea sintética {i:03d}", "prioridad": "media"},
         )
-    return proyecto["id"]
+    return id_proyecto
 
 
 def medir(base: str, token: str, proyecto: str, usuarios: int, por_usuario: int):
     """Cada usuario virtual consulta el tablero varias veces."""
-    url = f"{base}/proyectos/{proyecto}/tareas?limite=200"
+    url = f"{base}/proyectos/{_id_de_proyecto(proyecto)}/tareas?limite=200"
     latencias: list[float] = []
     errores = 0
 
@@ -111,7 +144,11 @@ def percentil(valores: list[float], p: float) -> float:
 
 def main() -> int:
     cli = argparse.ArgumentParser(description="Mide el escenario ESC-01.")
-    cli.add_argument("--url", default="http://localhost:8000")
+    cli.add_argument(
+        "--url",
+        default="http://localhost:8000",
+        help=f"Base de la API; host entre: {', '.join(HOSTS_PERMITIDOS)}",
+    )
     cli.add_argument("--token", required=True, help="Token del proveedor de identidad")
     cli.add_argument("--tareas", type=int, default=200)
     cli.add_argument("--usuarios", type=int, default=30)
@@ -122,7 +159,9 @@ def main() -> int:
     base = _base_http(argumentos.url)
 
     proyecto = argumentos.proyecto
-    if proyecto is None:
+    if proyecto is not None:
+        proyecto = _id_de_proyecto(proyecto)
+    else:
         print(f"Sembrando {argumentos.tareas} tareas…", flush=True)
         proyecto = preparar(base, argumentos.token, argumentos.tareas)
 

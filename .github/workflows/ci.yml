@@ -17,29 +17,27 @@ jobs:
     name: Pruebas contra MySQL
     runs-on: ubuntu-latest
 
-    services:
-      # Credenciales de un servicio efímero del corredor, no de un despliegue:
-      # docs/calidad/analisis-estatico.md las justifica.
-      mysql:
-        image: mysql:8.4
-        env:
-          MYSQL_ROOT_PASSWORD: uniteam
-          MYSQL_DATABASE: uniteam_test
-          MYSQL_USER: uniteam
-          MYSQL_PASSWORD: uniteam
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uuniteam -puniteam"
-          --health-interval=5s
-          --health-timeout=5s
-          --health-retries=20
-
-    env:
-      DATABASE_URL: mysql+pymysql://uniteam:uniteam@127.0.0.1:3306/uniteam_test
-
     steps:
       - uses: actions/checkout@v4
+
+      # Sin credenciales en el repositorio: la contraseña se genera en cada
+      # ejecución, se enmascara en el registro y desaparece con el corredor.
+      # La de root ni siquiera se conoce. Arranca antes de instalar
+      # dependencias para que MySQL se inicialice mientras tanto.
+      - name: Arrancar MySQL con una contraseña de un solo uso
+        run: |
+          clave="$(openssl rand -hex 24)"
+          echo "::add-mask::$clave"
+          docker run --detach --name mysql --publish 127.0.0.1:3306:3306 \
+            --env MYSQL_RANDOM_ROOT_PASSWORD=yes \
+            --env MYSQL_DATABASE=uniteam_test \
+            --env MYSQL_USER=uniteam \
+            --env "MYSQL_PASSWORD=$clave" \
+            mysql:8.4
+          {
+            echo "CLAVE_MYSQL=$clave"
+            echo "DATABASE_URL=mysql+pymysql://uniteam:$clave@127.0.0.1:3306/uniteam_test"
+          } >> "$GITHUB_ENV"
 
       - uses: actions/setup-python@v5
         with:
@@ -49,9 +47,26 @@ jobs:
       - name: Instalar dependencias
         run: "pip install --require-hashes --only-binary :all: -r requirements.lock.txt"
 
+      # Por TCP y con el usuario de las pruebas: durante la inicialización
+      # MySQL arranca un servidor temporal sin red, así que responder aquí
+      # significa que el definitivo ya acepta conexiones.
+      - name: Esperar a que MySQL acepte conexiones
+        run: |
+          for _ in $(seq 60); do
+            if docker exec --env "MYSQL_PWD=$CLAVE_MYSQL" mysql \
+                mysql --host=127.0.0.1 --user=uniteam --execute="SELECT 1" uniteam_test \
+                >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::MySQL no aceptó conexiones en 120 s."
+          docker logs mysql
+          exit 1
+
       # Determinista: compara lo que fija el repositorio consigo mismo, sin
       # volver a resolver contra PyPI. El cierre completo ya lo validó pip
-      # en el paso anterior, que en modo --require-hashes rechaza cualquier
+      # al instalar, que en modo --require-hashes rechaza cualquier
       # dependencia sin fijar.
       - name: Comprobar el cierre de dependencias
         run: |
@@ -73,7 +88,7 @@ jobs:
           test/test_corte_vertical.py test/test_tablero.py test/test_proyectos.py
           test/test_autenticacion.py test/test_operacion.py
           test/test_edicion_tareas.py test/test_robustez.py test/test_flujo_estados.py
-          test/test_vistas.py
+          test/test_vistas.py test/test_scripts.py
           --cov=app --cov-append --cov-report=xml --cov-report=term
 
       - name: Guardar el informe de cobertura
@@ -153,7 +168,10 @@ jobs:
       # prueba roja.
       - name: Analizar y esperar el Quality Gate
         if: env.SONAR_TOKEN != ''
-        uses: SonarSource/sonarqube-scan-action@v5
+        # Fijada por SHA: una etiqueta se puede mover, un commit no. La v5
+        # anterior ya no tiene soporte y su propio código avisa de una
+        # vulnerabilidad.
+        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
         with:
           args: >
             -Dsonar.qualitygate.wait=true
