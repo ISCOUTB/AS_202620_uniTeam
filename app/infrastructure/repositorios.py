@@ -17,7 +17,6 @@ from app.domain.modelos import (
     ResumenProgreso,
     RolMiembro,
     Tarea,
-    TareaConProyecto,
 )
 from app.infrastructure.tablas import (
     AuditoriaTabla,
@@ -168,14 +167,20 @@ class RepositorioTareasSQL:
     def resumir_proyectos(self, proyecto_ids: list[str]) -> dict[str, ResumenCorto]:
         return resumir_proyectos(self._s, proyecto_ids)
 
-    def asignadas_a(self, usuario: str, incluir_terminadas: bool = False) -> list[TareaConProyecto]:
-        """Tareas cuyo responsable es el usuario, **solo** en proyectos de los que
-        es miembro: el filtro de pertenencia va en la consulta (ESC-03)."""
-        mis_proyectos = select(MiembroTabla.proyecto_id).where(MiembroTabla.usuario == usuario)
-        consulta = (
-            select(TareaTabla, ProyectoTabla.nombre)
-            .join(ProyectoTabla, ProyectoTabla.id == TareaTabla.proyecto_id)
-            .where(TareaTabla.responsable == usuario, TareaTabla.proyecto_id.in_(mis_proyectos))
+    def asignadas_a(
+        self, usuario: str, proyecto_ids: list[str], incluir_terminadas: bool = False
+    ) -> list[Tarea]:
+        """Tareas cuyo responsable es el usuario dentro de los proyectos indicados.
+
+        La pertenencia **no se averigua aquí**: es dato de Proyectos y Equipos, y
+        quien llama (`ServicioTareas.mis_tareas`) la obtiene de su puerto y pasa
+        solo proyectos ya autorizados. El filtro sigue en la consulta, así que
+        una tarea de un proyecto no autorizado nunca llega a memoria (ESC-03).
+        """
+        if not proyecto_ids:
+            return []
+        consulta = select(TareaTabla).where(
+            TareaTabla.responsable == usuario, TareaTabla.proyecto_id.in_(proyecto_ids)
         )
         if not incluir_terminadas:
             consulta = consulta.where(TareaTabla.estado != ESTADO_FINAL.value)
@@ -183,10 +188,7 @@ class RepositorioTareasSQL:
         consulta = consulta.order_by(
             TareaTabla.fecha_limite.is_(None), TareaTabla.fecha_limite, TareaTabla.creada_en
         ).limit(200)
-        return [
-            TareaConProyecto(tarea=self._a_dominio(fila), proyecto_nombre=nombre)
-            for fila, nombre in self._s.execute(consulta)
-        ]
+        return [self._a_dominio(fila) for fila in self._s.scalars(consulta)]
 
     def resumir_progreso(self, proyecto_id: str) -> ResumenProgreso:
         """Cuenta en la base de datos, sin traer las tareas a memoria."""

@@ -10,7 +10,6 @@ from app.domain.modelos import (
     ResumenCorto,
     ResumenProgreso,
     Tarea,
-    TareaConProyecto,
 )
 
 
@@ -34,7 +33,9 @@ class RepositorioTareas(Protocol):
     ) -> list[Tarea]: ...
     def resumir_progreso(self, proyecto_id: str) -> ResumenProgreso: ...
     def resumir_proyectos(self, proyecto_ids: list[str]) -> dict[str, ResumenCorto]: ...
-    def asignadas_a(self, usuario: str, incluir_terminadas: bool = False) -> list[TareaConProyecto]: ...
+    def asignadas_a(
+        self, usuario: str, proyecto_ids: list[str], incluir_terminadas: bool = False
+    ) -> list[Tarea]: ...
 
 
 class RepositorioAuditoria(Protocol):
