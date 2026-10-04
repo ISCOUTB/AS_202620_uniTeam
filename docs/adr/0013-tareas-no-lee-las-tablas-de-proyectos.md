@@ -1,6 +1,6 @@
 # ADR-013 — Tareas no lee las tablas de Proyectos: la pertenencia se pide por el puerto
 
-- **Estado:** Propuesta — pasa a *Aceptada* cuando el equipo la apruebe y anote la fecha en [D-025](../ia.md#decisiones-tomadas-por-el-equipo)
+- **Estado:** Aceptada (2026-10-02, [D-025](../ia.md#decisiones-tomadas-por-el-equipo))
 - **Fecha:** 2026-10-04
 - **Decisores:** Equipo de desarrollo (I-04)
 - **Escenarios:** [ESC-03](../calidad/escenarios-calidad.md#esc-03) (seguridad) · [ESC-01](../calidad/escenarios-calidad.md#esc-01) (rendimiento)

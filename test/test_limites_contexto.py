@@ -12,7 +12,7 @@ from pathlib import Path
 from app.application.servicio_tareas import ServicioTareas
 from app.domain.modelos import Miembro, Proyecto, RolMiembro
 from app.infrastructure.repositorios import RepositorioTareasSQL
-from app.infrastructure.tablas import TareaTabla
+from app.infrastructure.tablas import ProyectoTabla, TareaTabla
 
 RAIZ = Path(__file__).resolve().parent.parent
 TABLAS_DE_PROYECTOS = {"ProyectoTabla", "MiembroTabla"}
@@ -70,6 +70,9 @@ def test_sin_proyectos_no_se_consulta_a_tareas():
 def test_el_repositorio_de_tareas_solo_devuelve_los_proyectos_que_se_le_pasan(sesion):
     """Aunque exista una tarea mía en otro proyecto, no sale si no se autorizó."""
     for pid in ("p1", "p2"):
+        # MySQL exige que el proyecto exista (clave foránea de `tareas`).
+        sesion.add(ProyectoTabla(id=pid, nombre=pid))
+        sesion.flush()
         sesion.add(
             TareaTabla(
                 id=f"t-{pid}", proyecto_id=pid, titulo=pid, creada_por="ana", prioridad="media",

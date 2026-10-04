@@ -1,6 +1,6 @@
 # ADR-014 — No incorporar un componente generativo en el sistema
 
-- **Estado:** Propuesta — pasa a *Aceptada* cuando el equipo la apruebe y anote la fecha en [D-026](../ia.md#decisiones-tomadas-por-el-equipo)
+- **Estado:** Aceptada (2026-10-02, [D-026](../ia.md#decisiones-tomadas-por-el-equipo))
 - **Fecha:** 2026-10-04
 - **Decisores:** Equipo de desarrollo (I-04)
 - **Escenarios:** [ESC-01](../calidad/escenarios-calidad.md#esc-01) · [ESC-03](../calidad/escenarios-calidad.md#esc-03)
