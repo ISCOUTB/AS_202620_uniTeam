@@ -35,6 +35,8 @@ propusieron.
 
 | ID | Fecha | Decisión | Tomada por | Dónde se refleja |
 |----|-------|----------|-----------|------------------|
+| D-026 | _AAAA-MM-DD (al aprobar)_ | **No incorporar un componente generativo en el sistema**: ningún escenario de calidad lo exige, el límite de 0 USD (D-011) y ESC-03 lo desaconsejan. Se reabre solo con un escenario que lo pida y con conjunto de evaluación, costo por operación y latencia. | Equipo (propuesta pendiente de aprobación) | [ADR 0014](adr/0014-no-incorporar-un-componente-generativo.md) |
+| D-025 | _AAAA-MM-DD (al aprobar)_ | **Tareas no lee las tablas de Proyectos:** la pertenencia se pide por el puerto de Proyectos y Tareas solo busca dentro de esos proyectos. Se acepta una consulta más por petición. | Equipo (propuesta pendiente de aprobación) | [ADR 0013](adr/0013-tareas-no-lee-las-tablas-de-proyectos.md), [propiedad de datos](calidad/propiedad-datos.md) |
 | D-001 | 2026-08-16 | Acotar el stack a **NestJS o FastAPI** en backend y **Flutter o Next.js** en frontend. Ninguna otra tecnología entra en consideración. | Equipo | Restricción T1 en [arc42 §2.1](arc42/arc42-uniteam.md#21-restricciones-técnicas), [ADR 0001](adr/0001-acotar-el-stack-a-cuatro-opciones.md) |
 | D-002 | 2026-08-16 | **No se desarrollará aplicación móvil.** El prototipo se entrega para navegador web y/o escritorio, y la elección del frontend queda condicionada por eso. | Equipo | Restricción T2 en [arc42 §2.1](arc42/arc42-uniteam.md#21-restricciones-técnicas), sección «Fuera del alcance» del [C4 nivel 1](c4/nivel1-contexto.md) |
 | D-003 | 2026-08-16 | Hacer **obligatorio** el registro en este documento de todo uso de IA generativa, de los cambios en la aplicación y de las decisiones del equipo. | Equipo | Este documento; restricción O4 en [arc42 §2.2](arc42/arc42-uniteam.md#22-restricciones-organizativas) |
@@ -81,6 +83,42 @@ propone más de lo que se acepta.
 | 2026-09-28 | Funciones de herramientas similares y medición de ESC-05 | Claude (Claude Code) | Buscar mejoras visuales y funcionales inspiradas en aplicaciones similares, dentro del stack, las restricciones, la línea de trabajo y lo que pide el repositorio de feedback. | Tres commits: la API publica el flujo de estados (ADR 0012) con una guardia que falla si el frontend lo duplica; el estado «En revisión» en un commit aparte, que mide ESC-05 por primera vez (1 componente); y Mis tareas, avance en las tarjetas de proyecto, deshacer al eliminar, arrastrar y soltar, alta rápida, atajos, fechas relativas e instalación como aplicación de escritorio. 21 pruebas nuevas y un recorrido de 24 pasos en navegador. | **Se descartaron** descripción, comentarios, subtareas, etiquetas, orden manual y actividad del proyecto porque exigen migraciones de esquema, y adjuntos y recordatorios porque serían piezas nuevas de despliegue. **No se propuso un asistente con IA generativa** por no haber escenario de calidad que lo pida. **La IA advirtió** de que el esfuerzo medido para ESC-05 es el de un asistente, no el de un día-persona del equipo, y de que conviene que un integrante repita el cambio y mida su tiempo. |
 | 2026-09-28 | Hallazgos de SonarCloud | Claude (Claude Code) | Resolver cinco hallazgos: contraseña de MySQL en la CI (S2068, S6697), acción de terceros sin fijar por SHA (S7637), y SSRF y recorrido de ruta en `scripts/medir_esc01.py` (S8703, S7044). | MySQL de la CI con contraseña aleatoria y enmascarada por ejecución, probado con un `docker` simulado; acción fijada por SHA; lista cerrada de hosts y validación de UUID en el script, con 27 pruebas; triaje de los hallazgos 7 a 9. El equipo eligió la versión de la acción (D-024). | **La IA encontró que la `v5` de la acción avisa en su propio código de que es vulnerable** y propuso subir de versión, no solo fijar el SHA; el equipo eligió la v8.2.2 frente a la v6. **Se dejaron fuera**, por no estar en la petición, los hallazgos de `token_dev.py` y de nginx como root, y **no se añadió Dependabot** sin aprobación. |
 | Semana 3 | Esqueleto ejecutable y preparación del repositorio | ChatGPT, Claude (Claude Code) | Aportar ideas y orientación para estructurar el esqueleto ejecutable, configurar el arranque del backend, definir una ruta mínima de comprobación, preparar la prueba automatizada y organizar las instrucciones de ejecución en el README. | Sugerencias sobre la estructura mínima del esqueleto, comandos de arranque con FastAPI/Uvicorn, ejemplos para la ruta de comprobación, orientación para la prueba automatizada y correcciones sobre la documentación de ejecución. | El equipo implementó y verificó el esqueleto ejecutable, revisó y corrigió las propuestas de las herramientas, comprobó el arranque del backend y ajustó el README con las instrucciones correspondientes antes de incorporarlas al repositorio. |
+| 2026-10-04 | Entrega incremental — «Mis tareas» y límites de contexto (A-12) | Claude | Auditar `app/` contra la propiedad de datos de la semana 6, elegir una porción real, corregirla con una prueba que falle ante el defecto, medirla y verificar dependencias y credenciales. | El hallazgo (`asignadas_a` unía `MiembroTabla` y `ProyectoTabla` desde Tareas), el refactor con la consulta de pertenencia por el puerto de Proyectos, las 4 pruebas de `test_limites_contexto.py`, `scripts/medir_mis_tareas.py`, `scripts/verificar_dependencias.py`, los ADR 0013 y 0014, la ficha de medición y la tabla de propiedad de datos. | **Rechazado:** dejar el `JOIN` y documentarlo (normaliza la erosión) y copiar la membresía a una tabla de Tareas por eventos (la autorización no puede llegar con retraso y exige migrar una base ya desplegada). **Corregido por la propia IA:** el cálculo del percentil del script de medición truncaba por aritmética de flotantes, y quedó una importación sin uso en `repositorios.py`. **Pendiente del equipo:** revisar el diff, aprobar D-025 y D-026 con fecha, y repetir la medición contra MySQL. |
+
+## Entrega incremental 2026-10-04: auditoría de erosión y verificación de lo que trajo el modelo
+
+### Auditoría de erosión
+
+¿La generación cruzó un límite de contexto o una regla de propiedad de datos de la semana 6? **Sí, una vez.**
+El código de «Mis tareas», generado con IA el 2026-09-28, consultaba en el repositorio de Tareas las tablas
+`MiembroTabla` y `ProyectoTabla`, que pertenecen a Proyectos y Equipos
+([hallazgo 1](calidad/propiedad-datos.md#violaciones-detectadas-en-el-código-actual)).
+**Cómo se detectó:** leyendo las consultas de cada repositorio durante la auditoría; no la detectó ninguna
+prueba, porque el comportamiento era correcto. **Cómo se corrigió:** la pertenencia se pide al puerto de Proyectos
+([ADR-013](adr/0013-tareas-no-lee-las-tablas-de-proyectos.md)), y una guardia estructural
+(`test_el_repositorio_de_tareas_no_toca_las_tablas_de_proyectos`) hace que la CI falle si vuelve a pasar.
+Los demás contextos revisados no tienen violaciones.
+
+### Verificación de las dependencias
+
+`python -m scripts.verificar_dependencias` consulta PyPI y npm para cada dependencia directa. Resultado del
+2026-10-04: **18 de 18 existen**, con la versión fijada publicada y un repositorio de origen reconocible
+(FastAPI, SQLAlchemy, PyJWT, Next.js, React…). Esta entrega **no añadió ninguna dependencia** (`requirements.txt` y
+`web/package.json` sin cambios). Límite de la comprobación: confirma existencia y procedencia declarada, no
+ausencia de vulnerabilidades; de eso se encarga SonarCloud ([D-009](#decisiones-tomadas-por-el-equipo)).
+
+### Verificación de credenciales
+
+Búsqueda de patrones de credenciales (claves de nube, tokens de GitHub, claves privadas, URL con contraseña) en el
+árbol de trabajo y en los **69 commits** del historial: **0 coincidencias reales**. Quedan dos clases de valores,
+revisados a mano: la contraseña de desarrollo local `uniteam-local` en `compose.yaml` y el README (aceptada en el
+[triaje](calidad/analisis-estatico.md)), y valores de marcador en `.env.example` (`cambia-esto`). `.env` no está
+versionado. Límite: es una búsqueda por patrones, no un escáner de secretos dedicado.
+
+### Componente generativo
+
+Se decidió no incorporarlo: [ADR-014](adr/0014-no-incorporar-un-componente-generativo.md). Por eso no hay conjunto de
+evaluación ni estimación de costo por operación.
 
 ## Bitácora de cambios en la aplicación
 
@@ -141,3 +179,4 @@ propone más de lo que se acepta.
 | 2026-09-28 | Aplicación instalable: manifiesto e iconos. | `web/public/`, `web/app/layout.tsx` | D-022 | Sí |
 | 2026-09-28 | La CI arranca su MySQL con una contraseña generada en cada ejecución y enmascarada; el repositorio ya no contiene la del contenedor de pruebas. Acción de SonarCloud en v8.2.2, fijada por SHA. | `.github/workflows/ci.yml` | D-024 | Sí, revisado por el equipo |
 | 2026-09-28 | `scripts/medir_esc01.py` solo apunta a la API local o a la desplegada, y solo admite UUID como identificador de proyecto. | `scripts/medir_esc01.py`, `test/test_scripts.py` | D-024 | Sí, revisado por el equipo |
+| 2026-10-04 | «Mis tareas» pide la pertenencia al puerto de Proyectos y Tareas deja de leer `MiembroTabla` y `ProyectoTabla`; 4 pruebas nuevas, medición en SQLite y verificación de dependencias. | `app/application/servicio_tareas.py`, `app/application/puertos.py`, `app/infrastructure/repositorios.py`, `scripts/` | D-025 (pendiente de aprobar) | Sí; revisión del equipo pendiente |

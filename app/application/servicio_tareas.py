@@ -220,6 +220,13 @@ class ServicioTareas:
         """Lo que el usuario tiene asignado en todos sus proyectos.
 
         No pasa por `_autorizar` porque no apunta a un proyecto concreto: la
-        consulta ya filtra por pertenencia, y un proyecto ajeno no puede
-        aparecer (ESC-03)."""
-        return self._tareas.asignadas_a(usuario, incluir_terminadas)
+        pertenencia la responde Proyectos y Equipos (consulta síncrona, ADR 0003)
+        y Tareas solo busca dentro de esos proyectos. Un proyecto ajeno no puede
+        aparecer (ESC-03), y Tareas no lee las tablas de Proyectos (ADR 0013).
+        """
+        proyectos = self._proyectos.listar_por_usuario(usuario)
+        if not proyectos:
+            return []
+        nombres = {p.id: p.nombre for p in proyectos}
+        tareas = self._tareas.asignadas_a(usuario, list(nombres), incluir_terminadas)
+        return [TareaConProyecto(tarea=t, proyecto_nombre=nombres[t.proyecto_id]) for t in tareas]

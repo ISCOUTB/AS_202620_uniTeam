@@ -27,19 +27,23 @@ esta versión parte del mapa de contextos, no de una inspección línea por lín
 
 ## Violaciones detectadas en el código actual
 
-> Esta sección requiere revisar los routers de FastAPI y los modelos SQLAlchemy/Pydantic
-> con el criterio de auditoría y un par de puntos típicos a revisar primero; el laboratorio
-> pide llenarla con hallazgos reales.
+> Auditoría del 2026-10-04 sobre `app/`, con apoyo de IA y revisión del equipo pendiente
+> ([bitácora](../ia.md#bitácora-de-uso-de-ia)). Método: lectura de las importaciones y de las consultas
+> de cada repositorio, y búsqueda de referencias a tablas de otro contexto.
 
 **Criterio de violación** (según ADR-003): cualquier módulo que lea o escriba directamente
 en la tabla/repositorio de otro contexto en vez de usar consulta síncrona autorizada o
 evento de dominio.
 
-| # | Módulo que cruza el límite | Dato que toca sin ser dueño | Evidencia (archivo/línea) | Plan de corrección |
+| # | Módulo que cruza el límite | Dato que toca sin ser dueño | Evidencia | Plan de corrección / estado |
 | --- | --- | --- | --- | --- |
-| 1 | *(revisar)* Router de tareas | *(revisar)* ¿Escribe o consulta tabla de Proyecto/Membresía sin pasar por Proyectos y Equipos? | `app/...` | Exponer una consulta síncrona explícita en Proyectos y Equipos, o suscribirse al evento correspondiente en vez de leer la tabla directo |
-| 2 | *(revisar)* Notificaciones | *(revisar)* ¿Lee el estado de Tarea directo de la base en vez de reaccionar al evento `TareaCambioEstado`? | `app/...` | Migrar a consumidor de evento; eliminar el acceso directo |
-| 3 | *(revisar)* Auditoría | *(revisar)* ¿Escribe en su propia tabla desde más de un módulo (rompiendo dueño único de escritura)? | `app/...` | Centralizar la escritura de auditoría en un único servicio/publicador |
+| 1 | Tareas y Tablero (`RepositorioTareasSQL.asignadas_a`, vista «Mis tareas») | Membresía y nombre de Proyecto: unía `TareaTabla` con `MiembroTabla` y `ProyectoTabla` | `app/infrastructure/repositorios.py`, método `asignadas_a` (antes del commit de esta entrega) | **Corregida.** La pertenencia se pide por el puerto de Proyectos ([ADR-013](../adr/0013-tareas-no-lee-las-tablas-de-proyectos.md)); guardia en `test_limites_contexto.py` |
+| 2 | Notificaciones | — | No hay código: el contexto está en el [mapa](mapa-contextos.md) pero no se ha implementado, y nadie lee el estado de Tarea fuera de Tareas | **No aplica todavía.** Se revisa al implementarlo |
+| 3 | Auditoría | Su propia tabla | La escritura pasa solo por `RepositorioAuditoriaSQL`, invocado únicamente desde `app/events/consumidores.py` | **Sin violación.** Un solo escritor |
+| 4 | Proyectos y Equipos (`ServicioProyectos`) | Conteos de Tareas para el avance de cada proyecto | `servicio_proyectos.py:48`, vía `RepositorioTareas.resumir_proyectos` | **Observada, no corregida.** Es lectura por puerto, no por tablas, y encaja como consulta síncrona; queda anotada porque Proyectos depende del puerto de Tareas y Tareas del de Proyectos |
+
+La detección del hallazgo 1 fue por lectura del repositorio durante la auditoría; la prueba
+`test_el_repositorio_de_tareas_no_toca_las_tablas_de_proyectos` la convierte en detección automática en la CI.
 
 **Puntos a revisar primero en el código:**
 
