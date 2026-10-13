@@ -10,7 +10,12 @@ import os
 class Ajustes:
     @property
     def database_url(self) -> str:
-        return os.getenv("DATABASE_URL", "sqlite:///./uniteam.db")
+        url = os.getenv("DATABASE_URL")
+        if url:
+            return url
+        if self.entorno.lower() in {"produccion", "production"}:
+            raise RuntimeError("DATABASE_URL es obligatoria en produccion.")
+        return "sqlite:///./uniteam.db"
 
     @property
     def crear_esquema_al_arrancar(self) -> bool:
@@ -55,6 +60,15 @@ class Ajustes:
         return bool(self.oidc_emisor and self.oidc_audiencia)
 
     @property
+    def auth_disabled(self) -> bool:
+        """Modo demo sin OIDC; debe activarse solo para una entrega controlada."""
+        return os.getenv("AUTH_DISABLED", "0") == "1"
+
+    @property
+    def demo_usuario(self) -> str:
+        return os.getenv("DEMO_USER", "profesor@uniteam.local")
+
+    @property
     def origenes_permitidos(self) -> list[str]:
         """Orígenes que pueden llamar a la API desde un navegador.
 
@@ -62,8 +76,11 @@ class Ajustes:
         relación «Aplicación Web -> API» del C4 nivel 2 es una petición entre
         orígenes distintos y necesita CORS. La lista es explícita: nunca `*`.
         """
-        crudo = os.getenv("ORIGENES_PERMITIDOS", "http://localhost:3000")
-        return [o.strip() for o in crudo.split(",") if o.strip()]
+        crudo = os.getenv("ORIGENES_PERMITIDOS")
+        if not crudo and self.entorno.lower() in {"produccion", "production"}:
+            raise RuntimeError("ORIGENES_PERMITIDOS es obligatoria en produccion.")
+        crudo = crudo or "http://localhost:3000"
+        return [o.strip().rstrip("/") for o in crudo.split(",") if o.strip()]
 
 
 ajustes = Ajustes()

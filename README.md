@@ -61,6 +61,51 @@ Las contraseñas de la base de datos local salen de un archivo `.env` si existe 
 [`.env.example`](.env.example)— y, si no, de valores de desarrollo que solo abren un contenedor
 en tu máquina: los puertos se publican en `127.0.0.1`, no en la red.
 
+## Despliegue en Dokploy
+
+La opción preparada para Dokploy es el archivo [`docker-compose.yml`](docker-compose.yml), con
+cuatro servicios: `web` (Next.js exportado y servido por nginx), `api` (FastAPI), `migrate`
+(comando idempotente de esquema) y `db` (MySQL 8.4). No publica puertos directamente: Traefik
+debe enrutar los dominios a los servicios `web` y `api`.
+
+### Configuración de la aplicación
+
+1. Crea una aplicación desde Git, selecciona la rama `dokploy-deploy` y usa **Docker Compose**
+   con `docker-compose.yml` en la raíz.
+2. Configura el dominio público del frontend hacia `web` en el puerto `3000` y, si se expone la
+   API, un dominio separado hacia `api` en el puerto `8000`. No publiques `db` ni `migrate`.
+3. Define en Dokploy las variables de [`.env.example`](.env.example). En particular, `DATABASE_URL`,
+   `OIDC_EMISOR`, `OIDC_AUDIENCIA` y `ORIGENES_PERMITIDOS` son de la API.
+4. Las variables `NEXT_PUBLIC_*` no son secretos: se pasan como **build args** del servicio
+   `web`, porque Next.js las hornea en `npm run build`. Deben contener las URLs públicas finales
+   antes de compilar.
+5. El servicio `migrate` ejecuta `python migrate.py` antes de `api`. También se puede
+   ejecutar ese comando manualmente en la imagen `api` si Dokploy se configura como servicios
+   separados.
+
+### Puertos, base de datos y persistencia
+
+- Puerto del servicio `api`: `8000` (`PORT` configurable; es el puerto que debe registrarse en
+  Dokploy para el health check `/health`).
+- Puerto del servicio `web`: `3000` (`PORT` configurable; health check `/`).
+- Base de datos: MySQL 8.4. Si se usa la composición incluida, es el servicio `db` y la API
+  recibe `DATABASE_URL=mysql+pymysql://...@db:3306/uniteam`. Si se crea una base de datos MySQL
+  gestionada por Dokploy, usa su hostname interno en `DATABASE_URL` y no dupliques el servicio
+  `db`.
+- Volumen obligatorio para la base de datos incluida: `datos_mysql:/var/lib/mysql`. La API no
+  guarda uploads ni archivos de usuario; el SQLite local solo se usa en pruebas/desarrollo.
+
+El frontend usa `output: "export"`, por lo que no es compatible ni necesita `output: "standalone"`:
+se construye en la etapa Node y se sirve como archivos estáticos desde nginx. El proveedor OIDC
+real debe permitir como callback la ruta pública `/callback/` y como origen el dominio del frontend.
+
+### Modo demo para entrega
+
+Si la entrega no requiere autenticación real, se puede activar temporalmente `AUTH_DISABLED=1`,
+`DEMO_USER=profesor@uniteam.local` y `NEXT_PUBLIC_DEMO_MODE=1`. La web entra automáticamente como
+ese usuario y la API acepta las operaciones sin validar OIDC. Este modo no ofrece seguridad y debe
+volver a `0` antes de publicar para usuarios reales.
+
 > **El emisor de desarrollo no autentica a nadie.** Firma un token con el nombre que se le pida,
 > para que el sistema se pueda ejercitar sin cuentas externas. **Nunca debe desplegarse fuera de
 > desarrollo**; en su lugar va la cuenta institucional o Google, que es configuración

@@ -6,7 +6,7 @@
  * cualquier secreto que se le entregara sería público.
  */
 
-export const EMISOR = (process.env.NEXT_PUBLIC_OIDC_EMISOR ?? "http://localhost:9000").trim().replace(/\/$/, "");
+export const EMISOR = (process.env.NEXT_PUBLIC_OIDC_EMISOR ?? "").trim().replace(/\/$/, "");
 const CLIENTE = process.env.NEXT_PUBLIC_OIDC_CLIENTE ?? "uniteam-web";
 // Algunos proveedores (Auth0) solo emiten un token de acceso en formato JWT,
 // verificable por la API, si se les pide para una audiencia concreta.
