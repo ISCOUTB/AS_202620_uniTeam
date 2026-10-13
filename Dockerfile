@@ -42,7 +42,7 @@ FROM runtime AS api
 
 # La migración es un comando explícito del despliegue; el emisor de desarrollo
 # no entra en esta imagen.
-COPY scripts/migrate.py ./scripts/migrate.py
+COPY scripts/migrate.py ./migrate.py
 USER uniteam
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

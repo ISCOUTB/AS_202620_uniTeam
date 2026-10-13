@@ -79,7 +79,7 @@ debe enrutar los dominios a los servicios `web` y `api`.
 4. Las variables `NEXT_PUBLIC_*` no son secretos: se pasan como **build args** del servicio
    `web`, porque Next.js las hornea en `npm run build`. Deben contener las URLs públicas finales
    antes de compilar.
-5. El servicio `migrate` ejecuta `python scripts/migrate.py` antes de `api`. También se puede
+5. El servicio `migrate` ejecuta `python migrate.py` antes de `api`. También se puede
    ejecutar ese comando manualmente en la imagen `api` si Dokploy se configura como servicios
    separados.
 
