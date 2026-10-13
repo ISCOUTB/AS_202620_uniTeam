@@ -1,38 +1,50 @@
-# Imágenes del backend de UniTeam. Dos destinos a partir de la misma base:
+# Imagen de producción de la API de UniTeam.
 #
-#   api      la API, que es lo que se despliega. No lleva `scripts/`: una
-#            imagen de producción no debe poder firmar tokens de identidad.
-#   idp-dev  el emisor OIDC de desarrollo, solo para `docker compose up`.
-#
-#   docker build --target api -t uniteam-api .
-FROM python:3.11-slim AS base
+# El destino api es el predeterminado. idp-dev existe únicamente para el
+# compose local y no debe desplegarse en Dokploy.
+FROM python:3.11.11-slim-bookworm AS builder
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+WORKDIR /build
+COPY requirements.prod.txt ./
+
+RUN python -m venv /opt/venv \
+    && /opt/venv/bin/pip install --no-cache-dir --only-binary=:all: -r requirements.prod.txt
+
+
+FROM python:3.11.11-slim-bookworm AS runtime
+
+ENV PATH="/opt/venv/bin:$PATH" \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000
+
 WORKDIR /app
+COPY --from=builder /opt/venv /opt/venv
+COPY app ./app
 
-# El cierre con hash fija el árbol completo de dependencias y su huella;
-# --only-binary impide que pip ejecute el `setup.py` de un paquete al
-# instalarlo, que es por donde entra una dependencia comprometida.
-COPY requirements.lock.txt .
-RUN pip install --no-cache-dir --require-hashes --only-binary :all: \
-        -r requirements.lock.txt
-
-# Sin privilegios de root en ejecución.
-RUN useradd --create-home --uid 10001 uniteam
+RUN useradd --create-home --uid 10001 --user-group uniteam
 
 
-FROM base AS idp-dev
+FROM runtime AS idp-dev
+
+# Este destino es solo para el entorno local y nunca debe publicarse.
 COPY scripts ./scripts
 USER uniteam
+EXPOSE 9000
 CMD ["python", "scripts/emisor_dev.py"]
 
 
-# El último destino es el predeterminado: `docker build .` produce la API.
-FROM base AS api
-COPY app ./app
+FROM runtime AS api
+
+# La migración es un comando explícito del despliegue; el emisor de desarrollo
+# no entra en esta imagen.
+COPY scripts/migrate.py ./scripts/migrate.py
 USER uniteam
 EXPOSE 8000
-# PORT lo fija el proveedor de despliegue; 8000 en local.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+  CMD-SHELL python -c "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT', '8000') + '/health', timeout=4)" || exit 1
 CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers --forwarded-allow-ips='*'"]
