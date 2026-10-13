@@ -31,6 +31,9 @@ interface Sesion {
 }
 
 const Contexto = createContext<Sesion | null>(null);
+const MODO_DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
+const TOKEN_DEMO = "demo";
+const USUARIO_DEMO = "profesor@uniteam.local";
 
 /** Sesión del usuario, compartida por toda la aplicación. */
 export function ProveedorSesion({ children }: { children: React.ReactNode }) {
@@ -39,6 +42,10 @@ export function ProveedorSesion({ children }: { children: React.ReactNode }) {
   const [motivoCierre, establecerMotivo] = useState<string | null>(null);
 
   const refrescar = useCallback(() => {
+    if (MODO_DEMO) {
+      establecer(TOKEN_DEMO);
+      return;
+    }
     const guardado = leerToken();
     establecer(guardado && !caducado(guardado) ? guardado : null);
     if (guardado && caducado(guardado)) olvidar();
@@ -64,7 +71,7 @@ export function ProveedorSesion({ children }: { children: React.ReactNode }) {
   // El token dice cuándo caduca: se cierra la sesión en ese momento, no al
   // siguiente clic que fallaría.
   useEffect(() => {
-    if (!token) return;
+    if (!token || MODO_DEMO) return;
     const expira = contenidoDelToken(token)?.expira ?? 0;
     const espera = Math.max(expira - Date.now(), 0);
     const temporizador = window.setTimeout(
@@ -75,12 +82,14 @@ export function ProveedorSesion({ children }: { children: React.ReactNode }) {
   }, [token, caducar]);
 
   const salir = useCallback(() => {
+    if (MODO_DEMO) return;
     establecer(null);
     establecerMotivo(null);
     void cerrarSesionEnProveedor();
   }, []);
 
   const entrar = useCallback(() => {
+    if (MODO_DEMO) return Promise.resolve();
     establecerMotivo(null);
     return iniciarSesion();
   }, []);
@@ -88,7 +97,11 @@ export function ProveedorSesion({ children }: { children: React.ReactNode }) {
   const valor = useMemo<Sesion>(
     () => ({
       token,
-      usuario: token ? (contenidoDelToken(token)?.usuario.toLowerCase() ?? null) : null,
+      usuario: MODO_DEMO
+        ? USUARIO_DEMO
+        : token
+          ? (contenidoDelToken(token)?.usuario.toLowerCase() ?? null)
+          : null,
       cargado,
       motivoCierre,
       entrar,

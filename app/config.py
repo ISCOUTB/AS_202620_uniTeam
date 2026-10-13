@@ -60,6 +60,15 @@ class Ajustes:
         return bool(self.oidc_emisor and self.oidc_audiencia)
 
     @property
+    def auth_disabled(self) -> bool:
+        """Modo demo sin OIDC; debe activarse solo para una entrega controlada."""
+        return os.getenv("AUTH_DISABLED", "0") == "1"
+
+    @property
+    def demo_usuario(self) -> str:
+        return os.getenv("DEMO_USER", "profesor@uniteam.local")
+
+    @property
     def origenes_permitidos(self) -> list[str]:
         """Orígenes que pueden llamar a la API desde un navegador.
 

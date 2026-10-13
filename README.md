@@ -99,6 +99,13 @@ El frontend usa `output: "export"`, por lo que no es compatible ni necesita `out
 se construye en la etapa Node y se sirve como archivos estáticos desde nginx. El proveedor OIDC
 real debe permitir como callback la ruta pública `/callback/` y como origen el dominio del frontend.
 
+### Modo demo para entrega
+
+Si la entrega no requiere autenticación real, se puede activar temporalmente `AUTH_DISABLED=1`,
+`DEMO_USER=profesor@uniteam.local` y `NEXT_PUBLIC_DEMO_MODE=1`. La web entra automáticamente como
+ese usuario y la API acepta las operaciones sin validar OIDC. Este modo no ofrece seguridad y debe
+volver a `0` antes de publicar para usuarios reales.
+
 > **El emisor de desarrollo no autentica a nadie.** Firma un token con el nombre que se le pida,
 > para que el sistema se pueda ejercitar sin cuentas externas. **Nunca debe desplegarse fuera de
 > desarrollo**; en su lugar va la cuenta institucional o Google, que es configuración

@@ -137,6 +137,8 @@ def usuario_actual(authorization: Optional[str] = Header(default=None)) -> str:
     Sustituye a la cabecera `X-Usuario` que se usó como andamiaje hasta la
     integración del proveedor de identidad.
     """
+    if ajustes.auth_disabled:
+        return normalizar_usuario(ajustes.demo_usuario)
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
