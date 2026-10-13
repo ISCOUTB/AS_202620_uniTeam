@@ -80,7 +80,7 @@ class Ajustes:
         if not crudo and self.entorno.lower() in {"produccion", "production"}:
             raise RuntimeError("ORIGENES_PERMITIDOS es obligatoria en produccion.")
         crudo = crudo or "http://localhost:3000"
-        return [o.strip() for o in crudo.split(",") if o.strip()]
+        return [o.strip().rstrip("/") for o in crudo.split(",") if o.strip()]
 
 
 ajustes = Ajustes()
