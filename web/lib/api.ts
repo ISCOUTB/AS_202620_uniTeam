@@ -6,7 +6,7 @@
  */
 
 export const API =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+  process.env.NEXT_PUBLIC_API_URL ?? "";
 
 export type Prioridad = "baja" | "media" | "alta";
 /** Identificador de estado. Cuáles existen lo dice la API (GET /flujo-estados). */

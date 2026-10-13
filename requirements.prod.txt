@@ -1,0 +1,10 @@
+# Dependencias necesarias para ejecutar la API en producción.
+# Las dependencias de pruebas permanecen en requirements.txt y no entran en la imagen.
+fastapi==0.112.4
+uvicorn==0.30.6
+SQLAlchemy==2.0.52
+PyMySQL==1.1.1
+cryptography==43.0.3
+PyJWT==2.10.1
+prometheus-client==0.22.1
+tzdata==2025.2
