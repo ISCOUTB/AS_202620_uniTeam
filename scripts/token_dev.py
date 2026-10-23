@@ -21,30 +21,23 @@ import sys
 import urllib.parse
 import urllib.request
 
+EMISOR_DEV = "http://localhost:9000"
+
 
 def _b64(datos: bytes) -> str:
     return base64.urlsafe_b64encode(datos).rstrip(b"=").decode()
 
 
-def _base_http(url: str) -> str:
-    """Normaliza la URL base y la acepta solo si es HTTP o HTTPS.
+def obtener(usuario: str, cliente: str, redireccion: str) -> str:
+    class NoSeguir(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *_args, **_kwargs):
+            return None
 
-    `urlopen` también habla `file://` y `ftp://`. La URL la escribe quien
-    ejecuta el script, no un usuario del sistema, pero comprobar el esquema
-    cuesta tres líneas y evita que una errata se convierta en una lectura de
-    disco.
-    """
-    url = url.rstrip("/")
-    esquema = urllib.parse.urlparse(url).scheme.lower()
-    if esquema not in ("http", "https"):
-        raise SystemExit(f"La URL debe ser http o https: {url}")
-    return url
-
-
-def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
-    emisor = _base_http(emisor)
-    with urllib.request.urlopen(f"{emisor}/.well-known/openid-configuration") as r:
-        descubrimiento = json.load(r)
+    abridor = urllib.request.build_opener(NoSeguir)
+    # El emisor incluido en el proyecto tiene endpoints fijos. No se consulta
+    # descubrimiento remoto ni se aceptan destinos desde argumentos del CLI.
+    endpoint_autorizacion = f"{EMISOR_DEV}/authorize"
+    endpoint_token = f"{EMISOR_DEV}/token"
 
     verificador = _b64(secrets.token_bytes(32))
     reto = _b64(hashlib.sha256(verificador.encode()).digest())
@@ -60,13 +53,8 @@ def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
         "client_id": cliente,
     }).encode()
 
-    class NoSeguir(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, *_args, **_kwargs):
-            return None
-
-    abridor = urllib.request.build_opener(NoSeguir)
     try:
-        abridor.open(descubrimiento["authorization_endpoint"], data=cuerpo)
+        abridor.open(endpoint_autorizacion, data=cuerpo, timeout=10)
         raise SystemExit("El emisor no redirigió: no se obtuvo código.")
     except urllib.error.HTTPError as respuesta:
         destino = respuesta.headers.get("Location", "")
@@ -74,7 +62,7 @@ def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
     parametros = urllib.parse.parse_qs(urllib.parse.urlparse(destino).query)
     codigo = parametros.get("code", [None])[0]
     if not codigo:
-        raise SystemExit(f"No hay código en la redirección: {destino}")
+        raise SystemExit("El emisor no devolvió un código de autorización válido.")
 
     canje = urllib.parse.urlencode({
         "grant_type": "authorization_code",
@@ -83,19 +71,17 @@ def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
         "client_id": cliente,
         "code_verifier": verificador,
     }).encode()
-    with urllib.request.urlopen(descubrimiento["token_endpoint"], data=canje) as r:
+    with abridor.open(endpoint_token, data=canje, timeout=10) as r:
         return json.load(r)["access_token"]
 
 
 def main() -> int:
     cli = argparse.ArgumentParser(description="Token del emisor de desarrollo.")
     cli.add_argument("usuario", help="Identidad que llevará el token")
-    cli.add_argument("--emisor", default="http://localhost:9000")
     cli.add_argument("--cliente", default="uniteam-web")
     cli.add_argument("--redireccion", default="http://localhost:3000/callback")
     argumentos = cli.parse_args()
-    print(obtener(argumentos.emisor, argumentos.usuario, argumentos.cliente,
-                  argumentos.redireccion))
+    print(obtener(argumentos.usuario, argumentos.cliente, argumentos.redireccion))
     return 0
 
 

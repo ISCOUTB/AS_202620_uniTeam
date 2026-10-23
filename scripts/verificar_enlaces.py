@@ -25,23 +25,30 @@ def documentos():
             yield ruta
 
 
+def problemas_documento(ruta: Path) -> list[str]:
+    texto = ruta.read_text(encoding="utf-8")
+    rel = ruta.relative_to(RAIZ)
+    problemas = []
+
+    for m in ENLACE.finditer(texto):
+        destino = m.group(1).strip("<>")
+        if destino.startswith(("http", "mailto", "#")):
+            continue
+        camino = urllib.parse.unquote(destino.split("#")[0])
+        if camino and not (ruta.parent / camino).resolve().exists():
+            problemas.append(f"{rel}: destino inexistente -> {destino}")
+
+    for m in MALFORMADO.finditer(texto):
+        if "](" not in m.group(0):
+            problemas.append(f"{rel}: enlace malformado -> {m.group(0)}")
+
+    return problemas
+
+
 def main() -> int:
     problemas = []
     for ruta in documentos():
-        texto = ruta.read_text(encoding="utf-8")
-        rel = ruta.relative_to(RAIZ)
-
-        for m in ENLACE.finditer(texto):
-            destino = m.group(1).strip("<>")
-            if destino.startswith(("http", "mailto", "#")):
-                continue
-            camino = urllib.parse.unquote(destino.split("#")[0])
-            if camino and not (ruta.parent / camino).resolve().exists():
-                problemas.append(f"{rel}: destino inexistente -> {destino}")
-
-        for m in MALFORMADO.finditer(texto):
-            if "](" not in m.group(0):
-                problemas.append(f"{rel}: enlace malformado -> {m.group(0)}")
+        problemas.extend(problemas_documento(ruta))
 
     if problemas:
         print(f"{len(problemas)} problema(s) de enlaces:\n")
