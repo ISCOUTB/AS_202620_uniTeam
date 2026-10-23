@@ -22,5 +22,12 @@ export function useLento(cargando: boolean, ms = 4000): boolean {
 
 /** Correo con forma razonable. La API no lo exige; la interfaz, sí, para evitar erratas. */
 export function pareceCorreo(texto: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto);
+  const arroba = texto.indexOf("@");
+  const punto = texto.indexOf(".", arroba + 1);
+  return arroba > 0
+    && punto > arroba + 1
+    && punto < texto.length - 1
+    && !/[\s@]/.test(texto.slice(0, arroba))
+    && !/[\s@]/.test(texto.slice(arroba + 1, punto))
+    && !/[\s@]/.test(texto.slice(punto + 1));
 }

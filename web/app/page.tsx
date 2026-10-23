@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ErrorApi, type ProyectoConResumen } from "@/lib/api";
@@ -23,9 +23,14 @@ export default function PaginaProyectos() {
   const [error, establecerError] = useState<string | null>(null);
   const [creando, establecerCreando] = useState(false);
   const [formularioAbierto, establecerFormulario] = useState(false);
+  const campoNombre = useRef<HTMLInputElement>(null);
   const [nombre, establecerNombre] = useState("");
   const [miembros, establecerMiembros] = useState("");
   const lento = useLento(token !== null && proyectos === null && !error);
+
+  useEffect(() => {
+    if (formularioAbierto) campoNombre.current?.focus();
+  }, [formularioAbierto]);
 
   useEffect(() => {
     document.title = "Mis proyectos · UniTeam";
@@ -90,11 +95,11 @@ export default function PaginaProyectos() {
               <label className="campo">
                 <span className="etiqueta">Nombre</span>
                 <input
+                  ref={campoNombre}
                   value={nombre}
                   onChange={(e) => establecerNombre(e.target.value)}
                   placeholder="Proyecto de Arquitectura"
                   maxLength={200}
-                  autoFocus
                   required
                 />
               </label>

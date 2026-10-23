@@ -5,8 +5,13 @@
  * es la relación «Aplicación Web → API (REST/JSON)» del diagrama.
  */
 
-export const API =
-  (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+function sinBarrasFinales(url: string): string {
+  let fin = url.length;
+  while (fin > 0 && url[fin - 1] === "/") fin -= 1;
+  return url.slice(0, fin);
+}
+
+export const API = sinBarrasFinales(process.env.NEXT_PUBLIC_API_URL ?? "");
 
 export type Prioridad = "baja" | "media" | "alta";
 /** Identificador de estado. Cuáles existen lo dice la API (GET /flujo-estados). */

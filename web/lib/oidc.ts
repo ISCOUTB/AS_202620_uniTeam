@@ -55,7 +55,10 @@ function base64url(datos: Uint8Array | ArrayBuffer): string {
   const bytes = datos instanceof Uint8Array ? datos : new Uint8Array(datos);
   let texto = "";
   bytes.forEach((b) => (texto += String.fromCharCode(b)));
-  return btoa(texto).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  texto = btoa(texto).replaceAll("+", "-").replaceAll("/", "_");
+  if (texto.endsWith("=")) texto = texto.slice(0, -1);
+  if (texto.endsWith("=")) texto = texto.slice(0, -1);
+  return texto;
 }
 
 async function reto(verificador: string): Promise<string> {

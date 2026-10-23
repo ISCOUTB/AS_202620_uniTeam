@@ -34,17 +34,44 @@ def _base_http(url: str) -> str:
     cuesta tres líneas y evita que una errata se convierta en una lectura de
     disco.
     """
-    url = url.rstrip("/")
-    esquema = urllib.parse.urlparse(url).scheme.lower()
-    if esquema not in ("http", "https"):
+    partes = urllib.parse.urlsplit(url)
+    if partes.scheme.lower() not in ("http", "https") or not partes.netloc:
         raise SystemExit(f"La URL debe ser http o https: {url}")
+    if partes.username or partes.password or partes.query or partes.fragment:
+        raise SystemExit("La URL del emisor no puede incluir credenciales, consulta ni fragmento.")
+    return url.rstrip("/")
+
+
+def _validar_endpoint(url: str, emisor: str, nombre: str) -> str:
+    """Acepta endpoints OIDC solo en el mismo origen del emisor configurado."""
+    partes = urllib.parse.urlsplit(url)
+    base = urllib.parse.urlsplit(emisor)
+    origen = (partes.scheme.lower(), partes.hostname, partes.port)
+    origen_base = (base.scheme.lower(), base.hostname, base.port)
+    if (origen != origen_base or not partes.netloc or partes.username
+            or partes.password or partes.query or partes.fragment):
+        raise SystemExit(f"El {nombre} debe pertenecer al mismo origen que el emisor.")
     return url
 
 
 def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
     emisor = _base_http(emisor)
-    with urllib.request.urlopen(f"{emisor}/.well-known/openid-configuration") as r:
+    class NoSeguir(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *_args, **_kwargs):
+            return None
+
+    abridor = urllib.request.build_opener(NoSeguir)
+    with abridor.open(f"{emisor}/.well-known/openid-configuration", timeout=10) as r:
         descubrimiento = json.load(r)
+    try:
+        endpoint_autorizacion = _validar_endpoint(
+            descubrimiento["authorization_endpoint"], emisor, "authorization_endpoint"
+        )
+        endpoint_token = _validar_endpoint(
+            descubrimiento["token_endpoint"], emisor, "token_endpoint"
+        )
+    except (KeyError, TypeError) as error:
+        raise SystemExit("El descubrimiento OIDC no contiene endpoints válidos.") from error
 
     verificador = _b64(secrets.token_bytes(32))
     reto = _b64(hashlib.sha256(verificador.encode()).digest())
@@ -60,13 +87,8 @@ def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
         "client_id": cliente,
     }).encode()
 
-    class NoSeguir(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, *_args, **_kwargs):
-            return None
-
-    abridor = urllib.request.build_opener(NoSeguir)
     try:
-        abridor.open(descubrimiento["authorization_endpoint"], data=cuerpo)
+        abridor.open(endpoint_autorizacion, data=cuerpo, timeout=10)
         raise SystemExit("El emisor no redirigió: no se obtuvo código.")
     except urllib.error.HTTPError as respuesta:
         destino = respuesta.headers.get("Location", "")
@@ -74,7 +96,7 @@ def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
     parametros = urllib.parse.parse_qs(urllib.parse.urlparse(destino).query)
     codigo = parametros.get("code", [None])[0]
     if not codigo:
-        raise SystemExit(f"No hay código en la redirección: {destino}")
+        raise SystemExit("El emisor no devolvió un código de autorización válido.")
 
     canje = urllib.parse.urlencode({
         "grant_type": "authorization_code",
@@ -83,7 +105,7 @@ def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
         "client_id": cliente,
         "code_verifier": verificador,
     }).encode()
-    with urllib.request.urlopen(descubrimiento["token_endpoint"], data=canje) as r:
+    with abridor.open(endpoint_token, data=canje, timeout=10) as r:
         return json.load(r)["access_token"]
 
 

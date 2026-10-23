@@ -58,7 +58,7 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
   }
 
   return (
-    <div className="fondo-modal" onMouseDown={(e) => e.target === e.currentTarget && alCerrar()}>
+    <div className="fondo-modal">
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-dialogo">
         <form onSubmit={enviar}>
           <h2 id="titulo-dialogo">{tarea ? "Editar tarea" : "Nueva tarea"}</h2>
