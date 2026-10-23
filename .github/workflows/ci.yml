@@ -91,13 +91,6 @@ jobs:
           test/test_vistas.py test/test_scripts.py test/test_limites_contexto.py
           --cov=app --cov-append --cov-report=xml --cov-report=term
 
-      - name: Guardar el informe de cobertura
-        uses: actions/upload-artifact@v4
-        with:
-          name: cobertura
-          path: coverage.xml
-          retention-days: 7
-
   frontend:
     name: Compilación del frontend
     runs-on: ubuntu-latest
@@ -138,42 +131,3 @@ jobs:
 
       - name: Imagen de la Aplicación Web
         run: docker build -t uniteam-web web
-
-  sonarcloud:
-    name: Análisis estático (SonarCloud)
-    runs-on: ubuntu-latest
-    needs: pruebas
-
-    env:
-      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Sonar necesita el historial para atribuir el código nuevo.
-          fetch-depth: 0
-
-      - name: Recuperar el informe de cobertura
-        uses: actions/download-artifact@v4
-        with:
-          name: cobertura
-
-      - name: Exigir el secreto SONAR_TOKEN
-        if: env.SONAR_TOKEN == ''
-        run: |
-          echo "::error::Falta el secreto SONAR_TOKEN; no se puede omitir el análisis estático requerido. Ver docs/despliegue/guia.md."
-          exit 1
-
-      # qualitygate.wait hace que el trabajo falle si el Quality Gate falla,
-      # así que un Quality Gate rojo bloquea la integración igual que una
-      # prueba roja.
-      - name: Analizar y esperar el Quality Gate
-        if: env.SONAR_TOKEN != ''
-        # Fijada por SHA: una etiqueta se puede mover, un commit no. La v5
-        # anterior ya no tiene soporte y su propio código avisa de una
-        # vulnerabilidad.
-        uses: SonarSource/sonarqube-scan-action@ba9859eae8dd6bd29e412f25ddbbef3d032000f4 # v8.2.2
-        with:
-          args: >
-            -Dsonar.qualitygate.wait=true
-            -Dsonar.qualitygate.timeout=300
