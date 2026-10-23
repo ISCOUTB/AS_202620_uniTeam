@@ -302,9 +302,9 @@ el p95** frente a los 2 s comprometidos:
 
 En integración continua, en cada `push` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
 las pruebas **contra MySQL** con cobertura, la verificación de enlaces y del contrato OpenAPI,
-la compilación del frontend, la construcción de las dos imágenes y el análisis de
-**SonarCloud**, que espera al *Quality Gate* y falla si no pasa. Render solo despliega un commit
-con la CI en verde.
+la compilación del frontend y la construcción de las dos imágenes. SonarCloud analiza el
+repositorio por separado mediante análisis automático. Render solo despliega un commit con la CI
+en verde.
 
 El recorrido completo —interfaz, lógica y persistencia— está cubierto por
 [`test/test_corte_vertical.py`](test/test_corte_vertical.py), y la puerta de entrada por

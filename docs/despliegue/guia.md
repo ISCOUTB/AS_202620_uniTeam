@@ -215,7 +215,6 @@ Los sondeos correctos no aparecen en los logs; se ven en `/metricas`, bajo
 |---------|-------|
 | `DATABASE_URL` (incluye la clave de MySQL) | Render → uniteam-api → Environment |
 | Certificado de la CA de Aiven | Render → uniteam-api → Secret Files |
-| `SONAR_TOKEN` | GitHub → Settings → Secrets and variables → Actions |
 | Cuentas de Render, Aiven y Auth0 | En cada proveedor, con 2FA |
 
 `render.yaml` declara las variables secretas con `sync: false`, que significa «sin valor en el
@@ -230,14 +229,12 @@ desplegar. Borrarlo de un commit no basta: sigue en el historial.
 ## 8. SonarCloud
 
 1. En SonarCloud, organización `isco-utb`: *Analyze new project* → `ISCOUTB_AS_202620_uniTeam`.
-2. *Administration → Analysis Method*: **desactivar Automatic Analysis**. Si sigue activo, el
-   análisis desde la CI falla.
-3. *My Account → Security*: generar un token y guardarlo en GitHub como secreto `SONAR_TOKEN`.
-   **Nunca** en un chat, un commit o un documento.
-4. En el siguiente push, el trabajo «Análisis estático (SonarCloud)» de la CI ejecuta el
-   análisis con la cobertura de las pruebas y **espera al Quality Gate**: si falla, la CI falla.
-   Si `SONAR_TOKEN` no está configurado, el trabajo también falla; no se permite integrar un
-   cambio omitiendo el análisis.
+2. *Administration → Analysis Method*: activar **Automatic Analysis**. El análisis ocurre desde
+   SonarCloud al actualizarse el repositorio; no requiere `SONAR_TOKEN` ni un job de scanner en
+   GitHub Actions.
+
+Con este modo, el CI de GitHub no espera al Quality Gate y SonarCloud no recibe el reporte de
+cobertura generado por las pruebas.
 
 Panel público: <https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam>
 
@@ -245,5 +242,6 @@ Panel público: <https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniT
 
 Para que un fallo **bloquee la integración** y no solo la avise, en GitHub → *Settings →
 Branches → Add rule* para `master`: *Require status checks to pass before merging*, marcando
-«Pruebas contra MySQL», «Compilación del frontend», «Construcción de las imágenes» y «Análisis
-estático (SonarCloud)». Lo tiene que activar un administrador del repositorio.
+«Pruebas contra MySQL», «Compilación del frontend» y «Construcción de las imágenes». Lo tiene que
+activar un administrador del repositorio. El Quality Gate de SonarCloud ya no forma parte de
+estos checks.
