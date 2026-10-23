@@ -7,7 +7,7 @@ paths = list(data.get("paths", {}).keys())
 schemas = list(data.get("components", {}).get("schemas", {}).keys())
 responses = list(data.get("components", {}).get("responses", {}).keys())
 
-print(f"openapi.yaml: válido")
+print("openapi.yaml: válido")
 print(f"  Rutas: {len(paths)}")
 print(f"  Esquemas: {len(schemas)}")
 print(f"  Respuestas: {len(responses)}")

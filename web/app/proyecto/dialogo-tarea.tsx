@@ -26,24 +26,17 @@ interface Props {
   alCerrar: () => void;
 }
 
-/** Diálogo modal para crear o editar una tarea. Escape y el fondo lo cierran. */
+/** Diálogo modal para crear o editar una tarea. Escape y Cancelar lo cierran. */
 export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }: Props) {
   const [titulo, establecerTitulo] = useState(tarea?.titulo ?? "");
   const [prioridad, establecerPrioridad] = useState<Prioridad>(tarea?.prioridad ?? "media");
   const [responsable, establecerResponsable] = useState(tarea?.responsable ?? "");
   const [fecha, establecerFecha] = useState(tarea?.fecha_limite ?? "");
+  const dialogo = useRef<HTMLDialogElement>(null);
   const primerCampo = useRef<HTMLInputElement>(null);
-  // En una referencia: quien usa el diálogo pasa una función nueva en cada
-  // render, y si el efecto dependiera de ella devolvería el foco al título
-  // con cada tecla.
-  const cerrar = useRef(alCerrar);
-  cerrar.current = alCerrar;
-
   useEffect(() => {
+    if (!dialogo.current?.open) dialogo.current?.showModal();
     primerCampo.current?.focus();
-    const tecla = (e: KeyboardEvent) => e.key === "Escape" && cerrar.current();
-    window.addEventListener("keydown", tecla);
-    return () => window.removeEventListener("keydown", tecla);
   }, []);
 
   function enviar(e: React.FormEvent) {
@@ -57,9 +50,21 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
     });
   }
 
+  let textoGuardar = "Crear tarea";
+  if (guardando) textoGuardar = "Guardando…”";
+  else if (tarea) textoGuardar = "Guardar cambios";
+
   return (
-    <div className="fondo-modal">
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-dialogo">
+    <dialog
+      ref={dialogo}
+      className="fondo-modal"
+      aria-labelledby="titulo-dialogo"
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!guardando) alCerrar();
+      }}
+    >
+      <div className="modal">
         <form onSubmit={enviar}>
           <h2 id="titulo-dialogo">{tarea ? "Editar tarea" : "Nueva tarea"}</h2>
           <label className="campo">
@@ -107,11 +112,11 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
               Cancelar
             </button>
             <button type="submit" disabled={guardando || !titulo.trim()}>
-              {guardando ? "Guardando…" : tarea ? "Guardar cambios" : "Crear tarea"}
+              {textoGuardar}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </dialog>
   );
 }

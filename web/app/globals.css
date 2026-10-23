@@ -340,7 +340,10 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
 
 .resumen { margin-bottom: 18px; }
 .progreso-cabecera { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-.barra { height: 8px; background: var(--superficie-2); border-radius: 999px; overflow: hidden; }
+.barra { display: block; width: 100%; height: 8px; border: 0; appearance: none; background: var(--superficie-2); border-radius: 999px; overflow: hidden; }
+.barra::-webkit-progress-bar { background: var(--superficie-2); border-radius: 999px; }
+.barra::-webkit-progress-value { background: linear-gradient(90deg, var(--acento), var(--exito)); transition: width 0.4s ease; }
+.barra::-moz-progress-bar { background: linear-gradient(90deg, var(--acento), var(--exito)); }
 .barra > div { height: 100%; background: linear-gradient(90deg, var(--acento), var(--exito)); transition: width 0.4s ease; }
 .metricas { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px; margin-top: 16px; }
 .metrica .valor { font-size: 22px; font-weight: 700; }
@@ -376,6 +379,7 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
   flex-direction: column;
   gap: 10px;
   min-height: 160px;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
 }
 .columna header { display: flex; align-items: center; justify-content: space-between; padding: 2px 4px 4px; }
 .columna header h2 { margin: 0; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--texto-suave); }
@@ -420,14 +424,23 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
 .fondo-modal {
   position: fixed;
   inset: 0;
-  z-index: 50;
-  background: rgba(10, 16, 24, 0.55);
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 10vh 16px 16px;
+  overflow: auto;
   animation: aparecer 0.15s ease-out;
 }
+.fondo-modal::backdrop { background: rgba(10, 16, 24, 0.55); }
+dialog.fondo-modal:not([open]) { display: none; }
 .modal {
   width: 100%;
   max-width: 560px;
@@ -462,10 +475,6 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
 
 @keyframes aparecer { from { opacity: 0; } }
 @keyframes subir { from { opacity: 0; transform: translateY(8px); } }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation: none !important; transition: none !important; }
-}
 
 /* -- Navegación ------------------------------------------------------------ */
 
@@ -518,7 +527,6 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
 
 .tarjeta-tarea[draggable="true"] { cursor: grab; }
 .tarjeta-tarea[draggable="true"]:active { cursor: grabbing; }
-.columna { transition: background 0.15s, border-color 0.15s, opacity 0.15s; }
 .columna.destino-valido { border: 2px dashed var(--acento); background: var(--acento-suave); }
 .columna.destino-invalido { opacity: 0.45; }
 
@@ -529,6 +537,13 @@ button.icono.peligro:hover:not(:disabled) { background: var(--peligro-suave); co
   color: var(--texto);
 }
 .alta-rapida input:focus { background: var(--superficie); border-style: solid; }
+
+@media (prefers-reduced-motion: reduce) {
+  .esqueleto, .fondo-modal, .aviso-flotante { animation: none; }
+  button, .tarjeta-proyecto, .tarjeta-tarea, .barra > div, .barra::-webkit-progress-value, .columna {
+    transition: none;
+  }
+}
 
 .accion-aviso { font-size: 14px; font-weight: 700; margin-left: auto; }
 

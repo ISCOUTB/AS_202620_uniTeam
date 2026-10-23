@@ -32,9 +32,14 @@ RUN npm run build
 
 FROM nginx:1.27.4-alpine3.21 AS runtime
 
+RUN rm -f /etc/nginx/conf.d/default.conf \
+    && sed -i '/^user /d; s#pid /var/run/nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf \
+    && chown -R nginx:nginx /var/cache/nginx /etc/nginx/conf.d /usr/share/nginx/html
+
 ENV PORT=3000
 COPY nginx.conf /etc/nginx/templates/default.conf.template
 COPY --from=builder /app/out /usr/share/nginx/html
 EXPOSE 3000
+USER nginx
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -q -O /dev/null "http://127.0.0.1:${PORT}/" || exit 1

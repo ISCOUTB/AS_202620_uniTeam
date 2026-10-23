@@ -95,19 +95,12 @@ export function ProveedorSesion({ children }: { children: React.ReactNode }) {
   }, []);
 
   const valor = useMemo<Sesion>(
-    () => ({
-      token,
-      usuario: MODO_DEMO
-        ? USUARIO_DEMO
-        : token
-          ? (contenidoDelToken(token)?.usuario.toLowerCase() ?? null)
-          : null,
-      cargado,
-      motivoCierre,
-      entrar,
-      salir,
-      refrescar,
-    }),
+    () => {
+      let usuario: string | null = null;
+      if (MODO_DEMO) usuario = USUARIO_DEMO;
+      else if (token) usuario = contenidoDelToken(token)?.usuario.toLowerCase() ?? null;
+      return { token, usuario, cargado, motivoCierre, entrar, salir, refrescar };
+    },
     [token, cargado, motivoCierre, entrar, salir, refrescar],
   );
 

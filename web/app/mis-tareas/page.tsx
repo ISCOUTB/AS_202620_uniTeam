@@ -63,26 +63,28 @@ export default function PaginaMisTareas() {
         </div>
         <label className="fila interruptor">
           <input type="checkbox" checked={terminadas} onChange={(e) => establecerTerminadas(e.target.checked)} />
-          Mostrar terminadas
+          <span>Mostrar terminadas</span>
         </label>
       </div>
 
       {error && <div className="aviso error">{error}</div>}
 
-      {tareas === null && !error ? (
+      {tareas === null && !error && (
         <>
           {[0, 1, 2].map((i) => (
             <div key={i} className="tarjeta esqueleto" style={{ height: 64, marginBottom: 10 }} />
           ))}
           {lento && <p className="vacio">El servidor está despertando; la primera carga del día tarda un poco más.</p>}
         </>
-      ) : tareas && tareas.length === 0 ? (
+      )}
+      {tareas?.length === 0 && (
         <div className="vacio-grande">
           <h2>No tienes nada pendiente</h2>
           <p>Cuando alguien de tu equipo te asigne una tarea, aparecerá aquí.</p>
           <Link href="/">Ir a mis proyectos</Link>
         </div>
-      ) : (
+      )}
+      {tareas && tareas.length > 0 && (
         grupos.map((g) => (
           <section key={g.id} className={`grupo-tareas grupo-${g.id}`}>
             <h2>

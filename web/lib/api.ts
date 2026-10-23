@@ -15,7 +15,6 @@ export const API = sinBarrasFinales(process.env.NEXT_PUBLIC_API_URL ?? "");
 
 export type Prioridad = "baja" | "media" | "alta";
 /** Identificador de estado. Cuáles existen lo dice la API (GET /flujo-estados). */
-export type EstadoTarea = string;
 export type RolMiembro = "integrante" | "lider";
 
 export interface Miembro {
@@ -34,7 +33,7 @@ export interface Tarea {
   proyecto_id: string;
   titulo: string;
   prioridad: Prioridad;
-  estado: EstadoTarea;
+  estado: string;
   responsable: string | null;
   fecha_limite: string | null;
   creada_por: string;
@@ -64,11 +63,11 @@ export interface Progreso {
 }
 
 export interface EstadoFlujo {
-  id: EstadoTarea;
+  id: string;
   etiqueta: string;
   inicial: boolean;
   final: boolean;
-  siguientes: EstadoTarea[];
+  siguientes: string[];
 }
 
 export class ErrorApi extends Error {
@@ -167,7 +166,7 @@ export const api = {
   listarTareas: (
     token: string,
     id: string,
-    filtros: { estado?: EstadoTarea; responsable?: string } = {},
+    filtros: { estado?: string; responsable?: string } = {},
   ) => {
     // 200 es el tope de la API y el tamaño de proyecto de ESC-01. Sin él, la
     // API devolvía 50 y el tablero ocultaba el resto sin avisar.
@@ -196,7 +195,7 @@ export const api = {
     token: string,
     id: string,
     tareaId: string,
-    estado: EstadoTarea,
+    estado: string,
   ) =>
     pedir<Tarea>(`/proyectos/${id}/tareas/${tareaId}/estado`, token, {
       method: "PUT",
