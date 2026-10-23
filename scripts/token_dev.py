@@ -21,57 +21,23 @@ import sys
 import urllib.parse
 import urllib.request
 
+EMISOR_DEV = "http://localhost:9000"
+
 
 def _b64(datos: bytes) -> str:
     return base64.urlsafe_b64encode(datos).rstrip(b"=").decode()
 
 
-def _base_http(url: str) -> str:
-    """Normaliza la URL base y la acepta solo si es HTTP o HTTPS.
-
-    `urlopen` también habla `file://` y `ftp://`. La URL la escribe quien
-    ejecuta el script, no un usuario del sistema, pero comprobar el esquema
-    cuesta tres líneas y evita que una errata se convierta en una lectura de
-    disco.
-    """
-    partes = urllib.parse.urlsplit(url)
-    if partes.scheme.lower() not in ("http", "https") or not partes.netloc:
-        raise SystemExit(f"La URL debe ser http o https: {url}")
-    if partes.username or partes.password or partes.query or partes.fragment:
-        raise SystemExit("La URL del emisor no puede incluir credenciales, consulta ni fragmento.")
-    return url.rstrip("/")
-
-
-def _validar_endpoint(url: str, emisor: str, nombre: str) -> str:
-    """Acepta endpoints OIDC solo en el mismo origen del emisor configurado."""
-    partes = urllib.parse.urlsplit(url)
-    base = urllib.parse.urlsplit(emisor)
-    origen = (partes.scheme.lower(), partes.hostname, partes.port)
-    origen_base = (base.scheme.lower(), base.hostname, base.port)
-    if (origen != origen_base or not partes.netloc or partes.username
-            or partes.password or partes.query or partes.fragment):
-        raise SystemExit(f"El {nombre} debe pertenecer al mismo origen que el emisor.")
-    return url
-
-
-def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
-    emisor = _base_http(emisor)
+def obtener(usuario: str, cliente: str, redireccion: str) -> str:
     class NoSeguir(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, *_args, **_kwargs):
             return None
 
     abridor = urllib.request.build_opener(NoSeguir)
-    with abridor.open(f"{emisor}/.well-known/openid-configuration", timeout=10) as r:
-        descubrimiento = json.load(r)
-    try:
-        endpoint_autorizacion = _validar_endpoint(
-            descubrimiento["authorization_endpoint"], emisor, "authorization_endpoint"
-        )
-        endpoint_token = _validar_endpoint(
-            descubrimiento["token_endpoint"], emisor, "token_endpoint"
-        )
-    except (KeyError, TypeError) as error:
-        raise SystemExit("El descubrimiento OIDC no contiene endpoints válidos.") from error
+    # El emisor incluido en el proyecto tiene endpoints fijos. No se consulta
+    # descubrimiento remoto ni se aceptan destinos desde argumentos del CLI.
+    endpoint_autorizacion = f"{EMISOR_DEV}/authorize"
+    endpoint_token = f"{EMISOR_DEV}/token"
 
     verificador = _b64(secrets.token_bytes(32))
     reto = _b64(hashlib.sha256(verificador.encode()).digest())
@@ -112,12 +78,10 @@ def obtener(emisor: str, usuario: str, cliente: str, redireccion: str) -> str:
 def main() -> int:
     cli = argparse.ArgumentParser(description="Token del emisor de desarrollo.")
     cli.add_argument("usuario", help="Identidad que llevará el token")
-    cli.add_argument("--emisor", default="http://localhost:9000")
     cli.add_argument("--cliente", default="uniteam-web")
     cli.add_argument("--redireccion", default="http://localhost:3000/callback")
     argumentos = cli.parse_args()
-    print(obtener(argumentos.emisor, argumentos.usuario, argumentos.cliente,
-                  argumentos.redireccion))
+    print(obtener(argumentos.usuario, argumentos.cliente, argumentos.redireccion))
     return 0
 
 
