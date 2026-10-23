@@ -103,7 +103,8 @@ def _tarea_en_progreso(cliente, cab):
 def test_una_tarea_pasa_por_revision_antes_de_completarse(cliente, cab):
     proyecto, ruta = _tarea_en_progreso(cliente, cab)
     revision = cliente.put(ruta, json={"estado": "en_revision"}, headers=cab("ana"))
-    assert revision.status_code == 200 and revision.json()["estado"] == "en_revision"
+    assert revision.status_code == 200
+    assert revision.json()["estado"] == "en_revision"
     assert cliente.put(ruta, json={"estado": "completada"}, headers=cab("ana")).status_code == 200
     progreso = cliente.get(f"/proyectos/{proyecto}/progreso", headers=cab("ana")).json()
     assert progreso["porcentaje_completado"] == 100.0

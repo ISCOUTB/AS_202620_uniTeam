@@ -10,7 +10,6 @@ import {
   obtenerFlujo,
   PESO_PRIORIDAD,
   PRIORIDADES,
-  type EstadoTarea,
   type Prioridad,
   type Progreso,
   type Proyecto,
@@ -128,7 +127,7 @@ export function Tablero() {
     establecerTareas((lista) => lista?.map((t) => (t.id === tarea.id ? tarea : t)) ?? lista);
   }
 
-  const mover = (tarea: Tarea, destino: EstadoTarea) =>
+  const mover = (tarea: Tarea, destino: string) =>
     sobreTarea(tarea.id, async () => {
       if (!token) return;
       try {
@@ -366,9 +365,14 @@ export function Tablero() {
               {progreso.por_estado[flujo.final?.id ?? ""] ?? 0} de {progreso.total} tareas
             </span>
           </div>
-          <div className="barra" role="progressbar" aria-valuenow={progreso.porcentaje_completado} aria-valuemin={0} aria-valuemax={100}>
-            <div style={{ width: `${progreso.porcentaje_completado}%` }} />
-          </div>
+          <progress
+            className="barra"
+            max={100}
+            value={progreso.porcentaje_completado}
+            aria-label="Porcentaje de tareas completadas"
+          >
+            {progreso.porcentaje_completado}%
+          </progress>
           <div className="metricas">
             <div className="metrica">
               <div className="valor">{progreso.total}</div>
@@ -454,7 +458,9 @@ export function Tablero() {
             // Mientras se arrastra, cada columna dice si admite la tarea: solo
             // las transiciones que el flujo permite.
             const admite = !!arrastrada && flujo.siguientes(arrastrada.estado).includes(estado);
-            const zona = !arrastrada ? "" : admite ? " destino-valido" : arrastrada.estado === estado ? "" : " destino-invalido";
+            let zona = "";
+            if (arrastrada && admite) zona = " destino-valido";
+            else if (arrastrada && arrastrada.estado !== estado) zona = " destino-invalido";
             return (
               <section
                 key={estado}

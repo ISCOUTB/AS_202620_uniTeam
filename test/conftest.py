@@ -51,7 +51,6 @@ def emisor():
 @pytest.fixture(scope="session", autouse=True)
 def esquema():
     crear_esquema(engine)
-    yield
 
 
 @pytest.fixture(autouse=True)
@@ -60,7 +59,6 @@ def base_limpia(esquema):
         for tabla in (AuditoriaTabla, TareaTabla, MiembroTabla, ProyectoTabla):
             sesion.query(tabla).delete()
         sesion.commit()
-    yield
 
 
 @pytest.fixture

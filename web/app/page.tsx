@@ -132,7 +132,7 @@ export default function PaginaProyectos() {
         </section>
       )}
 
-      {proyectos === null && !error ? (
+      {proyectos === null && !error && (
         <>
           <div className="rejilla rejilla-proyectos">
             {[0, 1, 2].map((i) => (
@@ -143,7 +143,8 @@ export default function PaginaProyectos() {
             <p className="vacio">El servidor está despertando; la primera carga del día tarda un poco más.</p>
           )}
         </>
-      ) : proyectos && proyectos.length === 0 ? (
+      )}
+      {proyectos?.length === 0 && (
         <div className="vacio-grande">
           <h2>Todavía no tienes proyectos</h2>
           <p>Crea el primero e invita a tu equipo con su correo.</p>
@@ -151,7 +152,8 @@ export default function PaginaProyectos() {
             <button onClick={() => establecerFormulario(true)}>Crear mi primer proyecto</button>
           )}
         </div>
-      ) : (
+      )}
+      {proyectos && proyectos.length > 0 && (
         <div className="rejilla rejilla-proyectos">
           {proyectos?.map((p) => {
             const lider = p.miembros.find((m) => m.rol === "lider")?.usuario === usuario;

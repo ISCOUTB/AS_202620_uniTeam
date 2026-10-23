@@ -1,6 +1,6 @@
 "use client";
 
-import { ETIQUETA_PRIORIDAD, type EstadoTarea, type Miembro, type Tarea } from "@/lib/api";
+import { ETIQUETA_PRIORIDAD, type Miembro, type Tarea } from "@/lib/api";
 import type { Flujo } from "@/lib/flujo";
 import { diasHasta, fechaRelativa, formatearDia, nombreCorto, vencimiento } from "@/lib/formato";
 import { Avatar } from "../componentes/avatar";
@@ -11,7 +11,7 @@ interface Props {
   miembros: Miembro[];
   ocupada: boolean;
   puedeEliminar: boolean;
-  alMover: (destino: EstadoTarea) => void;
+  alMover: (destino: string) => void;
   alAsignar: (responsable: string) => void;
   alEditar: () => void;
   alEliminar: () => void;
