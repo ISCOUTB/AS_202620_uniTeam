@@ -32,8 +32,14 @@ RUN npm run build
 
 FROM nginx:1.27.4-alpine3.21 AS runtime
 
+# El proceso corre como nginx: admite cualquier espaciado del nginx.conf base
+# y falla el build si una futura imagen deja el PID en una ruta no escribible.
 RUN rm -f /etc/nginx/conf.d/default.conf \
-    && sed -i '/^user /d; s#pid /var/run/nginx.pid;#pid /tmp/nginx.pid;#' /etc/nginx/nginx.conf \
+    && sed -i \
+      -e '/^[[:space:]]*user[[:space:]]/d' \
+      -e 's#^[[:space:]]*pid[[:space:]].*;#pid /tmp/nginx.pid;#' \
+      /etc/nginx/nginx.conf \
+    && grep -Eq '^pid /tmp/nginx[.]pid;$' /etc/nginx/nginx.conf \
     && chown -R nginx:nginx /var/cache/nginx /etc/nginx/conf.d /usr/share/nginx/html
 
 ENV PORT=3000
