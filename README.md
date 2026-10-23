@@ -15,10 +15,10 @@ Tecnológica de Bolívar.
 
 | | URL |
 |---|---|
-| **Aplicación** | <https://uniteam-web.onrender.com> |
-| API | <https://uniteam-api.onrender.com> · [contrato OpenAPI](docs/api/openapi.yaml) |
-| Health check | <https://uniteam-api.onrender.com/health> |
-| Métrica de ESC-01 | <https://uniteam-api.onrender.com/metricas/esc-01> |
+| **Aplicación** | <https://uniteam-web.duckdns.org> |
+| API | <https://uniteam-api.duckdns.org> · [contrato OpenAPI](docs/api/openapi.yaml) |
+| Health check | <https://uniteam-api.duckdns.org/health> |
+| Métrica de ESC-01 | <https://uniteam-api.duckdns.org/metricas/esc-01> |
 | Comprobación desde Internet | [workflow `despliegue.yml`](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/workflows/despliegue.yml), cada 6 h: hora, código y tiempo de cada URL |
 | Análisis estático | [SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam) |
 | Última revisión de código | [2026-09-28](docs/calidad/revision-2026-09-28.md): defectos corregidos, funciones nuevas y pendientes |
@@ -300,11 +300,13 @@ concurrentes— y contrasta el resultado con su umbral. La línea base actual es
 el p95** frente a los 2 s comprometidos:
 [ficha de la medición](docs/calidad/mediciones/esc-01-linea-base.md).
 
-En integración continua, en cada `push` ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)):
-las pruebas **contra MySQL** con cobertura, la verificación de enlaces y del contrato OpenAPI,
-la compilación del frontend y la construcción de las dos imágenes. SonarCloud analiza el
-repositorio por separado mediante análisis automático. Render solo despliega un commit con la CI
-en verde.
+SonarCloud analiza el repositorio mediante **Automatic Analysis**; este análisis es independiente
+de GitHub Actions y no publica el reporte de cobertura de las pruebas. El workflow
+[`despliegue.yml`](.github/workflows/despliegue.yml) comprueba cada seis horas que el sitio y los
+endpoints operativos respondan desde Internet; es una comprobación de disponibilidad, no una CI.
+Render tiene configurado `autoDeployTrigger: checksPass`, por lo que solo despliega si existen
+comprobaciones de estado requeridas y pasan. La compilación, pruebas y revisiones locales se
+describen arriba; no hay actualmente un workflow de CI en GitHub Actions.
 
 El recorrido completo —interfaz, lógica y persistencia— está cubierto por
 [`test/test_corte_vertical.py`](test/test_corte_vertical.py), y la puerta de entrada por
