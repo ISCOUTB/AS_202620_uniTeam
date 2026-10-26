@@ -556,8 +556,58 @@ primera visita; evitarlo cuesta 7 USD/mes. Cálculo, supuestos y puntos de ruptu
 
 # 8. Conceptos transversales
 
-*Pendiente.* Se prevé documentar aquí el modelo de autorización que soporta
-[ESC-03](../calidad/escenarios-calidad.md#esc-03).
+## 8.1 Consistencia de los datos
+
+MySQL es la fuente de verdad. Cada petición crea una sesión SQLAlchemy y confirma
+su transacción al terminar; ante una excepción, la revierte
+([`obtener_sesion`](../../app/api/dependencias.py)). Los `flush` de los
+repositorios no confirman por separado. Por tanto, la atomicidad descrita abajo
+significa «todo o nada si el `commit` termina correctamente».
+
+| Operación real | Garantía de consistencia | Evidencia en código y pruebas |
+|---|---|---|
+| Crear proyecto con líder y miembros iniciales (`POST /proyectos`) | Proyecto y membresías se guardan en la misma sesión y transacción. Al confirmar, aparecen juntos; si falla el `commit`, no debe quedar una creación parcial. | [`ServicioProyectos.crear`](../../app/application/servicio_proyectos.py), [`RepositorioProyectosSQL.guardar`](../../app/infrastructure/repositorios.py), [`obtener_sesion`](../../app/api/dependencias.py); `test_crear_proyecto_responde_201_con_formato` en [`test_contrato.py`](../../test/test_contrato.py) y creación/uso del proyecto en `test_un_miembro_recien_agregado_ya_ve_el_tablero` de [`test_proyectos.py`](../../test/test_proyectos.py). |
+| Agregar miembro (`POST /proyectos/{id}/miembros`) | El cambio de membresía se confirma en la transacción de la petición. La siguiente petición consulta la pertenencia actual en MySQL; no depende de una réplica ni de una caché de dominio. | [`ServicioProyectos.agregar_miembro`](../../app/application/servicio_proyectos.py); `test_un_miembro_recien_agregado_ya_ve_el_tablero` en [`test_proyectos.py`](../../test/test_proyectos.py). |
+| Crear tarea (`POST /proyectos/{id}/tareas`) | La tarea y la auditoría permitida usan la misma sesión. Si el consumidor registra la auditoría correctamente, ambas escrituras participan en el mismo `commit`. | [`ServicioTareas.crear_tarea`](../../app/application/servicio_tareas.py), [`registrar_consumidores`](../../app/events/consumidores.py); `test_las_operaciones_permitidas_tambien_quedan_auditadas` en [`test_corte_vertical.py`](../../test/test_corte_vertical.py). |
+
+La última garantía tiene un límite relevante: [`BusEventos.publicar`](../../app/application/bus.py)
+captura y registra excepciones de consumidores para que no interrumpan la operación.
+Por eso la auditoría permitida es síncrona y comparte sesión, pero no se promete
+que un consumidor que falle por una excepción no transaccional haga fallar siempre
+el cambio de negocio. La prueba citada comprueba el camino exitoso, no ese caso de
+fallo. En cambio, la auditoría de un acceso denegado usa una sesión propia y se
+confirma antes de que la petición responda con error, para que sobreviva al rollback
+de esa petición ([`consumidores.py`](../../app/events/consumidores.py)).
+
+## 8.2 Caché e invalidación
+
+No se cachean respuestas de proyectos, tareas, membresías ni progreso. Son datos
+personalizados y algunos determinan autorización; las lecturas de esos datos
+consultan MySQL en cada petición. La política de caché de esos datos es
+**TTL 0 / `no-store`**: tras una escritura confirmada, la siguiente lectura
+vuelve a la fuente de verdad y no hay claves de dominio que invalidar. La regla
+propuesta es enviar `Cache-Control: private, no-store` en las respuestas de negocio; aún no está
+implementada ni hay una capa de caché compartida.
+
+La caché existente es distinta: [`seguridad.py`](../../app/api/seguridad.py)
+conserva en memoria de cada proceso las claves JWKS del emisor, con una vigencia
+de 600 segundos. PyJWKClient puede recargarlas ante un `kid` desconocido; reiniciar
+el proceso también las descarta. No contiene datos de UniTeam y no se invalida al
+crear o modificar proyectos o tareas.
+
+Si una medición futura justificara cachear datos de negocio, requeriría una nueva
+decisión: limitar qué lecturas se cachean y por cuánto tiempo, y borrar o
+versionar sus claves solo después del `commit` de cada escritura relacionada. No
+se adopta esa complejidad ni se presupone una consistencia que hoy no existe.
+
+## 8.3 Eventos y contenedores de datos
+
+Los eventos de dominio son llamadas síncronas dentro de la API. El bus invoca los
+consumidores una vez en el proceso, registra sus errores y no reintenta; no hay
+entrega durable ni garantía de procesamiento eventual. No se agrega un broker.
+En C4 nivel 2, MySQL ya aparece como contenedor de datos propio; la caché JWKS
+vive dentro de la API y no es un almacén desplegable aparte. Véase
+[C4 nivel 2](../c4/nivel2-contenedores.md).
 
 # 9. Decisiones de arquitectura
 
@@ -578,6 +628,7 @@ enlaza a ellas.
 | [0010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) | Usar Auth0 como proveedor de identidad del despliegue. | Aceptada |
 | [0011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md) | Mantener la API despierta con un sondeo externo en la franja de uso. Reemplaza en parte a 0008. | Aceptada |
 | [0012](../adr/0012-publicar-el-flujo-de-estados-desde-el-dominio.md) | Publicar el flujo de estados desde el dominio; la Aplicación Web no los duplica. | Aceptada |
+| [0016](../adr/0016-conservar-mysql-como-fuente-de-verdad.md) | Conservar MySQL como fuente de verdad; documentar el costo de cambiar la decisión de persistencia. | Aceptada |
 
 ---
 

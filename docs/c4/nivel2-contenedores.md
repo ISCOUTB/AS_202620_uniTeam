@@ -88,6 +88,11 @@ mensajería restaría margen a [ESC-04](../calidad/escenarios-calidad.md#esc-04)
 infraestructura que la restricción T3 no contempla. Productores y consumidores son estructura
 interna de la API y corresponden al nivel 3.
 
+MySQL sí aparece como contenedor propio porque es el almacén duradero del sistema. No hay un
+broker ni una caché de datos de negocio desplegados, así que no se dibujan como componentes
+existentes. La caché JWKS es memoria dentro de la API, no un almacén independiente; véase
+[arc42 §8](../arc42/arc42-uniteam.md#8-conceptos-transversales).
+
 ## Nota sobre el flujo de autenticación
 
 El navegador se redirige al proveedor de identidad (OIDC) y la API se limita a validar el token
