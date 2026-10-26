@@ -283,10 +283,25 @@ Las variables `NEXT_PUBLIC_*` se hornean al compilar el frontend, no al arrancar
 ## Pruebas
 
 ```bash
-pytest -v                                    # 118 pruebas
+pytest -v                                    # 153 pruebas
+pytest test/test_taller_mensajeria.py -q     # taller de entrega y reintentos
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
 ```
+
+### Taller de mensajería
+
+El taller simula el evento `tarea.creada` en una cola SQLite local; **no está
+integrado en la API ni cambia la auditoría**, que debe confirmar su transacción
+antes de responder. El [ADR-015](docs/adr/0015-taller-de-mensajeria-local-aislado.md)
+describe el contrato, las garantías y los límites del prototipo.
+
+```bash
+python -m scripts.taller_mensajeria --base-datos taller-mensajeria.db
+```
+
+El ejemplo demuestra un reintento recuperable y expone sus métricas Prometheus
+por consola. Se puede omitir `--base-datos` para usar SQLite en memoria.
 
 ### Medición de rendimiento
 
