@@ -29,8 +29,9 @@ def test_contrato_acepta_campos_aditivos_y_rechaza_versiones_incompatibles():
     ) == mensaje
 
     documento["schema_version"] = 2
+    documento_json = json.dumps(documento)
     with pytest.raises(ValueError, match="Version no compatible"):
-        taller.MensajeTareaCreada.deserializar(json.dumps(documento))
+        taller.MensajeTareaCreada.deserializar(documento_json)
 
 
 def test_deduplica_entrega_repetida_sin_repetir_el_efecto(tmp_path, caplog):
