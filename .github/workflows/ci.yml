@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Sin credenciales en el repositorio: la contraseña se genera en cada
       # ejecución, se enmascara en el registro y desaparece con el corredor.
@@ -96,7 +96,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: actions/setup-node@v4
         with:
@@ -117,7 +117,7 @@ jobs:
     # Las mismas imágenes que ejecuta el despliegue (render.yaml): si no
     # construyen aquí, no se despliegan allí.
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Imagen de la API
         run: docker build --target api -t uniteam-api .
