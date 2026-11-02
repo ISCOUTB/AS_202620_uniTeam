@@ -39,7 +39,7 @@ jobs:
             echo "DATABASE_URL=mysql+pymysql://uniteam:$clave@127.0.0.1:3306/uniteam_test"
           } >> "$GITHUB_ENV"
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
           cache: pip
