@@ -24,7 +24,7 @@ jobs:
           else
             echo "No hay archivo de dependencias para auditar" > pip-audit.txt
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: pip-audit
@@ -42,7 +42,7 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm audit --omit=dev --audit-level=high | tee ../npm-audit.txt
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: npm-audit
