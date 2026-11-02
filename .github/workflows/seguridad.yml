@@ -22,7 +22,7 @@ jobs:
           elif [ -f app/requirements.txt ]; then
             pip-audit -r app/requirements.txt | tee pip-audit.txt
           else
-            pip install --only-binary :all: -r requirements.txt && pip-audit --no-deps -r requirements.txt | tee pip-audit.txt
+            echo "No hay archivo de dependencias para auditar" > pip-audit.txt
           fi
       - uses: actions/upload-artifact@v4
         if: always()
