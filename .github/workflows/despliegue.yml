@@ -37,9 +37,11 @@ jobs:
           despertar=$(curl -sS -o /dev/null -w '%{http_code} %{time_total}' --max-time 150 "$URL_API/health" || true)
 
           medir() {  # $1 = nombre, $2 = URL, $3 = código esperado
-            read -r codigo tiempo < <(curl -sS -o /dev/null -w '%{http_code} %{time_total}\n' --max-time 60 "$2" || true)
-            estado="✅"; [ "$codigo" = "$3" ] || { estado="❌"; fallos=$((fallos + 1)); }
-            echo "| $1 | \`$2\` | $codigo (esperado $3) | ${tiempo} s | $estado |" >> "$GITHUB_STEP_SUMMARY"
+            url="$2"
+          esperado="$3"
+          read -r codigo tiempo < <(curl -sS -o /dev/null -w '%{http_code} %{time_total}\n' --max-time 60 "$url" || true)
+            estado="✅"; [ "$codigo" = "$esperado" ] || { estado="❌"; fallos=$((fallos + 1)); }
+            echo "| $1 | \`$url\` | $codigo (esperado $esperado) | ${tiempo} s | $estado |" >> "$GITHUB_STEP_SUMMARY"
           }
 
           {
