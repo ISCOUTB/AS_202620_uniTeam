@@ -16,13 +16,13 @@ jobs:
           python-version: "3.12"
       - name: Auditar dependencias de la API
         run: |
-          pip install --only-binary :all: pip-audit
+          pip install --only-binary :all: pip-audit==2.10.1
           if [ -f requirements.txt ]; then
             pip-audit -r requirements.txt | tee pip-audit.txt
           elif [ -f app/requirements.txt ]; then
             pip-audit -r app/requirements.txt | tee pip-audit.txt
           else
-            pip install --only-binary :all: . && pip-audit --no-deps | tee pip-audit.txt
+            pip install --only-binary :all: -r requirements.txt && pip-audit --no-deps -r requirements.txt | tee pip-audit.txt
           fi
       - uses: actions/upload-artifact@v4
         if: always()
