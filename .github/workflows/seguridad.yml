@@ -1,0 +1,49 @@
+name: seguridad-dependencias
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  api-pip-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Auditar dependencias de la API
+        run: |
+          pip install pip-audit
+          if [ -f requirements.txt ]; then
+            pip-audit -r requirements.txt | tee pip-audit.txt
+          elif [ -f app/requirements.txt ]; then
+            pip-audit -r app/requirements.txt | tee pip-audit.txt
+          else
+            pip install . && pip-audit | tee pip-audit.txt
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pip-audit
+          path: pip-audit.txt
+
+  web-npm-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Auditar dependencias de la web
+        working-directory: web
+        run: |
+          npm ci
+          npm audit --omit=dev --audit-level=high | tee ../npm-audit.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: npm-audit
+          path: npm-audit.txt
