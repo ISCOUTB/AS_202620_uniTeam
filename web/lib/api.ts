@@ -86,6 +86,10 @@ export function alCaducarSesion(accion: (() => void) | null): void {
   alCaducar = accion;
 }
 
+export function notificarSesionCaducada(): void {
+  alCaducar?.();
+}
+
 async function pedir<T>(
   ruta: string,
   token: string,

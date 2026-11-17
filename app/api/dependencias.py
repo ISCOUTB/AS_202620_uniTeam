@@ -13,7 +13,12 @@ from app.application.bus import BusEventos
 from app.application.servicio_proyectos import ServicioProyectos
 from app.application.servicio_tareas import ServicioTareas
 from app.api.seguridad import usuario_actual
+from app.api.tiempo_real import (
+    publicar_cambios_confirmados,
+    registrar_cambio_confirmado,
+)
 from app.events.consumidores import registrar_consumidores
+from app.domain import eventos
 from app.infrastructure.db import SesionLocal
 from app.infrastructure.repositorios import (
     RepositorioProyectosSQL,
@@ -26,6 +31,7 @@ def obtener_sesion() -> Iterator[Session]:
     try:
         yield sesion
         sesion.commit()
+        publicar_cambios_confirmados(sesion)
     except Exception:
         sesion.rollback()
         raise
@@ -36,6 +42,19 @@ def obtener_sesion() -> Iterator[Session]:
 def obtener_servicio(sesion: Session = Depends(obtener_sesion)) -> ServicioTareas:
     bus = BusEventos()
     registrar_consumidores(bus, sesion, SesionLocal)
+    for tipo in (
+        eventos.TareaCreada,
+        eventos.TareaAsignada,
+        eventos.EstadoCambiado,
+        eventos.TareaEditada,
+        eventos.TareaEliminada,
+    ):
+        bus.suscribir(
+            tipo,
+            lambda evento: registrar_cambio_confirmado(
+                sesion, evento.proyecto_id
+            ),
+        )
     return ServicioTareas(
         proyectos=RepositorioProyectosSQL(sesion),
         tareas=RepositorioTareasSQL(sesion),

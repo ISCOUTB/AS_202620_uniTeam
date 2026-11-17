@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
+  API,
   api,
   ErrorApi,
   ETIQUETA_PRIORIDAD,
+  notificarSesionCaducada,
   obtenerFlujo,
   PESO_PRIORIDAD,
   PRIORIDADES,
@@ -101,6 +103,67 @@ export function Tablero() {
   useEffect(() => {
     void recargar();
   }, [recargar]);
+
+  useEffect(() => {
+    if (!token || !id) return;
+
+    let detenido = false;
+    let socket: WebSocket | null = null;
+    let temporizador: number | undefined;
+    let reintento = 0;
+
+    const conectar = () => {
+      if (detenido) return;
+      const url = new URL(
+        `${API}/proyectos/${encodeURIComponent(id)}/eventos`,
+        window.location.href,
+      );
+      url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+      socket = new WebSocket(url);
+
+      socket.onopen = () => {
+        socket?.send(JSON.stringify({ tipo: "autenticar", token }));
+      };
+      socket.onmessage = (evento) => {
+        let mensaje: { tipo?: string; proyecto_id?: string };
+        try {
+          mensaje = JSON.parse(evento.data) as { tipo?: string; proyecto_id?: string };
+        } catch {
+          return;
+        }
+        if (mensaje.tipo === "conectado") {
+          reintento = 0;
+          void recargar();
+        } else if (
+          mensaje.tipo === "tareas_actualizadas" &&
+          mensaje.proyecto_id === id
+        ) {
+          void recargar();
+        }
+      };
+      socket.onclose = (evento) => {
+        if (detenido) return;
+        if (evento.code === 4401) {
+          notificarSesionCaducada();
+          return;
+        }
+        if (evento.code === 4403) {
+          void recargar();
+          return;
+        }
+        const espera = Math.min(1000 * 2 ** reintento, 30_000);
+        reintento += 1;
+        temporizador = window.setTimeout(conectar, espera);
+      };
+    };
+
+    conectar();
+    return () => {
+      detenido = true;
+      if (temporizador !== undefined) window.clearTimeout(temporizador);
+      socket?.close();
+    };
+  }, [token, id, recargar]);
 
   useEffect(() => {
     document.title = proyecto ? `${proyecto.nombre} · UniTeam` : "Proyecto · UniTeam";

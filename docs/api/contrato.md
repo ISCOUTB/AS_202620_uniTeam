@@ -24,6 +24,34 @@ El token debe ser firmado por el proveedor de identidad configurado (`OIDC_EMISO
 
 ---
 
+## Actualizaciones en tiempo real
+
+El tablero puede abrir una conexión WebSocket autenticada:
+
+```
+ws://localhost:8000/proyectos/{proyecto_id}/eventos
+```
+
+En producción se usa `wss://`. El navegador envía como primer mensaje un objeto JSON con el token OIDC:
+
+```json
+{"tipo":"autenticar","token":"<token OIDC>"}
+```
+
+La API valida firma, emisor, audiencia y expiración del token, y comprueba que el usuario sea miembro del proyecto antes de registrar la conexión. Un origen de navegador presente debe pertenecer a `ORIGENES_PERMITIDOS`. Las credenciales y la autorización no se aceptan como datos de identidad enviados por el cliente.
+
+Al autenticar correctamente, la API responde `{"tipo":"conectado"}`. Después de confirmar una transacción con cambios de tarea, envía a las conexiones autorizadas del proyecto:
+
+```json
+{"tipo":"tareas_actualizadas","proyecto_id":"<id del proyecto>"}
+```
+
+El mensaje es una señal de invalidación, no contiene datos de la tarea; el cliente vuelve a consultar las rutas REST, que aplican nuevamente la autorización. Cambios no confirmados no generan avisos. Los eventos no son durables: al reconectar, el cliente debe recargar el tablero. El gestor actual vive en memoria y distribuye avisos entre conexiones de un mismo proceso de API.
+
+La API cierra conexiones con `4401` si la autenticación falla y `4403` si el origen o la pertenencia al proyecto no se autorizan.
+
+---
+
 ## Convenciones
 
 ### Códigos de estado

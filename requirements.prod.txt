@@ -1,7 +1,8 @@
 # Dependencias necesarias para ejecutar la API en producción.
 # Las dependencias de pruebas permanecen en requirements.txt y no entran en la imagen.
 fastapi==0.112.4
-uvicorn==0.54.0
+# Incluye websockets, necesario para que Uvicorn acepte conexiones WebSocket.
+uvicorn[standard]==0.54.0
 SQLAlchemy==2.0.52
 PyMySQL==1.1.1
 cryptography==43.0.3
