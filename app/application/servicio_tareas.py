@@ -48,6 +48,12 @@ class ServicioTareas:
             )
         return proyecto
 
+    def verificar_acceso_proyecto(
+        self, usuario: str, proyecto_id: str, operacion: str
+    ) -> None:
+        """Verifica la pertenencia para canales que no son una consulta de tareas."""
+        self._autorizar(usuario, proyecto_id, operacion)
+
     # -- casos de uso ----------------------------------------------------
     def crear_tarea(
         self,

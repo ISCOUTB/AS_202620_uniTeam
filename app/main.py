@@ -14,7 +14,13 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
 from app import observabilidad
-from app.api import rutas_flujo, rutas_progreso, rutas_proyectos, rutas_tareas
+from app.api import (
+    rutas_flujo,
+    rutas_progreso,
+    rutas_proyectos,
+    rutas_tareas,
+    rutas_tiempo_real,
+)
 from app.config import ajustes
 from app.domain.errores import (
     AccesoDenegado,
@@ -142,3 +148,4 @@ app.include_router(rutas_proyectos.router)
 app.include_router(rutas_progreso.router)
 app.include_router(rutas_tareas.router)
 app.include_router(rutas_tareas.mias)
+app.include_router(rutas_tiempo_real.router)

@@ -25,7 +25,7 @@ flowchart LR
     est -->|"Usa [HTTPS]"| web
     lid -->|"Usa [HTTPS]"| web
     pro -->|"Consulta [HTTPS]"| web
-    web -->|"REST/JSON"| api
+    web -->|"REST/JSON + WebSocket"| api
     api -->|"SQL"| db
     api -->|"Valida token [OIDC]"| idp
     api -->|"Invitaciones [SMTP]"| mail
@@ -58,7 +58,7 @@ flowchart LR
 |--------|---------|-------------|-----------|---------|
 | Estudiante, Líder de equipo, Profesor | Aplicación Web | Uso de la interfaz | HTTPS | HTML/JS |
 | Aplicación Web | Proveedor de identidad | Inicio de sesión (código + PKCE) | OIDC | PKCE |
-| Aplicación Web | API | Consumo de la lógica de negocio | HTTPS | REST/JSON |
+| Aplicación Web | API | Operaciones y avisos de cambios en el tablero | HTTPS / WSS | REST/JSON / WebSocket |
 | API | Proveedor de identidad | Descarga del JWKS y validación del token | OIDC | JWKS |
 | API | Base de datos | Persistencia y registro de auditoría | SQL | SQL |
 | API | Servicio de correo | Invitaciones y avisos de fecha límite | SMTP | *(previsto)* |
@@ -109,6 +109,12 @@ cliente.
 Autenticar no es autorizar: estar autenticado no da acceso a un proyecto ajeno. La pertenencia
 se sigue comprobando contra la base de datos en cada operación, y ese es el mecanismo que
 sostiene [ESC-03](../calidad/escenarios-calidad.md#esc-03).
+
+El tablero también abre un WebSocket por proyecto. El token OIDC se valida al establecer la
+conexión y la pertenencia se comprueba antes de suscribirla. La API solo envía una señal de
+invalidación después del commit; el cliente vuelve a leer los datos por REST. El gestor de
+conexiones es local al proceso, por lo que una futura ejecución con varios workers requerirá
+un canal compartido para propagar avisos.
 
 **Proveedor pendiente.** Todavía no se ha elegido entre la cuenta institucional y Google. Para
 desarrollo se usa un emisor mínimo (`scripts/emisor_dev.py`) que habla el protocolo pero **no
