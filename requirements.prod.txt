@@ -3,7 +3,7 @@
 fastapi==0.112.4
 # Incluye websockets, necesario para que Uvicorn acepte conexiones WebSocket.
 uvicorn[standard]==0.54.0
-SQLAlchemy==2.0.52
+SQLAlchemy==2.1.8
 PyMySQL==1.1.1
 cryptography==43.0.3
 PyJWT==2.10.1
