@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { BarraUsuario } from "./barra-usuario";
 import { Logo } from "./componentes/logo";
 import { Navegacion } from "./componentes/navegacion";
 import { ProveedorAvisos } from "@/lib/avisos";
 import { ProveedorSesion } from "@/lib/sesion";
+import { SelectorTema } from "./componentes/selector-tema";
 
 export const metadata: Metadata = {
   title: "UniTeam",
@@ -30,7 +32,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
+      <head>
+        <Script id="tema-inicial" strategy="beforeInteractive">
+          {`try { var temaGuardado = localStorage.getItem("uniteam-tema"); if (temaGuardado === "light" || temaGuardado === "dark") document.documentElement.dataset.theme = temaGuardado; } catch (_) {}`}
+        </Script>
+      </head>
       <body>
         <ProveedorSesion>
           <ProveedorAvisos>
@@ -43,7 +50,10 @@ export default function RootLayout({
                   </a>
                   <Navegacion />
                 </div>
-                <BarraUsuario />
+                <div className="cabecera-acciones">
+                  <SelectorTema />
+                  <BarraUsuario />
+                </div>
               </div>
             </header>
             <main className="contenido">{children}</main>
