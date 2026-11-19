@@ -22,21 +22,28 @@ interface Props {
   tarea?: Tarea;
   miembros: Miembro[];
   guardando: boolean;
+  /** Motivo del último fallo al guardar, para mostrarlo dentro del diálogo. */
+  error?: string | null;
   alGuardar: (datos: DatosTarea) => void;
   alCerrar: () => void;
 }
 
 /** Diálogo modal para crear o editar una tarea. Escape y Cancelar lo cierran. */
-export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }: Props) {
+export function DialogoTarea({ tarea, miembros, guardando, error, alGuardar, alCerrar }: Props) {
   const [titulo, establecerTitulo] = useState(tarea?.titulo ?? "");
   const [prioridad, establecerPrioridad] = useState<Prioridad>(tarea?.prioridad ?? "media");
   const [responsable, establecerResponsable] = useState(tarea?.responsable ?? "");
   const [fecha, establecerFecha] = useState(tarea?.fecha_limite ?? "");
   const dialogo = useRef<HTMLDialogElement>(null);
   const primerCampo = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
+    // Quien abrió el diálogo lo recupera al cerrarlo: sin esto, el foco vuelve
+    // al principio del documento y el teclado pierde el hilo.
+    const anterior = document.activeElement as HTMLElement | null;
     if (!dialogo.current?.open) dialogo.current?.showModal();
     primerCampo.current?.focus();
+    return () => anterior?.focus?.();
   }, []);
 
   function enviar(e: React.FormEvent) {
@@ -51,7 +58,7 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
   }
 
   let textoGuardar = "Crear tarea";
-  if (guardando) textoGuardar = "Guardando…”";
+  if (guardando) textoGuardar = "Guardando…";
   else if (tarea) textoGuardar = "Guardar cambios";
 
   return (
@@ -59,6 +66,7 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
       ref={dialogo}
       className="fondo-modal"
       aria-labelledby="titulo-dialogo"
+      aria-describedby="descripcion-dialogo"
       onCancel={(e) => {
         e.preventDefault();
         if (!guardando) alCerrar();
@@ -66,7 +74,16 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
     >
       <div className="modal">
         <form onSubmit={enviar}>
-          <h2 id="titulo-dialogo">{tarea ? "Editar tarea" : "Nueva tarea"}</h2>
+          <div className="modal-cabecera">
+            <div>
+              <p className="ceja">{tarea ? "Editar" : "Nueva"}</p>
+              <h2 id="titulo-dialogo">{tarea ? "Editar tarea" : "Nueva tarea"}</h2>
+            </div>
+          </div>
+          <p className="ayuda" id="descripcion-dialogo">
+            El título es obligatorio. Prioridad, responsable y fecha puedes cambiarlos después.
+          </p>
+
           <label className="campo">
             <span className="etiqueta">Título</span>
             <input
@@ -78,17 +95,29 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
               required
             />
           </label>
+
           <div className="campos">
-            <label className="campo">
-              <span className="etiqueta">Prioridad</span>
-              <select value={prioridad} onChange={(e) => establecerPrioridad(e.target.value as Prioridad)}>
+            <fieldset className="campo">
+              <legend className="etiqueta">Prioridad</legend>
+              <div className="segmentado">
                 {PRIORIDADES.map((p) => (
-                  <option key={p} value={p}>
-                    {ETIQUETA_PRIORIDAD[p]}
-                  </option>
+                  <label
+                    key={p}
+                    className={`segmento prioridad-${p}${prioridad === p ? " activo" : ""}`}
+                  >
+                    <input
+                      type="radio"
+                      name="prioridad"
+                      value={p}
+                      checked={prioridad === p}
+                      onChange={() => establecerPrioridad(p)}
+                    />
+                    <span>{ETIQUETA_PRIORIDAD[p]}</span>
+                  </label>
                 ))}
-              </select>
-            </label>
+              </div>
+            </fieldset>
+
             <label className="campo">
               <span className="etiqueta">Responsable</span>
               <select value={responsable} onChange={(e) => establecerResponsable(e.target.value)}>
@@ -102,19 +131,27 @@ export function DialogoTarea({ tarea, miembros, guardando, alGuardar, alCerrar }
                 ))}
               </select>
             </label>
+
             <label className="campo">
               <span className="etiqueta">Fecha límite</span>
               <input type="date" value={fecha} onChange={(e) => establecerFecha(e.target.value)} />
             </label>
           </div>
+
           <div className="acciones">
-            <button type="button" className="secundario" onClick={alCerrar}>
+            <button type="button" className="secundario" onClick={alCerrar} disabled={guardando}>
               Cancelar
             </button>
             <button type="submit" disabled={guardando || !titulo.trim()}>
               {textoGuardar}
             </button>
           </div>
+
+          {error && (
+            <p className="aviso error" role="alert">
+              {error}
+            </p>
+          )}
         </form>
       </div>
     </dialog>

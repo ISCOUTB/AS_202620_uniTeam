@@ -7,11 +7,9 @@ import {
   API,
   api,
   ErrorApi,
-  ETIQUETA_PRIORIDAD,
   notificarSesionCaducada,
   obtenerFlujo,
   PESO_PRIORIDAD,
-  PRIORIDADES,
   type Prioridad,
   type Progreso,
   type Proyecto,
@@ -23,8 +21,17 @@ import { nombreCorto } from "@/lib/formato";
 import { useLento } from "@/lib/lento";
 import { useSesion } from "@/lib/sesion";
 import { GrupoAvatares } from "../componentes/avatar";
+import { EstadoVacio } from "../componentes/estado-vacio";
+import {
+  IconoChevronAbajo,
+  IconoChevronArriba,
+  IconoFlechaIzquierda,
+  IconoMas,
+} from "../componentes/iconos";
 import { DialogoTarea, type DatosTarea } from "./dialogo-tarea";
+import { FiltrosTablero } from "./filtros-tablero";
 import { PanelMiembros } from "./panel-miembros";
+import { ResumenProyecto } from "./resumen-proyecto";
 import { TarjetaTarea } from "./tarjeta-tarea";
 
 type Dialogo = { modo: "crear" } | { modo: "editar"; tarea: Tarea } | null;
@@ -62,6 +69,7 @@ export function Tablero() {
   const [ocupadas, establecerOcupadas] = useState<Set<string>>(new Set());
   const [dialogo, establecerDialogo] = useState<Dialogo>(null);
   const [guardando, establecerGuardando] = useState(false);
+  const [errorDialogo, establecerErrorDialogo] = useState<string | null>(null);
   const [verMiembros, establecerVerMiembros] = useState(false);
   const [arrastrada, establecerArrastrada] = useState<Tarea | null>(null);
   const [rapida, establecerRapida] = useState("");
@@ -308,6 +316,7 @@ export function Tablero() {
   async function guardar(datos: DatosTarea) {
     if (!token || !dialogo) return;
     establecerGuardando(true);
+    establecerErrorDialogo(null);
     try {
       if (dialogo.modo === "crear") {
         const nueva = await api.crearTarea(token, id, datos);
@@ -332,7 +341,11 @@ export function Tablero() {
       establecerDialogo(null);
       void recargarProgreso();
     } catch (e) {
-      avisar(mensaje(e, "No se pudo guardar la tarea."), "error");
+      // El diálogo modal deja el resto del documento inerte, así que el aviso
+      // flotante no llegaría al lector de pantalla: el error se muestra dentro.
+      const texto = mensaje(e, "No se pudo guardar la tarea.");
+      establecerErrorDialogo(texto);
+      avisar(texto, "error");
     } finally {
       establecerGuardando(false);
     }
@@ -368,9 +381,14 @@ export function Tablero() {
     return (
       <>
         <p className="migas">
-          <Link href="/">← Mis proyectos</Link>
+          <Link href="/">
+            <IconoFlechaIzquierda tamano={16} /> Mis proyectos
+          </Link>
         </p>
-        <div className="aviso error">{error}</div>
+        <h1>No se pudo cargar el proyecto</h1>
+        <div className="aviso error" role="alert">
+          {error}
+        </div>
       </>
     );
   }
@@ -379,10 +397,13 @@ export function Tablero() {
     return (
       <>
         <p className="migas">
-          <Link href="/">← Mis proyectos</Link>
+          <Link href="/">
+            <IconoFlechaIzquierda tamano={16} /> Mis proyectos
+          </Link>
         </p>
+        <h1 className="solo-lectores">Cargando el proyecto</h1>
         <div className="tarjeta esqueleto" style={{ height: 120, marginBottom: 20 }} />
-        <div className="kanban">
+        <div className="kanban" aria-hidden="true">
           {[0, 1, 2].map((i) => (
             <div key={i} className="columna esqueleto" style={{ height: 280 }} />
           ))}
@@ -397,67 +418,46 @@ export function Tablero() {
   return (
     <>
       <p className="migas">
-        <Link href="/">← Mis proyectos</Link>
+        <Link href="/">
+          <IconoFlechaIzquierda tamano={16} /> Mis proyectos
+        </Link>
       </p>
 
       <div className="encabezado-pagina">
         <div>
+          <p className="ceja">Proyecto</p>
           <h1>{proyecto.nombre}</h1>
-          <div className="fila suave">
+          <div className="fila suave cabecera-miembros">
             <GrupoAvatares usuarios={proyecto.miembros.map((m) => m.usuario)} />
-            <button className="enlace" onClick={() => establecerVerMiembros((v) => !v)}>
+            <button
+              className="enlace"
+              onClick={() => establecerVerMiembros((v) => !v)}
+              aria-expanded={verMiembros}
+              aria-controls="panel-miembros"
+            >
               {proyecto.miembros.length} integrante{proyecto.miembros.length === 1 ? "" : "s"}
-              {verMiembros ? " ▴" : " ▾"}
+              {verMiembros ? <IconoChevronArriba tamano={15} /> : <IconoChevronAbajo tamano={15} />}
             </button>
           </div>
         </div>
         <button onClick={() => establecerDialogo({ modo: "crear" })} title="Atajo: N">
-          + Nueva tarea
+          <IconoMas tamano={18} />
+          Nueva tarea
+          <kbd className="atajo" aria-hidden="true">
+            N
+          </kbd>
         </button>
       </div>
 
-      {error && <div className="aviso error">{error}</div>}
+      {error && (
+        <div className="aviso error" role="alert">
+          {error}
+        </div>
+      )}
 
       {verMiembros && <PanelMiembros proyecto={proyecto} esLider={esLider} alAgregar={agregarMiembro} />}
 
-      {progreso && (
-        <section className="tarjeta resumen">
-          <div className="progreso-cabecera">
-            <strong>{progreso.porcentaje_completado}% completado</strong>
-            <span className="suave">
-              {progreso.por_estado[flujo.final?.id ?? ""] ?? 0} de {progreso.total} tareas
-            </span>
-          </div>
-          <progress
-            className="barra"
-            max={100}
-            value={progreso.porcentaje_completado}
-            aria-label="Porcentaje de tareas completadas"
-          >
-            {progreso.porcentaje_completado}%
-          </progress>
-          <div className="metricas">
-            <div className="metrica">
-              <div className="valor">{progreso.total}</div>
-              <div className="nombre">Tareas</div>
-            </div>
-            <div className="metrica">
-              <div className="valor">
-                {flujo.enCurso.reduce((suma, e) => suma + (progreso.por_estado[e.id] ?? 0), 0)}
-              </div>
-              <div className="nombre">En curso</div>
-            </div>
-            <div className={`metrica${progreso.sin_responsable > 0 ? " atencion" : ""}`}>
-              <div className="valor">{progreso.sin_responsable}</div>
-              <div className="nombre">Sin responsable</div>
-            </div>
-            <div className={`metrica${progreso.vencidas > 0 ? " alerta" : ""}`}>
-              <div className="valor">{progreso.vencidas}</div>
-              <div className="nombre">Vencidas</div>
-            </div>
-          </div>
-        </section>
-      )}
+      {progreso && <ResumenProyecto progreso={progreso} flujo={flujo} />}
 
       {tareas.length < (progreso?.total ?? 0) && (
         <div className="aviso">
@@ -465,55 +465,37 @@ export function Tablero() {
         </div>
       )}
 
-      <div className="filtros">
-        <input
-          ref={busqueda}
-          type="search"
-          value={texto}
-          onChange={(e) => establecerTexto(e.target.value)}
-          placeholder="Buscar tareas…  ( / )"
-          aria-label="Buscar tareas por título"
-        />
-        <select value={filtroResponsable} onChange={(e) => establecerFiltroResponsable(e.target.value)} aria-label="Filtrar por responsable">
-          <option value="">Todos los responsables</option>
-          <option value="-">Sin asignar</option>
-          {usuario && proyecto.miembros.some((m) => m.usuario === usuario) && <option value={usuario}>Mis tareas</option>}
-          {proyecto.miembros
-            .filter((m) => m.usuario !== usuario)
-            .map((m) => (
-              <option key={m.usuario} value={m.usuario}>
-                {nombreCorto(m.usuario)}
-              </option>
-            ))}
-        </select>
-        <select value={filtroPrioridad} onChange={(e) => establecerFiltroPrioridad(e.target.value as Prioridad | "")} aria-label="Filtrar por prioridad">
-          <option value="">Todas las prioridades</option>
-          {PRIORIDADES.map((p) => (
-            <option key={p} value={p}>
-              {ETIQUETA_PRIORIDAD[p]}
-            </option>
-          ))}
-        </select>
-        {filtrando && (
-          <button
-            className="enlace"
-            onClick={() => {
-              establecerTexto("");
-              establecerFiltroResponsable("");
-              establecerFiltroPrioridad("");
-            }}
-          >
-            Quitar filtros
-          </button>
-        )}
-      </div>
+      <FiltrosTablero
+        texto={texto}
+        alCambiarTexto={establecerTexto}
+        responsable={filtroResponsable}
+        alCambiarResponsable={establecerFiltroResponsable}
+        prioridad={filtroPrioridad}
+        alCambiarPrioridad={establecerFiltroPrioridad}
+        miembros={proyecto.miembros}
+        usuario={usuario}
+        filtrando={filtrando}
+        alLimpiar={() => {
+          establecerTexto("");
+          establecerFiltroResponsable("");
+          establecerFiltroPrioridad("");
+        }}
+        refBusqueda={busqueda}
+      />
 
       {tareas.length === 0 ? (
-        <div className="vacio-grande">
-          <h2>El tablero está vacío</h2>
-          <p>Crea la primera tarea y asígnasela a alguien del equipo.</p>
-          <button onClick={() => establecerDialogo({ modo: "crear" })}>Crear la primera tarea</button>
-        </div>
+        <EstadoVacio
+          titulo="El tablero está vacío"
+          ilustracion="tablero"
+          accion={
+            <button onClick={() => establecerDialogo({ modo: "crear" })}>
+              <IconoMas tamano={18} />
+              Crear la primera tarea
+            </button>
+          }
+        >
+          Crea la primera tarea y asígnasela a alguien del equipo.
+        </EstadoVacio>
       ) : (
         <div className="kanban" style={{ "--columnas": flujo.estados.length } as React.CSSProperties}>
           {flujo.estados.map(({ id: estado, etiqueta }) => {
@@ -542,7 +524,10 @@ export function Tablero() {
                 }}
               >
                 <header>
-                  <h2>{etiqueta}</h2>
+                  <h2>
+                    <span className="columna-punto" aria-hidden="true" />
+                    {etiqueta}
+                  </h2>
                   <span className="contador">{columna.length}</span>
                 </header>
                 {columna.length === 0 ? (
@@ -575,6 +560,14 @@ export function Tablero() {
                       maxLength={300}
                       disabled={creandoRapida}
                     />
+                    <button
+                      type="submit"
+                      className="icono"
+                      aria-label="Añadir tarea"
+                      disabled={!rapida.trim() || creandoRapida}
+                    >
+                      <IconoMas tamano={17} />
+                    </button>
                   </form>
                 )}
               </section>
@@ -588,8 +581,13 @@ export function Tablero() {
           tarea={dialogo.modo === "editar" ? dialogo.tarea : undefined}
           miembros={proyecto.miembros}
           guardando={guardando}
+          error={errorDialogo}
           alGuardar={guardar}
-          alCerrar={() => !guardando && establecerDialogo(null)}
+          alCerrar={() => {
+            if (guardando) return;
+            establecerDialogo(null);
+            establecerErrorDialogo(null);
+          }}
         />
       )}
     </>

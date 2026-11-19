@@ -1,9 +1,11 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { completarSesion } from "@/lib/oidc";
 import { useSesion } from "@/lib/sesion";
+import { IconoAlerta } from "../componentes/iconos";
 
 function Canje() {
   const parametros = useSearchParams();
@@ -39,18 +41,50 @@ function Canje() {
 
   if (error) {
     return (
-      <>
-        <h1>No se pudo iniciar sesión</h1>
-        <div className="aviso error">{error}</div>
-      </>
+      <div className="callback">
+        <div className="tarjeta callback-tarjeta">
+          <span className="callback-icono error" aria-hidden="true">
+            <IconoAlerta tamano={22} />
+          </span>
+          <h1>No se pudo iniciar sesión</h1>
+          <div className="aviso error" role="alert">
+            {error}
+          </div>
+          <Link className="boton" href="/">
+            Volver al inicio
+          </Link>
+        </div>
+      </div>
     );
   }
-  return <p className="vacio">Completando el inicio de sesión…</p>;
+
+  return (
+    <div className="callback">
+      <div className="tarjeta callback-tarjeta" role="status" aria-live="polite">
+        <span className="cargador" aria-hidden="true" />
+        <h1>Completando el inicio de sesión…</h1>
+        <p className="ayuda">Estamos comprobando tu cuenta con el proveedor de identidad.</p>
+      </div>
+    </div>
+  );
 }
 
 export default function PaginaCallback() {
+  useEffect(() => {
+    document.title = "Iniciando sesión · UniTeam";
+  }, []);
+
   return (
-    <Suspense fallback={<p className="vacio">Cargando…</p>}>
+    <Suspense
+      fallback={
+        <div className="callback">
+          <div className="tarjeta callback-tarjeta" role="status">
+            <span className="cargador" aria-hidden="true" />
+            <p className="ayuda">Cargando…</p>
+          </div>
+        </div>
+      }
+    >
       <Canje />
     </Suspense>
   );

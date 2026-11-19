@@ -1,0 +1,128 @@
+@layer utilidades {
+  @keyframes brillar {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes subir {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes deslizar-aviso {
+    from {
+      opacity: 0;
+      transform: translateX(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes encoger {
+    from {
+      transform: scaleX(1);
+    }
+    to {
+      transform: scaleX(0);
+    }
+  }
+
+  @keyframes girar {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @keyframes flotar {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-7px);
+    }
+  }
+
+  @keyframes posar {
+    from {
+      opacity: 0;
+      transform: rotate(-5deg) translateY(18px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: rotate(-2.4deg) translateY(0) scale(1);
+    }
+  }
+
+  /* Entrada escalonada de la portada: el texto se posa como una hoja. */
+  .portada-copia > * {
+    animation: aparecer var(--dur-4) var(--ease) both;
+  }
+
+  .portada-copia > *:nth-child(2) {
+    animation-delay: 60ms;
+  }
+
+  .portada-copia > *:nth-child(3) {
+    animation-delay: 120ms;
+  }
+
+  .portada-copia > *:nth-child(4) {
+    animation-delay: 180ms;
+  }
+
+  .portada-copia > *:nth-child(5) {
+    animation-delay: 240ms;
+  }
+
+  .portada-ventajas .ventaja {
+    animation: aparecer var(--dur-4) var(--ease) both;
+  }
+
+  .portada-ventajas .ventaja:nth-child(2) {
+    animation-delay: 90ms;
+  }
+
+  .portada-ventajas .ventaja:nth-child(3) {
+    animation-delay: 180ms;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .portada-copia > *,
+    .portada-ventajas .ventaja,
+    .ilustracion-tablero,
+    .ilustracion-flotante,
+    .ilustracion-orbita,
+    .esqueleto::after,
+    .cargador {
+      animation: none !important;
+    }
+
+    .tarjeta-tarea:hover,
+    .fila-tarea:hover,
+    a.tarjeta:hover,
+    button:hover:not(:disabled) {
+      transform: none;
+    }
+  }
+}

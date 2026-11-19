@@ -4,6 +4,14 @@ import { ETIQUETA_PRIORIDAD, type Miembro, type Tarea } from "@/lib/api";
 import type { Flujo } from "@/lib/flujo";
 import { diasHasta, fechaRelativa, formatearDia, nombreCorto, vencimiento } from "@/lib/formato";
 import { Avatar } from "../componentes/avatar";
+import {
+  IconoArrastrar,
+  IconoCalendario,
+  IconoFlechaDerecha,
+  IconoFlechaIzquierda,
+  IconoLapiz,
+  IconoPapelera,
+} from "../componentes/iconos";
 
 interface Props {
   tarea: Tarea;
@@ -36,11 +44,13 @@ export function TarjetaTarea({
   const situacion = tarea.fecha_limite
     ? vencimiento(tarea.fecha_limite, flujo.esFinal(tarea.estado))
     : null;
+  const final = flujo.esFinal(tarea.estado);
 
   return (
     <article
       className={`tarjeta-tarea prioridad-${tarea.prioridad}${ocupada ? " ocupada" : ""}`}
       draggable={!ocupada}
+      aria-busy={ocupada}
       onDragStart={(e) => {
         e.dataTransfer.setData("text/plain", tarea.id);
         e.dataTransfer.effectAllowed = "move";
@@ -48,11 +58,20 @@ export function TarjetaTarea({
       }}
       onDragEnd={alTerminarArrastre}
     >
-      <div className="fila separado">
+      <div className="fila separado tarjeta-tarea-cabecera">
+        <span className="asa" aria-hidden="true" title="Arrastrar para mover">
+          <IconoArrastrar tamano={14} />
+        </span>
         <span className={`pastilla ${tarea.prioridad}`}>{ETIQUETA_PRIORIDAD[tarea.prioridad]}</span>
         <div className="fila acciones-icono">
-          <button className="icono" onClick={alEditar} disabled={ocupada} aria-label={`Editar «${tarea.titulo}»`} title="Editar">
-            ✎
+          <button
+            className="icono"
+            onClick={alEditar}
+            disabled={ocupada}
+            aria-label={`Editar «${tarea.titulo}»`}
+            title="Editar"
+          >
+            <IconoLapiz tamano={16} />
           </button>
           {puedeEliminar && (
             <button
@@ -62,25 +81,32 @@ export function TarjetaTarea({
               aria-label={`Eliminar «${tarea.titulo}»`}
               title="Eliminar"
             >
-              🗑
+              <IconoPapelera tamano={16} />
             </button>
           )}
         </div>
       </div>
 
-      <h3 className={flujo.esFinal(tarea.estado) ? "hecha" : undefined}>{tarea.titulo}</h3>
+      <h3 className={final ? "hecha" : undefined}>{tarea.titulo}</h3>
 
-      <div className="fila meta">
-        {tarea.fecha_limite && (
+      {tarea.fecha_limite && (
+        <div className="fila meta">
           <span className={`fecha ${situacion ?? ""}`} title={formatearDia(tarea.fecha_limite)}>
-            📅 {textoFecha(tarea.fecha_limite, situacion === "vencida")}
+            <IconoCalendario tamano={14} />
+            {textoFecha(tarea.fecha_limite, situacion === "vencida")}
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="fila separado pie-tarjeta">
         <label className="responsable">
-          {tarea.responsable ? <Avatar usuario={tarea.responsable} tamano={22} /> : <span className="avatar vacio-avatar">?</span>}
+          {tarea.responsable ? (
+            <Avatar usuario={tarea.responsable} tamano={22} />
+          ) : (
+            <span className="avatar vacio-avatar" aria-hidden="true">
+              ?
+            </span>
+          )}
           <select
             value={tarea.responsable ?? ""}
             onChange={(e) => e.target.value && alAsignar(e.target.value)}
@@ -95,7 +121,7 @@ export function TarjetaTarea({
             ))}
           </select>
         </label>
-        <div className="fila">
+        <div className="fila mover">
           {flujo.siguientes(tarea.estado).map((destino) => {
             const atras = flujo.orden(destino) < flujo.orden(tarea.estado);
             return (
@@ -104,11 +130,12 @@ export function TarjetaTarea({
                 className="secundario pequeno"
                 onClick={() => alMover(destino)}
                 disabled={ocupada}
+                aria-label={`Mover «${tarea.titulo}» a ${flujo.etiqueta(destino)}`}
                 title={`Mover a ${flujo.etiqueta(destino)}`}
               >
-                {atras ? "← " : ""}
+                {atras && <IconoFlechaIzquierda tamano={14} />}
                 {flujo.etiqueta(destino)}
-                {atras ? "" : " →"}
+                {!atras && <IconoFlechaDerecha tamano={14} />}
               </button>
             );
           })}

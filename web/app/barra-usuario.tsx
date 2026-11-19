@@ -4,6 +4,7 @@ import { useState } from "react";
 import { EMISOR } from "@/lib/oidc";
 import { useSesion } from "@/lib/sesion";
 import { Avatar } from "./componentes/avatar";
+import { IconoSalir } from "./componentes/iconos";
 
 /** Estado de la sesión y acceso al proveedor de identidad. */
 export function BarraUsuario() {
@@ -29,7 +30,7 @@ export function BarraUsuario() {
     };
 
     return (
-      <div className="fila">
+      <div className="fila sesion">
         {error && (
           <span className="error" role="alert">
             {error}
@@ -45,9 +46,12 @@ export function BarraUsuario() {
   return (
     <div className="fila usuario-actual">
       <Avatar usuario={usuario} />
-      <span className="usuario-correo">{usuario}</span>
-      <button className="secundario" onClick={salir}>
-        Cerrar sesión
+      <span className="usuario-correo" title={usuario}>
+        {usuario}
+      </span>
+      <button className="secundario salir" onClick={salir} aria-label="Cerrar sesión" title="Cerrar sesión">
+        <IconoSalir tamano={17} />
+        <span className="salir-texto">Cerrar sesión</span>
       </button>
     </div>
   );

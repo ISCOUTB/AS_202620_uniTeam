@@ -6,11 +6,12 @@ export function Avatar({ usuario, tamano = 28 }: { usuario: string; tamano?: num
     <span
       className="avatar"
       title={usuario}
+      aria-hidden="true"
       style={{
         width: tamano,
         height: tamano,
         fontSize: tamano * 0.4,
-        background: `hsl(${tono(usuario)} 55% 45%)`,
+        background: `hsl(${tono(usuario)} 45% 32%)`,
       }}
     >
       {iniciales(usuario)}

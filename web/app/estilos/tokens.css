@@ -1,0 +1,134 @@
+@layer tokens {
+  /*
+   * Tokens de UniTeam — «Editorial Campus».
+   *
+   * Un solo lugar decide color, tipo, espacio, forma y movimiento. Las páginas
+   * no escriben colores: piden un token semántico. `light-dark()` resuelve el
+   * tema con `color-scheme`, así que la paleta se declara una vez y no hay dos
+   * bloques de variables que puedan desincronizarse.
+   */
+  :root {
+    color-scheme: light dark;
+
+    /* Paleta cruda: papel, tinta y cuatro acentos botánicos. */
+    --papel: light-dark(#f7f4eb, #101814);
+    --papel-2: light-dark(#efeade, #0b120f);
+    --blanco: light-dark(#fffdf7, #16211b);
+    --tinta: light-dark(#1b2a23, #f0ede3);
+    --tinta-suave: light-dark(#4f5f56, #b9c3b8);
+    --tinta-tenue: light-dark(#5f6f66, #8c9a90);
+    --linea: light-dark(#dcd6c6, #2c3b32);
+    --linea-fuerte: light-dark(#c4bca8, #3d4f43);
+    /* Borde de control: el único límite visible de un campo, así que cumple 3:1. */
+    --linea-campo: light-dark(#8b8574, #5d7266);
+
+    --verde: light-dark(#2e5c49, #9cc0a3);
+    --verde-oscuro: light-dark(#24493a, #b8d6bc);
+    --verde-claro: light-dark(#dde8df, #22362b);
+    --terracota: light-dark(#b85c38, #e39a78);
+    --terracota-claro: light-dark(#f6e2d8, #3a241c);
+    --rojo: light-dark(#a23a2e, #e89a8c);
+    --rojo-claro: light-dark(#f6ddd8, #3a221e);
+    --ocre: light-dark(#8a5a1f, #e2be80);
+    --ocre-claro: light-dark(#f4e8d2, #33291a);
+    --salvia: light-dark(#3e6b4f, #9ac7a1);
+    --salvia-claro: light-dark(#dfeade, #1f2f24);
+    --azul: light-dark(#3f5d77, #9dbbd4);
+    --azul-claro: light-dark(#e0e8ef, #1c2933);
+
+    /* Semánticos: lo que usan los componentes. */
+    --fondo: var(--papel);
+    --superficie: var(--blanco);
+    --superficie-2: var(--papel-2);
+    --borde: var(--linea);
+    --borde-fuerte: var(--linea-fuerte);
+    --borde-campo: var(--linea-campo);
+    --texto: var(--tinta);
+    --texto-suave: var(--tinta-suave);
+    --texto-tenue: var(--tinta-tenue);
+
+    --primario: var(--verde);
+    --primario-fuerte: var(--verde-oscuro);
+    --primario-suave: var(--verde-claro);
+    --sobre-primario: light-dark(#fffdf7, #0d1512);
+
+    --acento: light-dark(#9c4526, #e39a78);
+    --acento-suave: var(--terracota-claro);
+    --peligro: var(--rojo);
+    --peligro-suave: var(--rojo-claro);
+    --aviso: var(--ocre);
+    --aviso-suave: var(--ocre-claro);
+    --exito: var(--salvia);
+    --exito-suave: var(--salvia-claro);
+    --info: var(--azul);
+    --info-suave: var(--azul-claro);
+    --foco: light-dark(#b85c38, #e9b79f);
+
+    /* Tipografía. next/font entrega --fuente-display y --fuente-ui. */
+    --tipo-display: var(--fuente-display, "Fraunces"), Georgia, "Times New Roman", serif;
+    --tipo-ui: var(--fuente-ui, "Manrope"), system-ui, -apple-system, "Segoe UI", sans-serif;
+
+    --texto-2xs: 0.6875rem;
+    --texto-xs: 0.75rem;
+    --texto-sm: 0.8125rem;
+    --texto-base: 0.9375rem;
+    --texto-md: 1rem;
+    --texto-lg: 1.125rem;
+    --texto-xl: 1.375rem;
+    --texto-2xl: clamp(1.55rem, 1.2rem + 1.5vw, 2.15rem);
+    --texto-3xl: clamp(2rem, 1.4rem + 2.6vw, 3rem);
+    --texto-hero: clamp(2.5rem, 1.5rem + 4.4vw, 4.6rem);
+
+    /* Espacio: escala de 4 px. */
+    --e-1: 4px;
+    --e-2: 8px;
+    --e-3: 12px;
+    --e-4: 16px;
+    --e-5: 24px;
+    --e-6: 32px;
+    --e-7: 48px;
+    --e-8: 64px;
+    --e-9: 96px;
+
+    /* Forma. */
+    --r-xs: 4px;
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 18px;
+    --r-xl: 26px;
+    --r-full: 999px;
+
+    /* Elevación: tintada de verde, nunca gris puro. */
+    --sombra-1: 0 1px 2px light-dark(rgb(27 42 35 / 0.05), rgb(0 0 0 / 0.4));
+    --sombra-2: 0 2px 6px light-dark(rgb(27 42 35 / 0.05), rgb(0 0 0 / 0.35)),
+      0 14px 30px -20px light-dark(rgb(27 42 35 / 0.45), rgb(0 0 0 / 0.8));
+    --sombra-3: 0 28px 70px -30px light-dark(rgb(27 42 35 / 0.45), rgb(0 0 0 / 0.9));
+
+    /* Movimiento: el papel se posa, no rebota. */
+    --dur-1: 120ms;
+    --dur-2: 180ms;
+    --dur-3: 260ms;
+    --dur-4: 460ms;
+    --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+    /* Medidas. */
+    --ancho: 1180px;
+    --ancho-lectura: 62ch;
+    --alto-cabecera: 68px;
+    --alto-nav-movil: 62px;
+
+    --z-cabecera: 40;
+    --z-nav-movil: 45;
+    --z-avisos: 60;
+    --z-modal: 70;
+  }
+
+  /* La preferencia explícita manda sobre la del sistema. */
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}

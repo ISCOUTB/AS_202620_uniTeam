@@ -1,14 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, ErrorApi, type ProyectoConResumen } from "@/lib/api";
 import { useAvisos } from "@/lib/avisos";
 import { pareceCorreo, useLento } from "@/lib/lento";
 import { useSesion } from "@/lib/sesion";
-import { GrupoAvatares } from "./componentes/avatar";
+import { EstadoVacio } from "./componentes/estado-vacio";
+import { IconoMas, IconoUsuarios } from "./componentes/iconos";
 import { Portada } from "./componentes/portada";
+import { TarjetaProyecto } from "./componentes/tarjeta-proyecto";
 
 function mensaje(e: unknown, porDefecto: string): string {
   return e instanceof ErrorApi ? e.message : porDefecto;
@@ -24,6 +25,7 @@ export default function PaginaProyectos() {
   const [creando, establecerCreando] = useState(false);
   const [formularioAbierto, establecerFormulario] = useState(false);
   const campoNombre = useRef<HTMLInputElement>(null);
+  const botonNuevo = useRef<HTMLButtonElement>(null);
   const [nombre, establecerNombre] = useState("");
   const [miembros, establecerMiembros] = useState("");
   const lento = useLento(token !== null && proyectos === null && !error);
@@ -31,6 +33,12 @@ export default function PaginaProyectos() {
   useEffect(() => {
     if (formularioAbierto) campoNombre.current?.focus();
   }, [formularioAbierto]);
+
+  /** Cierra el alta y devuelve el foco al botón que la abrió. */
+  function cerrarFormulario() {
+    establecerFormulario(false);
+    window.requestAnimationFrame(() => botonNuevo.current?.focus());
+  }
 
   useEffect(() => {
     document.title = "Mis proyectos · UniTeam";
@@ -77,20 +85,29 @@ export default function PaginaProyectos() {
     <>
       <div className="encabezado-pagina">
         <div>
+          <p className="ceja">Panel</p>
           <h1>Mis proyectos</h1>
           <p className="subtitulo">Solo ves los proyectos de los que eres miembro.</p>
         </div>
         {!formularioAbierto && (
-          <button onClick={() => establecerFormulario(true)}>+ Nuevo proyecto</button>
+          <button ref={botonNuevo} onClick={() => establecerFormulario(true)}>
+            <IconoMas tamano={18} />
+            Nuevo proyecto
+          </button>
         )}
       </div>
 
-      {error && <div className="aviso error">{error}</div>}
+      {error && (
+        <div className="aviso error" role="alert">
+          {error}
+        </div>
+      )}
 
       {formularioAbierto && (
-        <section className="tarjeta formulario">
+        <section className="tarjeta formulario" aria-label="Nuevo proyecto">
           <form onSubmit={crear}>
             <h2>Nuevo proyecto</h2>
+            <p className="ayuda">Ponle nombre y añade a tu equipo por correo. Tú quedas como líder.</p>
             <div className="campos">
               <label className="campo">
                 <span className="etiqueta">Nombre</span>
@@ -104,24 +121,32 @@ export default function PaginaProyectos() {
                 />
               </label>
               <label className="campo ancho">
-                <span className="etiqueta">Integrantes (correos, separados por comas)</span>
+                <span className="etiqueta">
+                  <IconoUsuarios tamano={15} /> Integrantes (correos, separados por comas)
+                </span>
                 <input
                   value={miembros}
                   onChange={(e) => establecerMiembros(e.target.value)}
                   placeholder="bruno@utb.edu.co, carla@utb.edu.co"
+                  inputMode="email"
+                  autoComplete="off"
+                  spellCheck={false}
                   aria-invalid={invalidos.length > 0}
+                  aria-describedby={invalidos.length > 0 ? "error-integrantes" : "ayuda-integrantes"}
                 />
                 {invalidos.length > 0 ? (
-                  <span className="ayuda error">
+                  <span className="ayuda error" id="error-integrantes">
                     No parece un correo: {invalidos.join(", ")}. Los integrantes entran con su correo.
                   </span>
                 ) : (
-                  <span className="ayuda">Tú quedas como líder. Puedes añadir más integrantes después.</span>
+                  <span className="ayuda" id="ayuda-integrantes">
+                    Puedes añadir más integrantes después.
+                  </span>
                 )}
               </label>
             </div>
             <div className="acciones">
-              <button type="button" className="secundario" onClick={() => establecerFormulario(false)}>
+              <button type="button" className="secundario" onClick={cerrarFormulario}>
                 Cancelar
               </button>
               <button type="submit" disabled={creando || !nombre.trim() || invalidos.length > 0}>
@@ -134,9 +159,9 @@ export default function PaginaProyectos() {
 
       {proyectos === null && !error && (
         <>
-          <div className="rejilla rejilla-proyectos">
+          <div className="rejilla rejilla-proyectos" aria-hidden="true">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="tarjeta esqueleto" style={{ height: 112 }} />
+              <div key={i} className="tarjeta esqueleto" style={{ height: 148 }} />
             ))}
           </div>
           {lento && (
@@ -144,59 +169,29 @@ export default function PaginaProyectos() {
           )}
         </>
       )}
+
       {proyectos?.length === 0 && (
-        <div className="vacio-grande">
-          <h2>Todavía no tienes proyectos</h2>
-          <p>Crea el primero e invita a tu equipo con su correo.</p>
-          {!formularioAbierto && (
-            <button onClick={() => establecerFormulario(true)}>Crear mi primer proyecto</button>
-          )}
-        </div>
+        <EstadoVacio
+          titulo="Todavía no tienes proyectos"
+          ilustracion="proyecto"
+          accion={
+            !formularioAbierto && (
+              <button onClick={() => establecerFormulario(true)}>
+                <IconoMas tamano={18} />
+                Crear mi primer proyecto
+              </button>
+            )
+          }
+        >
+          Crea el primero e invita a tu equipo con su correo.
+        </EstadoVacio>
       )}
+
       {proyectos && proyectos.length > 0 && (
         <div className="rejilla rejilla-proyectos">
-          {proyectos?.map((p) => {
-            const lider = p.miembros.find((m) => m.rol === "lider")?.usuario === usuario;
-            return (
-              <Link
-                key={p.id}
-                href={`/proyecto/?id=${encodeURIComponent(p.id)}`}
-                className="tarjeta tarjeta-proyecto"
-              >
-                <div className="fila separado">
-                  <strong className="titulo-proyecto">{p.nombre}</strong>
-                  {lider && <span className="insignia">Líder</span>}
-                </div>
-                <div className="avance-proyecto">
-                  <div className="fila separado suave">
-                    <span>
-                      {p.resumen.total === 0
-                        ? "Sin tareas todavía"
-                        : `${p.resumen.terminadas} de ${p.resumen.total} tareas terminadas`}
-                    </span>
-                    {p.resumen.vencidas > 0 && (
-                      <span className="vencidas-proyecto">
-                        {p.resumen.vencidas} vencida{p.resumen.vencidas === 1 ? "" : "s"}
-                      </span>
-                    )}
-                  </div>
-                  <div className="barra fina">
-                    <div
-                      style={{
-                        width: `${p.resumen.total ? (p.resumen.terminadas * 100) / p.resumen.total : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-                <div className="fila separado pie-tarjeta">
-                  <GrupoAvatares usuarios={p.miembros.map((m) => m.usuario)} />
-                  <span className="suave">
-                    {p.miembros.length} integrante{p.miembros.length === 1 ? "" : "s"}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+          {proyectos.map((p) => (
+            <TarjetaProyecto key={p.id} proyecto={p} usuario={usuario} />
+          ))}
         </div>
       )}
     </>

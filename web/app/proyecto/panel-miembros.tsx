@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { Proyecto } from "@/lib/api";
 import { pareceCorreo } from "@/lib/lento";
 import { Avatar } from "../componentes/avatar";
+import { IconoMas, IconoUsuarios } from "../componentes/iconos";
 
 interface Props {
   proyecto: Proyecto;
@@ -17,6 +18,7 @@ export function PanelMiembros({ proyecto, esLider, alAgregar }: Props) {
   const [enviando, establecerEnviando] = useState(false);
   const limpio = correo.trim().toLowerCase();
   const valido = pareceCorreo(limpio);
+  const invalido = correo.trim() !== "" && !valido;
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
@@ -27,8 +29,11 @@ export function PanelMiembros({ proyecto, esLider, alAgregar }: Props) {
   }
 
   return (
-    <section className="tarjeta panel-miembros">
-      <h2>Integrantes</h2>
+    <section id="panel-miembros" className="tarjeta panel-miembros" aria-label="Integrantes del proyecto">
+      <h2>
+        <IconoUsuarios tamano={18} />
+        Integrantes
+      </h2>
       <ul className="lista-miembros">
         {proyecto.miembros.map((m) => (
           <li key={m.usuario}>
@@ -39,19 +44,31 @@ export function PanelMiembros({ proyecto, esLider, alAgregar }: Props) {
         ))}
       </ul>
       {esLider ? (
-        <form onSubmit={enviar} className="fila">
-          <input
-            value={correo}
-            onChange={(e) => establecerCorreo(e.target.value)}
-            placeholder="correo@utb.edu.co"
-            aria-label="Correo del nuevo integrante"
-            aria-invalid={correo !== "" && !valido}
-            style={{ flex: 1, minWidth: 0 }}
-          />
-          <button type="submit" disabled={!valido || enviando}>
-            {enviando ? "Añadiendo…" : "Añadir"}
-          </button>
-        </form>
+        <>
+          <form onSubmit={enviar} className="fila anadir-miembro">
+            <input
+              type="email"
+              autoComplete="email"
+              inputMode="email"
+              value={correo}
+              onChange={(e) => establecerCorreo(e.target.value)}
+              placeholder="correo@utb.edu.co"
+              aria-label="Correo del nuevo integrante"
+              aria-invalid={invalido}
+              aria-describedby={invalido ? "error-miembro" : undefined}
+              style={{ flex: 1, minWidth: 0 }}
+            />
+            <button type="submit" disabled={!valido || enviando}>
+              <IconoMas tamano={16} />
+              {enviando ? "Añadiendo…" : "Añadir"}
+            </button>
+          </form>
+          {invalido && (
+            <p className="ayuda error" id="error-miembro">
+              Escribe un correo completo, como ana@utb.edu.co.
+            </p>
+          )}
+        </>
       ) : (
         <p className="ayuda">Solo el líder del proyecto puede añadir integrantes.</p>
       )}

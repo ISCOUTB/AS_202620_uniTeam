@@ -7,6 +7,8 @@ import { Flujo } from "@/lib/flujo";
 import { diasHasta, fechaRelativa, formatearDia } from "@/lib/formato";
 import { useLento } from "@/lib/lento";
 import { useSesion } from "@/lib/sesion";
+import { EstadoVacio } from "../componentes/estado-vacio";
+import { IconoFlechaDerecha } from "../componentes/iconos";
 import { Portada } from "../componentes/portada";
 
 /** Grupos por urgencia, como en las bandejas de Asana o Todoist. */
@@ -58,16 +60,24 @@ export default function PaginaMisTareas() {
     <>
       <div className="encabezado-pagina">
         <div>
+          <p className="ceja">Bandeja</p>
           <h1>Mis tareas</h1>
           <p className="subtitulo">Lo que tienes asignado en todos tus proyectos, de lo más urgente a lo menos.</p>
         </div>
         <label className="fila interruptor">
           <input type="checkbox" checked={terminadas} onChange={(e) => establecerTerminadas(e.target.checked)} />
+          <span className="interruptor-pista" aria-hidden="true">
+            <span />
+          </span>
           <span>Mostrar terminadas</span>
         </label>
       </div>
 
-      {error && <div className="aviso error">{error}</div>}
+      {error && (
+        <div className="aviso error" role="alert">
+          {error}
+        </div>
+      )}
 
       {tareas === null && !error && (
         <>
@@ -77,42 +87,55 @@ export default function PaginaMisTareas() {
           {lento && <p className="vacio">El servidor está despertando; la primera carga del día tarda un poco más.</p>}
         </>
       )}
+
       {tareas?.length === 0 && (
-        <div className="vacio-grande">
-          <h2>No tienes nada pendiente</h2>
-          <p>Cuando alguien de tu equipo te asigne una tarea, aparecerá aquí.</p>
-          <Link href="/">Ir a mis proyectos</Link>
-        </div>
+        <EstadoVacio
+          titulo="No tienes nada pendiente"
+          ilustracion="bandeja"
+          accion={
+            <Link className="boton" href="/">
+              Ir a mis proyectos
+              <IconoFlechaDerecha tamano={17} />
+            </Link>
+          }
+        >
+          Cuando alguien de tu equipo te asigne una tarea, aparecerá aquí.
+        </EstadoVacio>
       )}
+
       {tareas && tareas.length > 0 && (
-        grupos.map((g) => (
-          <section key={g.id} className={`grupo-tareas grupo-${g.id}`}>
-            <h2>
-              {g.titulo} <span className="contador">{g.tareas.length}</span>
-            </h2>
-            <ul className="lista-tareas">
-              {g.tareas.map((t) => (
-                <li key={t.id} className={`fila-tarea prioridad-${t.prioridad}`}>
-                  <div className="fila-tarea-principal">
-                    <Link href={`/proyecto/?id=${encodeURIComponent(t.proyecto_id)}`} className="titulo-tarea">
-                      {t.titulo}
-                    </Link>
-                    <span className="suave">{t.proyecto_nombre}</span>
-                  </div>
-                  <div className="fila">
-                    <span className={`pastilla ${t.prioridad}`}>{ETIQUETA_PRIORIDAD[t.prioridad]}</span>
-                    {flujo && <span className="pastilla estado">{flujo.etiqueta(t.estado)}</span>}
-                    {t.fecha_limite && (
-                      <span className="fecha-relativa" title={formatearDia(t.fecha_limite)}>
-                        {fechaRelativa(t.fecha_limite)}
-                      </span>
-                    )}
-                  </div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ))
+        <div className="bandejas">
+          {grupos.map((g) => (
+            <section key={g.id} className={`grupo-tareas grupo-${g.id}`} aria-label={g.titulo}>
+              <h2>
+                <span className="grupo-punto" aria-hidden="true" />
+                {g.titulo} <span className="contador">{g.tareas.length}</span>
+              </h2>
+              <ul className="lista-tareas">
+                {g.tareas.map((t) => (
+                  <li key={t.id} className={`fila-tarea prioridad-${t.prioridad}`}>
+                    <div className="fila-tarea-principal">
+                      <Link href={`/proyecto/?id=${encodeURIComponent(t.proyecto_id)}`} className="titulo-tarea">
+                        {t.titulo}
+                      </Link>
+                      <span className="suave">{t.proyecto_nombre}</span>
+                    </div>
+                    <div className="fila fila-tarea-meta">
+                      <span className={`pastilla ${t.prioridad}`}>{ETIQUETA_PRIORIDAD[t.prioridad]}</span>
+                      {flujo && <span className="pastilla estado">{flujo.etiqueta(t.estado)}</span>}
+                      {t.fecha_limite && (
+                        <span className="fecha-relativa" title={formatearDia(t.fecha_limite)}>
+                          {fechaRelativa(t.fecha_limite)}
+                        </span>
+                      )}
+                      <IconoFlechaDerecha tamano={16} className="fila-tarea-flecha" />
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </div>
       )}
     </>
   );
