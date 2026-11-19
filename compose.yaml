@@ -21,12 +21,15 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE:-uniteam}
       MYSQL_USER: ${MYSQL_USER:-uniteam}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-uniteam-local}
-      # Lo usa la comprobación de salud sin escribirlo en la línea de órdenes.
-      MYSQL_PWD: ${MYSQL_PASSWORD:-uniteam-local}
     ports:
       - "127.0.0.1:3306:3306"
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -u\"$$MYSQL_USER\""]
+      # La contraseña se pasa solo a este comando: exportada en el entorno del
+      # contenedor (MYSQL_PWD) la usa también el cliente del punto de entrada y
+      # rompe la inicialización del volumen, cuando root aún no tiene clave.
+      test:
+        - CMD-SHELL
+        - MYSQL_PWD="$$MYSQL_PASSWORD" mysqladmin ping -h 127.0.0.1 -u"$$MYSQL_USER"
       interval: 5s
       timeout: 5s
       retries: 20

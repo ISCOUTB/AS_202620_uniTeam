@@ -575,6 +575,103 @@ dialog.fondo-modal:not([open]) { display: none; }
   }
 }
 
+/* UniTeam · edición campus: papel cálido, tinta botánica y señal terracota. */
+:root {
+  --fondo: #f4f1e9;
+  --superficie: #fffdf8;
+  --superficie-2: #eae8dc;
+  --borde: #d7d5c8;
+  --borde-fuerte: #b9b8a8;
+  --texto: #202c26;
+  --texto-suave: #59675f;
+  --texto-boton: #fffdf8;
+  --acento: #315d4b;
+  --acento-fuerte: #244838;
+  --acento-suave: #e0e9df;
+  --peligro: #a33e30;
+  --peligro-suave: #f5e4dc;
+  --exito: #426b4f;
+  --exito-suave: #e3ecdf;
+  --aviso: #91612b;
+  --aviso-suave: #f3ead7;
+  --radio: 5px;
+  --radio-pequeno: 3px;
+  --sombra: 0 1px 2px rgba(32,44,38,.06);
+  --sombra-alta: 0 8px 20px rgba(32,44,38,.12);
+  --fuente: "Avenir Next", Avenir, "Segoe UI", sans-serif;
+  --cabecera-fondo: rgba(255,253,248,.94);
+  --progreso-fondo: #e6e5d9;
+  --tarea-fondo: #fffdf8;
+  --vacio-fondo: #faf8f1;
+  --modal-fondo: #fffdf8;
+  --acento-borde-suave: rgba(49,93,75,.25);
+}
+html[data-theme="dark"] {
+  --fondo: #18211c; --superficie: #202b24; --superficie-2: #29362d;
+  --borde: #39473d; --borde-fuerte: #536457; --texto: #f1eee4;
+  --texto-suave: #c0c9bd; --texto-boton: #f7f3e9; --acento: #9bb99d;
+  --acento-fuerte: #b4cbb3; --acento-suave: #2c4034; --peligro: #e69b88;
+  --peligro-suave: #472f2a; --exito: #a5c59e; --exito-suave: #2c4031;
+  --aviso: #e0bd7a; --aviso-suave: #403a2a; --cabecera-fondo: rgba(32,43,36,.94);
+  --progreso-fondo: #344239; --tarea-fondo: #202b24; --vacio-fondo: #202b24;
+  --modal-fondo: #202b24; --sombra: 0 1px 3px rgba(0,0,0,.2);
+  --sombra-alta: 0 12px 28px rgba(0,0,0,.3);
+}
+body { font-size: 15px; line-height: 1.55; }
+.cabecera { border-bottom: 1px solid var(--borde); backdrop-filter: blur(12px); }
+.cabecera-interior { min-height: 72px; }
+.marca-nombre { font-size: 20px; letter-spacing: -.6px; }
+.marca svg { filter: none; }
+.navegacion a { border-radius: 3px; }
+.navegacion a.activa { box-shadow: inset 0 -2px var(--acento); background: transparent; }
+.contenido { max-width: 1420px; padding-top: 42px; }
+.encabezado-pagina { margin-bottom: 30px; }
+.encabezado-pagina h1 { font-size: clamp(30px, 3vw, 42px); letter-spacing: -1.5px; }
+button { border-radius: 3px; }
+button.grande { border-radius: 3px; box-shadow: none; }
+input, select, textarea { border-radius: 3px; }
+.tarjeta { border-radius: 4px; box-shadow: none; }
+.tarjeta-proyecto { min-height: 190px; border-top: 3px solid var(--acento); padding: 21px; }
+.tarjeta-proyecto:hover { box-shadow: var(--sombra-alta); transform: translateY(-2px); }
+.titulo-proyecto { font-size: 18px; }
+.avance-proyecto { gap: 10px; }
+.kanban { gap: 12px; }
+.columna { border-radius: 4px; padding: 14px; background: color-mix(in srgb, var(--superficie-2) 68%, var(--fondo)); }
+.columna header { border-bottom: 1px solid var(--borde); padding: 3px 1px 12px; }
+.columna header h2 { letter-spacing: .04em; }
+.tarjeta-tarea { border-radius: 4px; box-shadow: 0 1px 2px rgba(32,44,38,.07); }
+.tarjeta-tarea:hover { box-shadow: var(--sombra-alta); }
+.pastilla.alta { background: var(--peligro-suave); color: var(--peligro); }
+.pastilla.media { background: var(--aviso-suave); color: var(--aviso); }
+.portada { max-width: 1180px; }
+.portada-heroe { min-height: 520px; gap: 64px; }
+.portada-heroe h1 { font-family: Georgia, "Times New Roman", serif; font-weight: 500; letter-spacing: -2px; line-height: 1.02; }
+.portada-heroe h1 span { color: var(--acento); }
+.portada-etiqueta { border-radius: 3px; background: var(--acento-suave); }
+.portada-ilustracion { min-height: 410px; }
+.ilustracion-resplandor { background: rgba(126,151,111,.20); }
+.ilustracion-orbita { border-color: rgba(49,93,75,.22); }
+.ilustracion-tablero { border-radius: 5px; background: linear-gradient(145deg,#304c3e,#1d3027); transform: rotate(-3deg); }
+.ilustracion-flotante { border-radius: 5px; background: linear-gradient(145deg,#b96148,#914532); }
+.ilustracion-equipo { background: linear-gradient(145deg,#607c5d,#3c5c43); }
+.ilustracion-listo { background: linear-gradient(145deg,#b68b47,#8f672e); }
+.portada-ventajas .tarjeta { background: var(--superficie); border-top: 2px solid var(--borde-fuerte); }
+.fondo-modal { padding-top: max(8vh, 24px); }
+.modal { border-radius: 5px; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline-color: var(--aviso); }
+@media (max-width: 720px) {
+  .contenido { padding-top: 28px; }
+  .portada-heroe { gap: 4px; padding-top: 32px; }
+  .portada-heroe h1 { letter-spacing: -1.5px; }
+  .portada-ilustracion { min-height: 270px; }
+  .kanban { grid-template-columns: 1fr; }
+  .columna { min-height: auto; }
+  .tarjeta-proyecto { min-height: 160px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+
 .accion-aviso { font-size: 14px; font-weight: 700; margin-left: auto; }
 
 .selector-tema {
