@@ -41,3 +41,9 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Herramientas locales de agentes
+.opencode/
+
+# Salida de pip-compile usada para comparar dependencias
+esperado.txt
