@@ -1,4 +1,4 @@
-# Sistema visual de UniTeam — «Editorial Campus»
+# Sistema visual de UniTeam — identidad «Atlas»
 
 Este documento describe cómo se ve y cómo se construye la interfaz de UniTeam. No
 sustituye al código: lo explica para que cualquier integrante pueda extenderlo sin
@@ -26,7 +26,7 @@ El sistema visual sirve a dos escenarios de calidad:
 2. **La tipografía hace el trabajo.** Los títulos van en una serif variable con
    carácter; la interfaz, en una sans geométrica y callada. No se usan mayúsculas
    sostenidas ni degradados para dar énfasis.
-3. **Un acento, no cinco.** El verde es la voz de la marca; la terracota señala lo que
+3. **Un acento, no cinco.** El cobalto es la voz de la marca; la terracota señala lo que
    pide atención; el resto de colores solo aparece en estados (prioridad, vencimiento,
    error).
 4. **El movimiento se posa.** Las transiciones son cortas y con desaceleración; nada
@@ -94,21 +94,21 @@ aplica antes de pintar con un script `beforeInteractive`; si no hay preferencia,
 
 | Token | Claro | Oscuro | Uso |
 |---|---|---|---|
-| `--papel` | `#f7f4eb` | `#101814` | Fondo de la aplicación. |
-| `--papel-2` | `#efeade` | `#0b120f` | Superficie hundida: columnas, métricas, pistas. |
-| `--blanco` | `#fffdf7` | `#16211b` | Superficie elevada: tarjetas, campos, modal. |
-| `--tinta` | `#1b2a23` | `#f0ede3` | Texto principal. |
-| `--tinta-suave` | `#4f5f56` | `#b9c3b8` | Texto secundario. |
-| `--tinta-tenue` | `#5f6f66` | `#8c9a90` | Metadatos y iconos. |
-| `--linea` | `#dcd6c6` | `#2c3b32` | Bordes y separadores. |
-| `--linea-fuerte` | `#c4bca8` | `#3d4f43` | Bordes de controles y separadores fuertes. |
-| `--linea-campo` | `#8b8574` | `#5d7266` | Borde de campos y botones secundarios: es su único límite visible, así que cumple 3:1. |
-| `--verde` | `#2e5c49` | `#9cc0a3` | Marca y acción principal. |
-| `--terracota` | `#b85c38` | `#e39a78` | Acento decorativo. |
-| `--rojo` | `#a23a2e` | `#e89a8c` | Prioridad alta, error, vencida. |
-| `--ocre` | `#8a5a1f` | `#e2be80` | Prioridad media, aviso. |
-| `--salvia` | `#3e6b4f` | `#9ac7a1` | Prioridad baja, éxito. |
-| `--azul` | `#3f5d77` | `#9dbbd4` | Información y estado. |
+| `--papel` | `#f7f8fc` | `#0d1624` | Fondo de la aplicación. |
+| `--papel-2` | `#f0f3f8` | `#1b2d43` | Superficie hundida: columnas, métricas, pistas. |
+| `--blanco` | `#ffffff` | `#142235` | Superficie elevada: tarjetas, campos, modal. |
+| `--tinta` | `#172538` | `#f3f6fc` | Texto principal. |
+| `--tinta-suave` | `#637083` | `#a8b5c7` | Texto secundario. |
+| `--tinta-tenue` | `#8a93a3` | `#7e8ca0` | Metadatos y iconos. |
+| `--linea` | `#e4e9f0` | `#2b3b50` | Bordes y separadores. |
+| `--linea-fuerte` | `#c9d2df` | `#3a4d66` | Bordes de controles y separadores fuertes. |
+| `--linea-campo` | `#7a8699` | `#5a6b85` | Borde de campos y botones secundarios: su único límite visible, cumple 3:1. |
+| `--verde` (cobalto) | `#315c9b` | `#8db4ed` | Marca y acción principal. |
+| `--terracota` (terracota) | `#b45529` | `#e58a60` | Acento decorativo. |
+| `--rojo` | `#b42318` | `#f28b82` | Prioridad alta, error, vencida. |
+| `--ocre` | `#a85b14` | `#f0b46d` | Prioridad media, aviso. |
+| `--salvia` | `#167a55` | `#67c69a` | Prioridad baja, éxito. |
+| `--azul` | `#315c9b` | `#8db4ed` | Información y estado. |
 
 Cada color tiene su pareja `-claro` para fondos de pastilla, aviso o métrica.
 
@@ -126,6 +126,10 @@ Así, cambiar la marca es cambiar `--verde`; el resto se recalcula.
 
 Ratios calculados sobre los valores finales (WCAG 2.1, luminancia relativa). El mínimo
 exigido a texto normal es 4.5:1 y a texto grande o elementos de interfaz, 3:1.
+
+> Paleta cambiada el 2026-11-20 a «Aprendizaje Vivo» (teal + coral). Los ratios de
+> abajo corresponden a la paleta anterior (Editorial Campus) y deben recalcularse con
+> la nueva paleta antes de cerrar la entrega; la estructura de pares no cambia.
 
 | Par | Claro | Oscuro |
 |---|---|---|
@@ -245,7 +249,7 @@ Los iconos son SVG en línea (`web/app/componentes/iconos.tsx`), con `currentCol
 
 - Enlace **«Saltar al contenido»** como primer elemento enfocable; `main#contenido`
   recibe el foco con `tabIndex={-1}`.
-- `:focus-visible` global con anillo de terracota y desplazamiento de 2 px.
+- `:focus-visible` global con anillo de coral y desplazamiento de 2 px.
 - El diálogo de tarea abre con el foco dentro, cierra con `Escape` y **devuelve el foco**
   al botón que lo abrió.
 - Los avisos flotantes usan `role="status"`; los errores, `role="alert"`.

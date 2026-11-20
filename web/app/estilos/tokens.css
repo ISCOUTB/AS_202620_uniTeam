@@ -1,6 +1,6 @@
 @layer tokens {
   /*
-   * Tokens de UniTeam — «Editorial Campus».
+   * Tokens de UniTeam — identidad «Atlas».
    *
    * Un solo lugar decide color, tipo, espacio, forma y movimiento. Las páginas
    * no escriben colores: piden un token semántico. `light-dark()` resuelve el
@@ -10,31 +10,31 @@
   :root {
     color-scheme: light dark;
 
-    /* Paleta cruda: papel, tinta y cuatro acentos botánicos. */
-    --papel: light-dark(#f7f4eb, #101814);
-    --papel-2: light-dark(#efeade, #0b120f);
-    --blanco: light-dark(#fffdf7, #16211b);
-    --tinta: light-dark(#1b2a23, #f0ede3);
-    --tinta-suave: light-dark(#4f5f56, #b9c3b8);
-    --tinta-tenue: light-dark(#5f6f66, #8c9a90);
-    --linea: light-dark(#dcd6c6, #2c3b32);
-    --linea-fuerte: light-dark(#c4bca8, #3d4f43);
+    /* Paleta cruda: crema azulada, tinta y dos acentos (cobalto + terracota). */
+    --papel: light-dark(#f7f8fc, #0d1624);
+    --papel-2: light-dark(#f0f3f8, #1b2d43);
+    --blanco: light-dark(#ffffff, #142235);
+    --tinta: light-dark(#172538, #f3f6fc);
+    --tinta-suave: light-dark(#637083, #a8b5c7);
+    --tinta-tenue: light-dark(#8a93a3, #7e8ca0);
+    --linea: light-dark(#e4e9f0, #2b3b50);
+    --linea-fuerte: light-dark(#c9d2df, #3a4d66);
     /* Borde de control: el único límite visible de un campo, así que cumple 3:1. */
-    --linea-campo: light-dark(#8b8574, #5d7266);
+    --linea-campo: light-dark(#7a8699, #5a6b85);
 
-    --verde: light-dark(#2e5c49, #9cc0a3);
-    --verde-oscuro: light-dark(#24493a, #b8d6bc);
-    --verde-claro: light-dark(#dde8df, #22362b);
-    --terracota: light-dark(#b85c38, #e39a78);
-    --terracota-claro: light-dark(#f6e2d8, #3a241c);
-    --rojo: light-dark(#a23a2e, #e89a8c);
-    --rojo-claro: light-dark(#f6ddd8, #3a221e);
-    --ocre: light-dark(#8a5a1f, #e2be80);
-    --ocre-claro: light-dark(#f4e8d2, #33291a);
-    --salvia: light-dark(#3e6b4f, #9ac7a1);
-    --salvia-claro: light-dark(#dfeade, #1f2f24);
-    --azul: light-dark(#3f5d77, #9dbbd4);
-    --azul-claro: light-dark(#e0e8ef, #1c2933);
+    --verde: light-dark(#315c9b, #8db4ed);
+    --verde-oscuro: light-dark(#284d84, #3d6faf);
+    --verde-claro: light-dark(#eaf0f8, #233a58);
+    --terracota: light-dark(#b45529, #e58a60);
+    --terracota-claro: light-dark(#fcede5, #432b27);
+    --rojo: light-dark(#b42318, #f28b82);
+    --rojo-claro: light-dark(#fdecec, #482a30);
+    --ocre: light-dark(#a85b14, #f0b46d);
+    --ocre-claro: light-dark(#fff3e4, #493521);
+    --salvia: light-dark(#167a55, #67c69a);
+    --salvia-claro: light-dark(#e7f4ee, #1d4038);
+    --azul: light-dark(#315c9b, #8db4ed);
+    --azul-claro: light-dark(#eaf0f8, #233a58);
 
     /* Semánticos: lo que usan los componentes. */
     --fondo: var(--papel);
@@ -50,9 +50,9 @@
     --primario: var(--verde);
     --primario-fuerte: var(--verde-oscuro);
     --primario-suave: var(--verde-claro);
-    --sobre-primario: light-dark(#fffdf7, #0d1512);
+    --sobre-primario: light-dark(#ffffff, #0d1624);
 
-    --acento: light-dark(#9c4526, #e39a78);
+    --acento: var(--terracota);
     --acento-suave: var(--terracota-claro);
     --peligro: var(--rojo);
     --peligro-suave: var(--rojo-claro);
@@ -62,7 +62,7 @@
     --exito-suave: var(--salvia-claro);
     --info: var(--azul);
     --info-suave: var(--azul-claro);
-    --foco: light-dark(#b85c38, #e9b79f);
+    --foco: light-dark(#b45529, #e58a60);
 
     /* Tipografía. next/font entrega --fuente-display y --fuente-ui. */
     --tipo-display: var(--fuente-display, "Fraunces"), Georgia, "Times New Roman", serif;
@@ -98,11 +98,11 @@
     --r-xl: 26px;
     --r-full: 999px;
 
-    /* Elevación: tintada de verde, nunca gris puro. */
-    --sombra-1: 0 1px 2px light-dark(rgb(27 42 35 / 0.05), rgb(0 0 0 / 0.4));
-    --sombra-2: 0 2px 6px light-dark(rgb(27 42 35 / 0.05), rgb(0 0 0 / 0.35)),
-      0 14px 30px -20px light-dark(rgb(27 42 35 / 0.45), rgb(0 0 0 / 0.8));
-    --sombra-3: 0 28px 70px -30px light-dark(rgb(27 42 35 / 0.45), rgb(0 0 0 / 0.9));
+    /* Elevación: tintada de cobalto, nunca gris puro. */
+    --sombra-1: 0 1px 2px light-dark(rgb(49 92 155 / 0.06), rgb(0 0 0 / 0.4));
+    --sombra-2: 0 2px 6px light-dark(rgb(49 92 155 / 0.06), rgb(0 0 0 / 0.35)),
+      0 14px 30px -20px light-dark(rgb(49 92 155 / 0.35), rgb(0 0 0 / 0.8));
+    --sombra-3: 0 28px 70px -30px light-dark(rgb(49 92 155 / 0.35), rgb(0 0 0 / 0.9));
 
     /* Movimiento: el papel se posa, no rebota. */
     --dur-1: 120ms;
