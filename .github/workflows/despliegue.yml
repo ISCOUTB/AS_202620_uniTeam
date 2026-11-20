@@ -17,8 +17,8 @@ permissions:
   contents: read
 
 env:
-  URL_WEB: https://uniteam-web.onrender.com
-  URL_API: https://uniteam-api.onrender.com
+  URL_WEB: https://uniteam-web.iscoutb.dev
+  URL_API: https://uniteam-api.iscoutb.dev
 
 jobs:
   comprobar:
