@@ -15,17 +15,18 @@ Tecnológica de Bolívar.
 
 | | URL |
 |---|---|
-| **Aplicación** | <https://uniteam-web.duckdns.org> |
-| API | <https://uniteam-api.duckdns.org> · [contrato OpenAPI](docs/api/openapi.yaml) |
-| Health check | <https://uniteam-api.duckdns.org/health> |
-| Métrica de ESC-01 | <https://uniteam-api.duckdns.org/metricas/esc-01> |
+| **Aplicación** | <https://uniteam-web.iscoutb.dev> |
+| API | <https://uniteam-api.iscoutb.dev> · [contrato OpenAPI](docs/api/openapi.yaml) |
+| Documentación interactiva | <https://uniteam-api.iscoutb.dev/docs> |
+| Health check | <https://uniteam-api.iscoutb.dev/health> |
+| Métrica de ESC-01 | <https://uniteam-api.iscoutb.dev/metricas/esc-01> |
 | Comprobación desde Internet | [workflow `despliegue.yml`](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/workflows/despliegue.yml), cada 6 h: hora, código y tiempo de cada URL |
 | Análisis estático | [SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam) |
 | Última revisión de código | [2026-09-28](docs/calidad/revision-2026-09-28.md): defectos corregidos, funciones nuevas y pendientes |
 
 Se entra con una cuenta de Google o con un correo. En Chrome o Edge se puede **instalar como
-aplicación de escritorio** desde el icono de instalación de la barra de direcciones. En el
-tablero, `N` crea una tarea y `/` busca. Está prevista una mitigación con sondeo externo de
+aplicación de escritorio** desde el icono de instalación de la barra de direcciones. Está
+prevista una mitigación con sondeo externo de
 06:00 a 23:59, hora de Colombia ([ADR-011](docs/adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md)),
 pero su ejecución no está verificada: una comprobación reciente observó la API despertando
 dentro de esa franja. Consulta el [registro operativo](docs/despliegue/guia.md#mantener-la-api-despierta).
@@ -36,15 +37,35 @@ Cómo recrear el entorno desde cero: [guía de despliegue](docs/despliegue/guia.
 
 ---
 
+## Qué hace
+
+- **Tablero Kanban por proyecto**, con arrastrar y soltar para mover una tarea de estado.
+- **Proyectos con líder**: quien crea el proyecto lo administra y decide sus miembros.
+- **Tareas con responsable, prioridad y fecha límite**, editables y borrables según el rol.
+- **Mis tareas**: lo asignado a la persona en todos sus proyectos, de lo más urgente a lo menos.
+- **Progreso calculado en la base de datos**, no en el navegador.
+- **Deshacer el borrado durante 6 segundos** antes de que sea definitivo.
+- **Atajos de teclado**: `N` crea una tarea y `/` enfoca la búsqueda del tablero.
+- **Instalable como aplicación** (PWA) en Chrome o Edge.
+- **Flujo de estados servido por la API**: la web no duplica los estados, los pide a `/flujo-estados`.
+- **Modo claro y oscuro** según la preferencia del sistema.
+
+---
+
 ## Arranque rápido
 
 **Requisito previo:** Docker con el complemento Compose (`docker compose version`). Nada más.
+
+1. Levanta el sistema con un comando:
 
 ```bash
 docker compose up
 ```
 
-Ese único comando levanta los tres contenedores y deja el sistema en marcha:
+2. Abre la aplicación en <http://localhost:3000>.
+3. Pulsa **Iniciar sesión**, escribe un nombre en el emisor de desarrollo y vuelves autenticado.
+
+Ese único comando deja en marcha los cuatro servicios:
 
 | Servicio | URL | Qué es |
 |----------|-----|--------|
@@ -52,8 +73,6 @@ Ese único comando levanta los tres contenedores y deja el sistema en marcha:
 | API | <http://localhost:8000> | Backend (FastAPI) · documentación interactiva en `/docs` |
 | Proveedor de identidad | <http://localhost:9000> | Emisor OIDC **de desarrollo** |
 | Base de datos | `localhost:3306` | MySQL 8.4 |
-
-Pulsa **Iniciar sesión**, escribe un nombre en el emisor de desarrollo y vuelves autenticado.
 
 Para detenerlo, `Ctrl+C`. Para borrar también los datos, `docker compose down -v`.
 
