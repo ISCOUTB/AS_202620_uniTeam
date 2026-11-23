@@ -1,6 +1,6 @@
-# ADR 0010 — Autorización por pertenencia a equipo en una capa única
+# ADR 0018 — Autorización por pertenencia a equipo en una capa única
 
-- Estado: Propuesto (S13)
+- Estado: Aceptada (implementada y probada)
 - Amenaza: T1 (IDOR / elevación de privilegios)
 
 ## Contexto

@@ -11,7 +11,7 @@ ni atribuye la calificación docente.
 |---|---|---|
 | URL accesible fuera de la universidad | Cumple | [Aplicación web](https://uniteam-web.onrender.com/) carga desde Internet; [API](https://uniteam-api.onrender.com/health) accesible. |
 | Health check consultable | Cumple, pero con arranque en frío observado | El 2026-09-27 22:40 Colombia Render mostró la API despertando; después `/health` devolvió 200 en 0,75 s, `base_de_datos=ok`, revisión `f053ac255fe1` (199,63 ms hasta BD). |
-| Infraestructura como código | Cumple | [`render.yaml`](../../render.yaml), Dockerfiles y [`compose.yaml`](../../compose.yaml). |
+| Infraestructura como código | Cumple | `render.yaml` (retirado; ver ADR 0021), Dockerfiles y [`compose.yaml`](../../compose.yaml). |
 | Recreación siguiendo el README | Cumple | `docker compose up`; procedimientos de producción en la [guía](../despliegue/guia.md). |
 | Pipeline en verde | Pendiente de publicar los cambios locales | Último run público observado, [`CI #24`](https://github.com/ISCOUTB/AS_202620_uniTeam/actions/runs/36369024410), verde en `f25a646`. El cambio local hace obligatorio `SONAR_TOKEN`; necesita un nuevo run después de publicarse. |
 | Logs estructurados | Cumple en código y pruebas | [`app/observabilidad.py`](../../app/observabilidad.py) emite JSON con plantilla de ruta, estado, duración e ID de petición; sin cuerpo ni correo. |

@@ -1,6 +1,6 @@
 # ADR-011 — Mantener la API despierta con un sondeo externo
 
-- **Estado:** Aceptada
+- **Estado:** Reemplazado por [0021 — Desplegar en Dokploy sobre un servidor institucional](0021-desplegar-en-dokploy-en-un-servidor-institucional.md) (2026-11-22), en lo relativo al arranque en frío: el servidor institucional no hiberna los servicios, por lo que el sondeo externo deja de ser necesario. El resto del ADR sigue vigente como mitigación decidida.
 - **Fecha:** 2026-09-28
 - **Decisores:** Equipo de desarrollo (I-04)
 - **Pieza:** API — contenedor «API» del [C4 nivel 2](../c4/nivel2-contenedores.md)

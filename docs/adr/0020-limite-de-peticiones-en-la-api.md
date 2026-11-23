@@ -1,6 +1,6 @@
-# ADR 0012 — Límite de peticiones en la API
+# ADR 0020 — Límite de peticiones en la API
 
-- Estado: Propuesto (S13)
+- Estado: Propuesto (no implementado aún)
 - Amenaza: T8 (denegación de servicio)
 
 ## Decisión

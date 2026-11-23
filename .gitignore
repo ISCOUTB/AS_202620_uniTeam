@@ -47,3 +47,9 @@ Thumbs.db
 
 # Salida de pip-compile usada para comparar dependencias
 esperado.txt
+
+# Retroalimentación del docente (calificación, no documentación del sistema)
+feedback/
+
+# Bitácora interna de cierre (agente, no se versiona)
+docs/estado-cierre.md

@@ -1,5 +1,11 @@
 # Taller aplicado: dónde ejecutar la API
 
+> **Estado (2026-11-22):** este taller compara Render Free con el servidor del laboratorio. La
+> decisión final fue **Dokploy sobre un servidor institucional cedido por el docente**
+> ([ADR-0021](../adr/0021-desplegar-en-dokploy-en-un-servidor-institucional.md)), que no está en
+> esta tabla. El documento se conserva como evidencia de alternativas evaluadas; el despliegue
+> actual ya no es Render ni el laboratorio.
+
 ## Condición operativa elegida
 
 El equipo elige **tiempo de recuperación ante un despliegue fallido**: volver a la última
