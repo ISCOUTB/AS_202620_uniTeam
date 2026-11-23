@@ -1,6 +1,6 @@
 # ADR-009 — Usar Aiven for MySQL como base de datos gestionada
 
-- **Estado:** Aceptada
+- **Estado:** Reemplazado por [0021 — Desplegar en Dokploy sobre un servidor institucional](0021-desplegar-en-dokploy-en-un-servidor-institucional.md) (2026-11-22): la base de datos ya no está en Aiven, sino en MySQL 8.4 con volumen persistente en el servidor institucional.
 - **Fecha:** 2026-09-27
 - **Decisores:** Equipo de desarrollo (I-04)
 - **Pieza:** Base de datos — contenedor «Base de datos» del [C4 nivel 2](../c4/nivel2-contenedores.md)
@@ -79,5 +79,5 @@ proveedor es cambiar `DATABASE_URL` en Render.
 
 ## Trazabilidad
 
-[`render.yaml`](../../render.yaml) · [`app/infrastructure/db.py`](../../app/infrastructure/db.py) ·
+`render.yaml` (retirado; ver ADR 0021) · [`app/infrastructure/db.py`](../../app/infrastructure/db.py) ·
 [arc42 §7](../arc42/arc42-uniteam.md#7-vista-de-despliegue) · [ESC-04](../calidad/escenarios-calidad.md#esc-04)

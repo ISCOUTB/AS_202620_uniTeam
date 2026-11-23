@@ -123,3 +123,11 @@ autentica a nadie**; existe para que el sistema arranque sin cuentas externas.
 Como la Aplicación Web se ejecuta en el navegador del usuario, la relación «Aplicación Web →
 API» es una petición entre orígenes distintos y necesita CORS. La lista de orígenes es
 explícita (`ORIGENES_PERMITIDOS`), nunca `*`.
+
+## Correspondencia con el nivel 3
+
+El nivel 3 desglosa el contenedor API en los componentes internos del paquete `app/`:
+
+| Contenedor de nivel 2 | Nivel 3 |
+|-----------------------|---------|
+| API | [`nivel3-componentes.md`](nivel3-componentes.md) — componentes de `app/api/`, `app/application/`, `app/domain/`, `app/events/` e `app/infrastructure/`, con sus flechas de dependencia. |

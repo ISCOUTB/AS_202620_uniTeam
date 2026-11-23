@@ -87,6 +87,50 @@ def test_la_identidad_sale_del_token_no_de_lo_que_diga_el_cliente(cliente, cab):
     assert de_otro == []
 
 
+@pytest.mark.parametrize("cabecera", ["ana@utb.edu.co", "inventado@ejemplo.com"])
+def test_la_cabecera_x_usuario_no_autentica(cliente, cabecera):
+    """La cabecera retirada no es una credencial.
+
+    Antes de ADR 0005 la API tomaba la identidad de `X-Usuario`, que cualquiera
+    podía escribir. La prueba fija el después del desafío: sin `Authorization`,
+    quien la envía es un anónimo más.
+    """
+    respuesta = cliente.get("/proyectos", headers={"X-Usuario": cabecera})
+    assert respuesta.status_code == 401
+    assert respuesta.headers.get("WWW-Authenticate") == "Bearer"
+
+
+def test_la_cabecera_x_usuario_no_desplaza_al_token(cliente, cab):
+    """Con token válido, la cabecera retirada no cambia de quién es la sesión.
+
+    Se crea un proyecto como `ana` y se consulta con el token de `bruno`
+    añadiendo `X-Usuario: ana@utb.edu.co`: la respuesta debe ser la de `bruno`.
+    """
+    assert _proyecto(cliente, cab).status_code == 201
+
+    de_bruno = cliente.get("/proyectos", headers=cab("bruno")).json()
+    suplantando = cliente.get(
+        "/proyectos",
+        headers={**cab("bruno"), "X-Usuario": "ana@utb.edu.co"},
+    ).json()
+    assert de_bruno == []
+    assert suplantando == de_bruno
+
+
+def test_la_cabecera_x_usuario_sola_no_autentica(cliente):
+    """La cabecera retirada X-Usuario no autentica por sí sola.
+
+    Es la evidencia reproducible del «después» del desafío final (delegar la
+    autenticación en un proveedor OIDC): antes, bastaba con enviar X-Usuario para
+    suplantar a cualquier miembro; ahora, sin Authorization Bearer, la API
+    responde 401 cualquiera que sea el nombre.
+    """
+    for identidad in ["ana@utb.edu.co", "bruno@utb.edu.co", "cualquiera@ejemplo.com"]:
+        respuesta = cliente.get("/proyectos", headers={"X-Usuario": identidad})
+        assert respuesta.status_code == 401
+        assert respuesta.headers.get("WWW-Authenticate") == "Bearer"
+
+
 @pytest.mark.parametrize("cabecera", ["Bearer", "Bearer ", "Bearer no-es-un-jwt"])
 def test_credenciales_malformadas_se_rechazan(cliente, cabecera):
     respuesta = cliente.get("/proyectos", headers={"Authorization": cabecera})

@@ -1,6 +1,6 @@
-# ADR 0011 — Protección de la sesión en el navegador
+# ADR 0019 — Protección de la sesión en el navegador
 
-- Estado: Propuesto (S13)
+- Estado: Aceptada (implementada parcialmente; falta cookie httpOnly)
 - Amenazas: T4, T5
 
 ## Contexto

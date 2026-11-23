@@ -1,6 +1,6 @@
 # ADR-008 — Desplegar la API como contenedor en Render
 
-- **Estado:** Aceptada
+- **Estado:** Reemplazado por [0021 — Desplegar en Dokploy sobre un servidor institucional](0021-desplegar-en-dokploy-en-un-servidor-institucional.md) (2026-11-22): el despliegue ya no usa Render, sino Dokploy sobre un servidor institucional.
 - **Fecha:** 2026-09-27
 - **Decisores:** Equipo de desarrollo (I-04)
 - **Pieza:** API — contenedor «API» del [C4 nivel 2](../c4/nivel2-contenedores.md)
@@ -55,7 +55,7 @@ laboratorio con `docker compose`, que la guía del curso garantiza; queda anotad
 
 La API se despliega como servicio web Docker en Render, región Virginia, a partir del destino
 `api` del [`Dockerfile`](../../Dockerfile) —que no incluye el emisor OIDC de desarrollo—. Lo
-declara [`render.yaml`](../../render.yaml), con:
+declaraba `render.yaml` (archivo retirado; ver ADR 0021), con:
 
 - `healthCheckPath: /health`, que exige respuesta de la base de datos: una versión que no alcanza
   MySQL nunca sustituye a la que funciona;
@@ -86,6 +86,6 @@ variables de entorno. Procedimiento en la [guía](../despliegue/guia.md#6-revers
 
 ## Trazabilidad
 
-[`Dockerfile`](../../Dockerfile) · [`render.yaml`](../../render.yaml) ·
+[`Dockerfile`](../../Dockerfile) · `render.yaml` (retirado; ver ADR 0021) ·
 [`app/main.py`](../../app/main.py) (`/health`) · [arc42 §7](../arc42/arc42-uniteam.md#7-vista-de-despliegue) ·
 [ESC-01](../calidad/escenarios-calidad.md#esc-01) · [costos](../despliegue/costos.md)

@@ -48,6 +48,8 @@ Al autenticar correctamente, la API responde `{"tipo":"conectado"}`. Después de
 
 El mensaje es una señal de invalidación, no contiene datos de la tarea; el cliente vuelve a consultar las rutas REST, que aplican nuevamente la autorización. Cambios no confirmados no generan avisos. Los eventos no son durables: al reconectar, el cliente debe recargar el tablero. El gestor actual vive en memoria y distribuye avisos entre conexiones de un mismo proceso de API.
 
+**Lo que no garantiza este contrato:** no hay reintento de entrega, no hay entrega entre réplicas (el bus es en proceso), ni orden global de eventos entre múltiples instancias. Si la instancia de la API se reinicia, las conexiones WebSocket se pierden y deben abrirse de nuevo.
+
 La API cierra conexiones con `4401` si la autenticación falla y `4403` si el origen o la pertenencia al proyecto no se autorizan.
 
 ---
