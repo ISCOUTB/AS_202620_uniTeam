@@ -82,4 +82,4 @@ correo, no por el identificador interno de Auth0.
 ## Trazabilidad
 
 [`web/lib/oidc.ts`](../../web/lib/oidc.ts) · [`app/api/seguridad.py`](../../app/api/seguridad.py) ·
-[`render.yaml`](../../render.yaml) · [ESC-03](../calidad/escenarios-calidad.md#esc-03)
+`render.yaml` (retirado; ver ADR 0021) · [ESC-03](../calidad/escenarios-calidad.md#esc-03)

@@ -466,13 +466,55 @@ Si un no-líder intenta agregar, el servicio lanza `AccesoDenegado` → la API r
 `403` y el consumidor de auditoría registra el intento. El miembro agregado accede
 inmediatamente al proyecto (ver prueba `test_un_miembro_recien_agregado_ya_ve_el_tablero`).
 
+## 6.8 Notificar un cambio de tarea por WebSocket
+
+El tablero puede abrir una conexión WebSocket autenticada para ver los cambios de estado y de
+responsable de una tarea sin recargar la página ([ADR 0022](../adr/0022-notificaciones-en-tiempo-real-por-websocket.md)).
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor U as Usuario del tablero
+    participant W as wss://api/proyectos/{id}/eventos
+    participant R as api/rutas_tiempo_real
+    participant S as application/ServicioTareas
+
+    U->>W: abrir conexión WebSocket
+    U->>W: {"tipo":"autenticar","token":"..."}
+    W->>R: validar token contra JWKS (firma, iss, aud, exp)
+    R->>S: comprobar pertenencia al proyecto
+    S-->>R: OK / 403
+    alt token inválido o no pertenece
+        W-->>U: cerrar conexión (403)
+    else válido
+        U->>S: PUT /proyectos/{id}/tareas/{tarea}/estado
+        S-->>R: 200 (transacción confirmada)
+        R->>W: notificar cambio al usuario
+    end
+```
+
+El servidor valida el token en el primer mensaje y rechaza la conexión si el usuario no
+pertenece al proyecto. Los cambios se notifican **solo después de que la transacción se
+confirme** (ver prueba `test_websocket_notifica_cambios_solo_despues_del_commit`). La conexión
+no garantiza entrega durable entre reinicios (el bus es en proceso, sin broker: ADR 0006 y
+0022).
+
 # 7. Vista de despliegue
 
-UniTeam se ejecuta en **cuatro piezas, cada una decidida por separado**: dos las ejecuta Render
-a partir de este repositorio y dos son servicios gestionados de terceros. Ninguna tiene costo
-(restricción [T5](#21-restricciones-técnicas)). La infraestructura que el equipo ejecuta está
-descrita como código en [`render.yaml`](../../render.yaml); el procedimiento completo, incluida
-la reversión, está en la [guía de despliegue](../despliegue/guia.md).
+UniTeam se ejecuta en **cuatro piezas**, cada una decidida por separado: una aplicación web
+estática, una API en contenedor, una base de datos y un proveedor de identidad. Ninguna tiene
+costo para el equipo (restricción [T5](#21-restricciones-técnicas)): el sistema se despliega en
+Dokploy sobre un servidor institucional cedido por el docente
+([ADR 0021](../adr/0021-desplegar-en-dokploy-en-un-servidor-institucional.md)). La
+infraestructura está descrita como código en
+[`docker-compose.yml`](../../docker-compose.yml); el procedimiento completo está en la
+[guía de despliegue](../despliegue/guia.md).
+
+Traefik, ya presente en el servidor institucional, termina TLS y enruta el tráfico a los
+dominios públicos [`https://uniteam-web.iscoutb.dev`](https://uniteam-web.iscoutb.dev)
+(frontend) y [`https://uniteam-api.iscoutb.dev`](https://uniteam-api.iscoutb.dev) (API). Los
+secretos (`DATABASE_URL`, `OIDC_EMISOR`, `OIDC_AUDIENCIA`, `ORIGENES_PERMITIDOS`) se definen
+como variables de entorno del panel de Dokploy, nunca en el repositorio.
 
 ## 7.1 Infraestructura de producción
 
@@ -480,38 +522,35 @@ la reversión, está en la [guía de despliegue](../despliegue/guia.md).
 flowchart LR
     usuario(["Estudiante<br/>navegador web"])
 
-    subgraph render ["Render · región Virginia"]
+    subgraph dokploy ["Servidor institucional · Dokploy"]
         direction TB
-        cdn["<b>Aplicación Web</b><br/>sitio estático en CDN<br/><i>web/out · Next.js exportado</i>"]
-        api["<b>API</b><br/>servicio web Docker · plan Free<br/><i>imagen destino api · FastAPI</i><br/>/health · /metricas"]
+        web[("<b>Aplicación Web</b><br/>sitio estático · nginx<br/><i>web/out · Next.js exportado</i>")]
+        api[("<b>API</b><br/>contenedor Docker · FastAPI<br/><i>imagen destino api</i><br/>/health · /metricas")]
+        db[("<b>Base de datos</b><br/>MySQL 8.4<br/>volumen datos_mysql")]
     end
 
-    subgraph aiven ["Aiven · costa este de EE. UU."]
-        bd[("<b>Base de datos</b><br/>MySQL 8 · plan Free<br/>1 GB")]
+    subgraph idp ["Proveedor de identidad"]
+        oidc[("<b>OIDC</b><br/>cuenta institucional o Google<br/>JWKS para validar tokens")]
     end
 
-    subgraph auth0 ["Auth0"]
-        idp["<b>Proveedor de identidad</b><br/>OIDC · plan Free<br/>Google como conexión social"]
-    end
+    gh["GitHub Actions<br/>CI + despliegue desde el repositorio"]
 
-    gh["GitHub Actions<br/>CI + SonarCloud"]
-
-    usuario -- "HTTPS · ficheros" --> cdn
+    usuario -- "HTTPS · ficheros estáticos" --> web
     usuario -- "HTTPS · REST/JSON + Bearer" --> api
-    usuario -- "HTTPS · PKCE" --> idp
-    api -- "MySQL sobre TLS<br/>certificado verificado" --> bd
-    api -- "HTTPS · JWKS" --> idp
-    gh -. "checksPass:<br/>despliega si la CI está en verde" .-> render
+    usuario -- "HTTPS · PKCE + callback" --> oidc
+    api -- "MySQL sobre red interna" --> db
+    api -- "HTTPS · JWKS" --> oidc
+    gh -. "despliega docker-compose al pousser" .-> dokploy
 ```
 
 ## 7.2 Una caja por pieza
 
 | Pieza (C4 nivel 2) | Dónde se ejecuta | Forma | Por qué ahí | Escenario que lo decide | Decisión |
 |--------------------|-----------------|-------|-------------|-------------------------|----------|
-| **Aplicación Web** | Render, sitio estático | Servicio gestionado (CDN) | No hace nada en el servidor: todo ocurre en el navegador. Sin proceso no hay arranque en frío ni horas de instancia. | [ESC-01](../calidad/escenarios-calidad.md#esc-01), [ESC-02](../calidad/escenarios-calidad.md#esc-02) | [ADR-007](../adr/0007-servir-la-aplicacion-web-como-sitio-estatico.md) |
-| **API** | Render, servicio web Docker, plan Free | Contenedor | Guarda estado en memoria (caché del JWKS, ventana de ESC-01) y un *pool* de conexiones a MySQL: la descalifica como función. | [ESC-01](../calidad/escenarios-calidad.md#esc-01), [ESC-03](../calidad/escenarios-calidad.md#esc-03) | [ADR-008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md) |
-| **Base de datos** | Aiven for MySQL, plan Free | Servicio gestionado | Única pieza con estado duradero; el disco de los servicios gratuitos de Render es efímero. | [ESC-04](../calidad/escenarios-calidad.md#esc-04) | [ADR-009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md) |
-| **Proveedor de identidad** | Auth0, plan Free | Servicio gestionado | Emite JWT para una audiencia y acepta PKCE sin secreto, que es lo que la API ya verifica. | [ESC-03](../calidad/escenarios-calidad.md#esc-03) | [ADR-010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) |
+| **Aplicación Web** | Servidor institucional · Dokploy | Sitio estático servido por nginx | Todo ocurre en el navegador: exportar Next.js elimina procesos, arranque en frío y horas de instancia. | [ESC-01](../calidad/escenarios-calidad.md#esc-01), [ESC-02](../calidad/escenarios-calidad.md#esc-02) | [ADR-007](../adr/0007-servir-la-aplicacion-web-como-sitio-estatico.md) |
+| **API** | Servidor institucional · Dokploy | Contenedor Docker | Guarda estado en memoria (caché del JWKS, ventana de ESC-01) y un *pool* de conexiones a MySQL: necesita un proceso persistente, no una función sin servidor. | [ESC-01](../calidad/escenarios-calidad.md#esc-01), [ESC-03](../calidad/escenarios-calidad.md#esc-03) | [ADR-008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md) (reemplazado por 0021) |
+| **Base de datos** | Servidor institucional · Dokploy | MySQL 8.4 con volumen | Única pieza con estado duradero; el volumen `datos_mysql` persiste entre reinicios. | [ESC-04](../calidad/escenarios-calidad.md#esc-04) | [ADR-009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md) (reemplazado por 0021) |
+| **Proveedor de identidad** | Fuera del servidor | Servicio gestionado | Emite JWT para una audiencia y acepta PKCE sin secreto, que es lo que la API ya verifica. | [ESC-03](../calidad/escenarios-calidad.md#esc-03) | [ADR-010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) |
 | Ficheros | — | — | UniTeam no guarda ficheros de usuario. | — | — |
 | Trabajos programados | — | — | No hay tareas periódicas; el progreso se calcula al consultarlo. | — | — |
 
@@ -521,7 +560,7 @@ flowchart LR
 |---------|----------------|---------------|-----------|----------|
 | Local | `docker compose up` ([`compose.yaml`](../../compose.yaml)) | MySQL 8.4 en contenedor | Emisor OIDC de desarrollo (imagen `idp-dev`) | Desarrollo y demostración sin cuentas |
 | Integración continua | [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | MySQL 8.4 como servicio del corredor | Emisor de desarrollo en un hilo | Pruebas, análisis estático, construcción de imágenes |
-| Producción | Render Blueprint ([`render.yaml`](../../render.yaml)) | Aiven for MySQL | Auth0 | Uso real y evaluación |
+| Producción | Dokploy + [`docker-compose.yml`](../../docker-compose.yml) | MySQL 8.4 con volumen persistente | OIDC del servidor institucional | Uso real y evaluación |
 
 La API es **la misma imagen** en los tres: solo cambian las variables de entorno. El emisor de
 desarrollo vive en otra imagen (`idp-dev`) y la CI comprueba que no aparece en la de la API.
@@ -530,29 +569,30 @@ desarrollo vive en otra imagen (`idp-dev`) y la CI comprueba que no aparece en l
 
 | Señal | Dónde | Qué responde |
 |-------|-------|--------------|
-| **Health check** | `GET /health` | Si el proceso responde **y** alcanza la base de datos (200 o 503). Render no enruta tráfico a una instancia que no lo supere. |
-| **Logs estructurados** | Salida estándar → *Render → Logs* | Una línea JSON por petición con `id_peticion`, `metodo`, `ruta` (plantilla, sin identificadores), `estado` y `duracion_ms`. Sin datos personales ([L1](#23-restricciones-legales)). |
+| **Health check** | `GET /health` | Si el proceso responde **y** alcanza la base de datos (200 o 503). Dokploy no enruta tráfico a una instancia que no lo supere. |
+| **Logs estructurados** | Salida estándar | Una línea JSON por petición con `id_peticion`, `metodo`, `ruta` (plantilla, sin identificadores), `estado` y `duracion_ms`. Sin datos personales ([L1](#23-restricciones-legales)). |
 | **Métrica de ESC-01** | `GET /metricas/esc-01` | p50, p95 y p99 del tablero en las últimas 1 000 consultas, frente al umbral de 2 s, con `cumple: true/false`. |
 | **Métricas Prometheus** | `GET /metricas` | `uniteam_tablero_latencia_segundos` (ESC-01), `uniteam_accesos_denegados_total` (ESC-03), peticiones y duraciones por ruta. |
 
 La métrica mide el tiempo **dentro de la API**. ESC-01 es de extremo a extremo; la parte de red
 y navegador se mide con [`scripts/medir_esc01.py`](../../scripts/medir_esc01.py) contra la URL
-desplegada.
+desplegada. La comprobación programada desde Internet está en el workflow
+[`despliegue.yml`](../../.github/workflows/despliegue.yml) (cada 6 h, contra los dominios
+`iscoutb.dev`).
 
 ## 7.5 Secretos
 
-Ninguna credencial del entorno de producción está en el repositorio. `render.yaml` declara las
-variables secretas con `sync: false` —sin valor— y Render las guarda en su configuración; el
-certificado de la base de datos es un *Secret File*; el token de SonarCloud es un secreto de
-GitHub Actions. [`.env.example`](../../.env.example) documenta todas las variables. Detalle en la
-[guía](../despliegue/guia.md#7-secretos).
+Ninguna credencial del entorno de producción está en el repositorio. Los secretos se definen
+como variables de entorno en el panel de Dokploy; [`.env.example`](../../.env.example) documenta
+todas las variables. Detalle en la [guía](../despliegue/guia.md).
 
 ## 7.6 Costo
 
-**0 USD al mes** al volumen supuesto. El primer límite que se alcanza no es de volumen sino de
-calidad: la API gratuita se duerme tras 15 minutos y su arranque en frío incumple ESC-01 en la
-primera visita; evitarlo cuesta 7 USD/mes. Cálculo, supuestos y puntos de ruptura en la
-[estimación de costo](../despliegue/costos.md).
+**0 USD al mes** para el equipo, al volumen supuesto. El servidor es institucional (cedido por el
+docente), por lo que el equipo no paga ni necesita tarjeta. La contrapartida es un riesgo
+declarado: el equipo no controla parches del sistema operativo ni de Traefik, no hay SLA y la
+disponibilidad depende de un tercero ([R-08](#11-riesgos-y-deuda-técnica)). Cálculo, supuestos
+y puntos de ruptura en la [estimación de costo](../despliegue/costos.md).
 
 # 8. Conceptos transversales
 
@@ -626,9 +666,14 @@ enlaza a ellas.
 | [0008](../adr/0008-desplegar-la-api-como-contenedor-en-render.md) | Desplegar la API como contenedor en Render. | Aceptada |
 | [0009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md) | Usar Aiven for MySQL como base de datos gestionada. | Aceptada |
 | [0010](../adr/0010-usar-auth0-como-proveedor-de-identidad.md) | Usar Auth0 como proveedor de identidad del despliegue. | Aceptada |
-| [0011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md) | Mantener la API despierta con un sondeo externo en la franja de uso. Reemplaza en parte a 0008. | Aceptada |
+| [0011](../adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md) | Mantener la API despierta con un sondeo externo en la franja de uso. Reemplaza en parte a 0008. | Reemplazado por 0021 |
 | [0012](../adr/0012-publicar-el-flujo-de-estados-desde-el-dominio.md) | Publicar el flujo de estados desde el dominio; la Aplicación Web no los duplica. | Aceptada |
 | [0016](../adr/0016-conservar-mysql-como-fuente-de-verdad.md) | Conservar MySQL como fuente de verdad; documentar el costo de cambiar la decisión de persistencia. | Aceptada |
+| [0018](../adr/0018-autorizacion-por-pertenencia-a-equipo.md) | Autorización por pertenencia a equipo en una capa única de la API. | Aceptada |
+| [0019](../adr/0019-proteccion-de-la-sesion-en-el-navegador.md) | Protección de la sesión en el navegador (CSP, escapado, token en memoria). | Aceptada |
+| [0020](../adr/0020-limite-de-peticiones-en-la-api.md) | Límite de peticiones por usuario e IP en la API. | Propuesto |
+| [0021](../adr/0021-desplegar-en-dokploy-en-un-servidor-institucional.md) | Desplegar en Dokploy sobre un servidor institucional; sustituye a 0008, 0009 y, en lo relativo al arranque en frío, a 0011. | Aceptada |
+| [0022](../adr/0022-notificaciones-en-tiempo-real-por-websocket.md) | Notificaciones en tiempo real por WebSocket en el tablero. | Aceptada |
 
 ---
 
@@ -682,12 +727,27 @@ Riesgos identificados hasta la fecha. La lista crece a medida que avanza el dise
 | ID | Riesgo o deuda | Origen | Mitigación |
 |----|---------------|--------|-----------|
 | R-01 | El stack aún no está decidido; empezar a construir sin resolverlo generaría retrabajo. | T1 | Resolver ADR-001 antes de la primera implementación. Mantener el diseño independiente del framework hasta entonces. |
-| R-02 | **Materializado.** La API gratuita de Render se duerme tras 15 min sin tráfico; el 2026-09-27 a las 22:40 Colombia se observó que despertaba, dentro de la franja prevista para el sondeo. | T3, T5 | La mitigación del ADR-011 está decidida, pero no verificada: revisar el historial de cron-job.org. Hasta entonces se acepta el arranque en frío observado; `/metricas/esc-01` mide solo consultas reales del tablero. Render Starter cuesta 7 USD/mes para eliminar el frío a toda hora ([costos](../despliegue/costos.md#4-puntos-de-ruptura)). |
+| R-02 | **Materializado.** La API gratuita de Render se duerme tras 15 min sin tráfico; el 2026-09-27 a las 22:40 Colombia se observó que despertaba, dentro de la franja prevista para el sondeo. | T3, T5 | La mitigación del ADR-011 está decidida, pero no verificada: revisar el historial de cron-job.org. Hasta entonces se acepta el arranque en frío observado; `/metricas/esc-01` mide solo consultas reales del tablero. Render Starter cuesta 7 USD/mes para eliminar el frío a toda hora ([costos](../despliegue/costos.md#4-puntos-de-ruptura)). Quedó mitigado por la migración a Dokploy (ADR 0021): el servidor institucional no hiberna los servicios. |
 | R-03 | El control de acceso atraviesa todos los endpoints; un error de diseño se propaga a todo el sistema. | ESC-03 | Pruebas automatizadas de acceso en integración continua, con un caso negativo por endpoint. |
 | R-04 | Deuda técnica aceptada de forma consciente por la presión de las entregas semanales. | O1, O2 | Registrarla en esta sección cuando se contraiga, en lugar de sobre-diseñar por anticipado. |
-| R-05 | La base de datos gratuita de Aiven se apaga por inactividad y no tiene SLA: no sostiene el 99 % mensual de ESC-04. | T5 | `/health` devuelve 503 y Render no enruta tráfico; se enciende desde la consola. Pasar a un plan de pago si ESC-04 se exige ([ADR-009](../adr/0009-usar-aiven-for-mysql-como-base-de-datos-gestionada.md)). |
+| R-05 | La base de datos gratuita de Aiven se apaga por inactividad y no tiene SLA: no sostiene el 99 % mensual de ESC-04. | T5 | `/health` devuelve 503 y Render no enruta tráfico; se enciende desde la consola. Pasar a un plan de pago si ESC-04 se exige. Quedó mitigado por ADR 0021: la base de datos ahora es MySQL 8.4 con volumen persistente en el servidor institucional. |
 | R-06 | ~~Las fuentes no coinciden en si Render pide tarjeta al registrarse, lo que chocaría con T5.~~ **Cerrado el 2026-09-27:** ni Render, ni Aiven, ni Auth0 pidieron tarjeta al crear las cuentas. | T5 | Verificado y anotado en la [guía, paso 1](../despliegue/guia.md#1-cuentas). |
-| R-07 | La latencia de la API a la base de datos desplegada es de ~200 ms por consulta: la consulta del tablero tarda ~0,9 s dentro de la API frente a 0,76 s de p95 en local. Cumple ESC-01, con menos margen. | ESC-01 | Vigilar `/metricas/esc-01`. Comprobar que Aiven está en la región de la API; reducir las consultas por petición si el p95 se acerca a 2 s ([guía](../despliegue/guia.md#registro-de-comprobaciones)). |
+| R-07 | La latencia de la API a la base de datos desplegada es de ~200 ms por consulta: la consulta del tablero tarda ~0,9 s dentro de la API frente a 0,76 s de p95 en local. Cumple ESC-01, con menos margen. | ESC-01 | Vigilar `/metricas/esc-01`. Comprobar que la base de datos está en la región de la API; reducir las consultas por petición si el p95 se acerca a 2 s ([guía](../despliegue/guia.md#registro-de-comprobaciones)). |
+| R-08 | El servidor institucional es un tercero sin SLA: el equipo no controla parches del sistema operativo ni de Traefik, y la disponibilidad depende de un tercero. | T5, D-011 | Se acepta como dependencia operativa declarada (ADR 0021). El health check y la métrica de ESC-01 vigilan la disponibilidad real. |
+| R-09 | Sin réplicas, el bus de eventos en proceso no entrega notificaciones entre instancias; si la instancia cae, los eventos en vuelo se pierden. | ESC-03, ADR 0022 | La conexión WebSocket no garantiza entrega durable; el cliente reconsulta la API al reconectar. Se documenta como limitación del ADR 0022. |
+| R-10 | Una conexión WebSocket puede quedar abierta con un token OIDC que caduca; no hay renovación automática. | ESC-03 | La reautenticación requiere abrir una nueva conexión WebSocket; el servidor valida el token en el primer mensaje. |
+
+## 11.1 Señalamientos recibidos y su estado
+
+| Señalamiento | Origen | Estado | Evidencia o motivo |
+|--------------|--------|--------|------------------|
+| El plan ataca primero lo priorizado; se ejecutó T6 por costo y T1–T3 quedaron pendientes | S13, criterio 4 | Aplazado | T6 (SCA) se hizo por bajo costo; T1–T3 tienen su estado real en [`docs/seguridad/amenazas.md`](../seguridad/amenazas.md). |
+| Hallazgos de dependencias sin revisar | S13, criterio 6 | Aplazado | [`docs/seguridad/dependencias.md`](../seguridad/dependencias.md) conserva placeholders; pendiente rellenar con el run real de la auditoría. |
+| §11 no incorpora los señalamientos de pares ni su estado | S14, criterios 6 y 7 | Atendido | Esta subsección 11.1 recoge cada señalamiento con origen y estado. |
+| Consumidores comparten sesión SQL (aislamiento de fallos) | S10, deriva D1 | Abierto | Deriva arquitectónica documentada; pendiente definir una semántica única de auditoría (savepoint, outbox o propagar el fallo). |
+| Medir WebSocket y la nueva interfaz en el despliegue real | S15 | Abierto | Hay pruebas automatizadas, pero no hay medición sobre el despliegue `iscoutb.dev`. |
+| Invalidación de JWKS y flujo de estados en clientes abiertos | S12 | Abierto | Pendiente de política completa de invalidación y tabla de garantías. |
+| README afirma CI/Sonar que no coinciden con el pipeline | Seguimiento S12 | Abierto | Se corrige en `README.md` y [`docs/calidad/analisis-estatico.md`](../calidad/analisis-estatico.md): el análisis es Automático de SonarCloud, no un job de CI. |
 
 # 12. Glosario
 
@@ -699,3 +759,13 @@ Riesgos identificados hasta la fecha. La lista crece a medida que avanza el dise
 | Proyecto | Espacio de trabajo de un equipo dentro de UniTeam. Es la unidad de control de acceso. |
 | Tarea | Unidad de trabajo con responsable, prioridad, estado y fecha límite, perteneciente a un proyecto. |
 | ADR | *Architecture Decision Record*: registro de una decisión de arquitectura, su contexto y sus consecuencias. |
+| Dokploy | Plataforma de despliegue basada en Docker Compose usada en el servidor institucional cedido por el docente (ADR 0021). |
+| Traefik | Proxy inverso y terminador de TLS del servidor institucional; enruta `uniteam-web.iscoutb.dev` y `uniteam-api.iscoutb.dev`. |
+| OIDC | OpenID Connect: protocolo que UniTeam usa para delegar la autenticación en un proveedor externo (ADR 0005). |
+| JWKS | JSON Web Key Set: claves públicas del emisor OIDC con las que la API valida la firma de los tokens. |
+| Pertenencia a proyecto | Relación usuario → proyecto con rol (miembro o líder) que gatea toda operación sobre tareas. |
+| Tablero | Vista Kanban de un proyecto: columnas de estado del flujo y tarjetas de tarea. |
+| Flujo de estados | Secuencia de estados de una tarea publicada por `GET /flujo-estados`; la Aplicación Web no los duplica (ADR 0012). |
+| ESC | Escenario de calidad: atributo medible con umbral (ESC-01 a ESC-05). |
+| Deriva arquitectónica | Diferencia entre lo documentado y lo implementado en ejecución. |
+| Bus en proceso | Despacho de eventos de dominio dentro del mismo proceso, sin broker externo (ADR 0006). | |

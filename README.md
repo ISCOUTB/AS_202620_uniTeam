@@ -24,12 +24,11 @@ Tecnológica de Bolívar.
 | Análisis estático | [SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam) |
 | Última revisión de código | [2026-11-20](docs/calidad/revision-2026-09-28.md): defectos corregidos, funciones nuevas, rediseño visual (Atlas) y pendientes |
 
-Se entra con una cuenta de Google o con un correo. En Chrome o Edge se puede **instalar como
-aplicación de escritorio** desde el icono de instalación de la barra de direcciones. Está
-prevista una mitigación con sondeo externo de
-06:00 a 23:59, hora de Colombia ([ADR-011](docs/adr/0011-mantener-la-api-despierta-con-un-sondeo-externo.md)),
-pero su ejecución no está verificada: una comprobación reciente observó la API despertando
-dentro de esa franja. Consulta el [registro operativo](docs/despliegue/guia.md#mantener-la-api-despierta).
+Se entra con una cuenta institucional o de Google. En Chrome o Edge se puede **instalar como
+aplicación de escritorio** desde el icono de instalación de la barra de direcciones.
+Desplegado en Dokploy sobre un servidor institucional cedido por el docente
+([ADR-0021](docs/adr/0021-desplegar-en-dokploy-en-un-servidor-institucional.md)): 0 USD para el
+equipo, sin tarjeta, sin SLA (riesgo declarado R-08 en arc42 §11).
 
 Dónde se ejecuta cada pieza y por qué: [arc42 §7](docs/arc42/arc42-uniteam.md#7-vista-de-despliegue).
 Cómo recrear el entorno desde cero: [guía de despliegue](docs/despliegue/guia.md). Cuánto cuesta:
@@ -147,24 +146,31 @@ Son dos cosas distintas y conviene no confundirlas:
 
 ## Arquitectura
 
-UniTeam es un sistema de tres contenedores, descritos en el
-[C4 de contenedores](docs/c4/nivel2-contenedores.md):
+UniTeam es un sistema de cuatro servicios, descritos en el
+[C4 de contenedores](docs/c4/nivel2-contenedores.md) y desglosados en el
+[C4 de componentes de la API](docs/c4/nivel3-componentes.md):
 
 ```
-Navegador ──HTTPS──▶ Aplicación Web ──REST/JSON──▶ API ──SQL──▶ MySQL
+Navegador ──HTTPS──▶ Aplicación Web ──REST/JSON + WSS──▶ API ──SQL──▶ MySQL
                        (Next.js)                (FastAPI)
 ```
+
+El servicio `web` es Next.js exportado y servido por nginx; `api` es FastAPI; `migrate` ejecuta
+el esquema idempotente antes de `api`; `db` es MySQL 8.4 con volumen persistente. Desplegado
+en Dokploy sobre un servidor institucional ([ADR-0021](docs/adr/0021-desplegar-en-dokploy-en-un-servidor-institucional.md)).
 
 El backend sigue un estilo orientado a eventos con **despacho en proceso**
 ([ADR 0003](docs/adr/0003-usar-eventos-de-dominio-en-proceso.md)): no hay broker ni cola
 externa. Las reglas de negocio viven en un dominio que no depende de ningún framework, y la
-persistencia queda detrás de repositorios.
+persistencia queda detrás de repositorios. El tablero también abre un WebSocket autenticado por
+proyecto ([ADR-0022](docs/adr/0022-notificaciones-en-tiempo-real-por-websocket.md)).
 
 | Documento | Contenido |
 |-----------|-----------|
 | [Documentación arc42](docs/arc42/arc42-uniteam.md) | Objetivos, restricciones, contexto, bloques de construcción y vista de ejecución. |
-| [C4 nivel 1 — Contexto](docs/c4/nivel1-contexto.md) · [nivel 2 — Contenedores](docs/c4/nivel2-contenedores.md) | Diagramas como código, en Mermaid. |
+| [C4 nivel 1 — Contexto](docs/c4/nivel1-contexto.md) · [nivel 2 — Contenedores](docs/c4/nivel2-contenedores.md) · [nivel 3 — Componentes de la API](docs/c4/nivel3-componentes.md) | Diagramas como código, en Mermaid. |
 | [Decisiones de arquitectura](docs/adr/) | Un ADR por decisión, con contexto, alternativas y consecuencias. |
+| [Notificaciones en tiempo real por WebSocket](docs/adr/0022-notificaciones-en-tiempo-real-por-websocket.md) | WebSocket autenticado por proyecto; contrato en [docs/api/contrato.md](docs/api/contrato.md). |
 | [Escenarios de calidad](docs/calidad/escenarios-calidad.md) | Cinco escenarios de seis partes con medida verificable. |
 | [Árbol de utilidad](docs/calidad/arbol-utilidad.md) · [Interesados](docs/calidad/interesados.md) | Priorización por impacto y riesgo, y de dónde sale. |
 | [Tabla de aspectos](docs/aspectos.md) | Trazabilidad de aspecto a evidencia, eslabón por eslabón. |
@@ -302,7 +308,7 @@ Las variables `NEXT_PUBLIC_*` se hornean al compilar el frontend, no al arrancar
 ## Pruebas
 
 ```bash
-pytest -v                                    # 153 pruebas
+pytest -v                                    # 160 pruebas
 pytest test/test_taller_mensajeria.py -q     # taller de entrega y reintentos
 python scripts/verificar_enlaces.py          # enlaces de la documentación
 cd web && npm run build                      # comprueba tipos y compilación
@@ -334,7 +340,7 @@ concurrentes— y contrasta el resultado con su umbral. La línea base actual es
 el p95** frente a los 2 s comprometidos:
 [ficha de la medición](docs/calidad/mediciones/esc-01-linea-base.md).
 
-La integración continua corre en GitHub Actions (**`ci.yml`**: pruebas contra MySQL, `npm run build`, cierre de dependencias, SonarCloud con Quality Gate bloqueante —actualmente **OK** (A en fiabilidad, seguridad y mantenibilidad, 0 % duplicación)**). El despliegue en Dokploy usa `docker-compose.yml` y `render.yaml` como blueprint. El workflow [`despliegue.yml`](.github/workflows/despliegue.yml) comprueba cada seis horas que el sitio y los endpoints operativos respondan desde Internet contra `uniteam-web.iscoutb.dev` / `uniteam-api.iscoutb.dev`; es una comprobación de disponibilidad, no sustituye a la CI. La compilación, pruebas y revisiones locales se describen arriba.
+La integración continua corre en GitHub Actions (**`ci.yml`**: pruebas contra MySQL, `npm run build`, cierre de dependencias, verificación de enlaces y contrato OpenAPI). El análisis estático lo ejecuta SonarCloud como **Automatic Analysis** al actualizarse el repositorio (no es un job de la CI): consulta pública en el [panel de SonarCloud](https://sonarcloud.io/summary/overall?id=ISCOUTB_AS_202620_uniTeam), consultado el 2026-11-22 con `status: OK` (A en fiabilidad, seguridad y mantenibilidad, 0 % duplicación). El despliegue en Dokploy usa `docker-compose.yml` y Traefik en el servidor institucional. El workflow [`despliegue.yml`](.github/workflows/despliegue.yml) comprueba cada seis horas que el sitio y los endpoints operativos respondan desde Internet contra `uniteam-web.iscoutb.dev` / `uniteam-api.iscoutb.dev`; es una comprobación de disponibilidad, no sustituye a la CI. La compilación, pruebas y revisiones locales se describen arriba.
 
 El recorrido completo —interfaz, lógica y persistencia— está cubierto por
 [`test/test_corte_vertical.py`](test/test_corte_vertical.py), y la puerta de entrada por

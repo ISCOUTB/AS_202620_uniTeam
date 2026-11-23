@@ -49,9 +49,9 @@ fuentes consultadas no coinciden; el resultado se anota en la
 
 ## Decisión
 
-El sitio se compila con `output: "export"` a `web/out/` y Render lo sirve como sitio estático,
-declarado en [`render.yaml`](../../render.yaml). Las variables `NEXT_PUBLIC_*` se hornean al
-compilar. Localmente, `docker compose up` sirve la misma compilación con nginx.
+El sitio se compila con `output: "export"` a `web/out/` y se sirve como sitio estático;
+se declaraba en `render.yaml` (archivo retirado; ver ADR 0021) (archivo retirado tras la migración a
+Dokploy, ver ADR 0021). Las variables `NEXT_PUBLIC_*` se hornean al compilar. Localmente, `docker compose up` sirve la misma compilación con nginx.
 
 ## Consecuencias
 
@@ -67,10 +67,11 @@ compilar. Localmente, `docker compose up` sirve la misma compilación con nginx.
 
 ## Reversión
 
-Quitar `output: "export"` de `web/next.config.mjs` y cambiar en `render.yaml` el servicio a
-`runtime: node` con `startCommand: npm start`. Es un cambio de configuración de dos archivos.
+Quitar `output: "export"` de `web/next.config.mjs` y cambiar en `render.yaml` (retirado; ver
+ADR 0021) el servicio a `runtime: node` con `startCommand: npm start`. Es un cambio de
+configuración de dos archivos.
 
 ## Trazabilidad
 
-[`web/next.config.mjs`](../../web/next.config.mjs) · [`render.yaml`](../../render.yaml) ·
+[`web/next.config.mjs`](../../web/next.config.mjs) · `render.yaml` (retirado; ver ADR 0021) ·
 [arc42 §7](../arc42/arc42-uniteam.md#7-vista-de-despliegue) · [ESC-01](../calidad/escenarios-calidad.md#esc-01)

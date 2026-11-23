@@ -5,8 +5,8 @@ name: Comprobación del despliegue
 # resumen la hora, el código de respuesta y el tiempo de cada URL, que es la
 # evidencia que pide la S8 y que un evaluador puede consultar sin credenciales.
 #
-# No sirve para mantener la API despierta: cada 6 horas no lo consigue, y no
-# se pretende (ADR 0008).
+# Cada 6 horas deja evidencia de disponibilidad; no sustituye a la CI ni al
+# arranque en frío (el servidor institucional no hiberna los servicios: ADR 0021).
 
 on:
   workflow_dispatch:

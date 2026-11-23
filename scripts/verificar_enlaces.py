@@ -16,7 +16,7 @@ from pathlib import Path
 RAIZ = Path(__file__).resolve().parent.parent
 ENLACE = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 MALFORMADO = re.compile(r"\[[^\]\n]*\.md\)")
-EXCLUIDOS = {".venv", ".git", "node_modules"}
+EXCLUIDOS = {".venv", ".git", "node_modules", "feedback"}
 
 
 def documentos():
